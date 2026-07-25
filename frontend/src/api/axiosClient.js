@@ -4,7 +4,7 @@ import axios from 'axios';
  * Global Axios Client Configuration
  */
 const axiosClient = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',

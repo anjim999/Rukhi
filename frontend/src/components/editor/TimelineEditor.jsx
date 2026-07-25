@@ -1,10 +1,58 @@
 import React, { useState } from 'react';
-import { Clock, Edit3, Settings2, Type, Move, Palette, Sliders } from 'lucide-react';
+import { Clock, Edit3, Settings2 } from 'lucide-react';
 import { THEME_PRESETS } from '../../../../shared/constants/timeline';
 
 const EMOJI_PALETTE = ['⚡', '💸', '🚀', '✨', '🤖', '👑', '💥', '❤️', '🎯', '💡', '💎'];
 const ANIMATION_OPTIONS = ['pop', 'bounce', 'slide', 'glow', 'wave', 'none'];
-const FONT_FAMILIES = ['Inter', 'Montserrat', 'Outfit', 'Roboto', 'Poppins', 'Oswald'];
+
+const FONT_FAMILIES_50 = [
+  'Inter',
+  'Montserrat',
+  'Outfit',
+  'Roboto',
+  'Poppins',
+  'Oswald',
+  'Bebas Neue',
+  'Anton',
+  'Pacifico',
+  'Dancing Script',
+  'Caveat',
+  'Great Vibes',
+  'Satisfy',
+  'Lobster',
+  'Permanent Marker',
+  'Playfair Display',
+  'Cinzel',
+  'Abril Fatface',
+  'Bungee',
+  'Rubik Glitch',
+  'Press Start 2P',
+  'Righteous',
+  'Space Grotesk',
+  'Syne',
+  'Fredoka',
+  'Kanit',
+  'Cinzel Decorative',
+  'Marck Script',
+  'Sacramento',
+  'Yellowtail',
+  'Alex Brush',
+  'Parisienne',
+  'Shadows Into Light',
+  'Indie Flower',
+  'Amatic SC',
+  'Chewy',
+  'Luckiest Guy',
+  'Bangers',
+  'Special Elite',
+  'Orbitron',
+  'Shrikhand',
+  'Changa One',
+  'Ultra',
+  'Black Ops One',
+  'Russo One',
+  'Staatliches',
+];
 
 const PRESET_OPTIONS = [
   { id: THEME_PRESETS.HORMOZI, name: 'Hormozi Green Box' },
@@ -39,7 +87,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
 
   if (!timeline || !timeline.segments) return null;
 
-  // Update text of a specific word in a specific segment
   const handleWordChange = (segmentId, wordId, newWord) => {
     const updatedSegments = timeline.segments.map((seg) => {
       if (seg.id !== segmentId) return seg;
@@ -51,7 +98,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
     setTimeline({ ...timeline, segments: updatedSegments });
   };
 
-  // Update Per-Segment Property (preset, fontFamily, fontSize, positionY, animation)
   const handleSegmentPropChange = (segmentId, key, value) => {
     const updatedSegments = timeline.segments.map((seg) => {
       if (seg.id !== segmentId) return seg;
@@ -82,7 +128,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
     setTimeline({ ...timeline, segments: updatedSegments });
   };
 
-  // Update Per-Word Custom Highlight Color
   const handleWordColorChange = (segmentId, wordId, colorHex) => {
     const updatedSegments = timeline.segments.map((seg) => {
       if (seg.id !== segmentId) return seg;
@@ -96,7 +141,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
     setTimeline({ ...timeline, segments: updatedSegments });
   };
 
-  // Toggle Per-Word Emoji
   const handleEmojiToggle = (segmentId, wordId, emoji) => {
     const updatedSegments = timeline.segments.map((seg) => {
       if (seg.id !== segmentId) return seg;
@@ -142,7 +186,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                   : 'border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700'
               }`}
             >
-              {/* Card Header: Timing Badge & Per-Timeframe Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
                 <span className="text-[11px] font-mono text-zinc-300 flex items-center gap-1 font-semibold">
                   <Clock className="w-3 h-3 text-yellow-400" />
@@ -150,7 +193,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                 </span>
 
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  {/* Per-Timeframe Style Preset Dropdown */}
                   <select
                     value={segment.styleOverride || ''}
                     onChange={(e) => handleSegmentPropChange(segment.id, 'styleOverride', e.target.value || null)}
@@ -164,7 +206,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                     ))}
                   </select>
 
-                  {/* Per-Timeframe Animation Selector */}
                   <select
                     value={segment.animation || 'pop'}
                     onChange={(e) => handleSegmentPropChange(segment.id, 'animation', e.target.value)}
@@ -177,7 +218,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                     ))}
                   </select>
 
-                  {/* Toggle Per-Segment Full Studio Controls Drawer */}
                   <button
                     onClick={() => setExpandedSegId(isExpanded ? null : segment.id)}
                     className={`p-1 rounded text-xs font-bold transition flex items-center gap-1 ${
@@ -185,55 +225,52 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                         ? 'bg-yellow-400 text-black'
                         : 'bg-zinc-800 text-zinc-400 hover:text-white'
                     }`}
-                    title="Customize Font, Size & Position for this exact timeframe"
+                    title="Customize 50+ Fonts, Size & Position for this exact timeframe"
                   >
                     <Settings2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              {/* Expanded Per-Segment Customization Drawer (Font, Size, Position Y) */}
               {isExpanded && (
                 <div
                   className="mb-3 p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-3 text-xs"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Per-Segment Font Family */}
+                    {/* Per-Segment 50+ Font Selector */}
                     <div>
                       <label className="text-[10px] font-semibold text-zinc-400 block mb-1">
-                        Timeframe Font
+                        Font (50+ Styles)
                       </label>
                       <select
                         value={segment.fontStyle?.fontFamily || 'Inter'}
                         onChange={(e) => handleSegmentPropChange(segment.id, 'fontFamily', e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-[11px] text-white outline-none"
                       >
-                        {FONT_FAMILIES.map((font) => (
-                          <option key={font} value={font}>
+                        {FONT_FAMILIES_50.map((font) => (
+                          <option key={font} value={font} style={{ fontFamily: font }}>
                             {font}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    {/* Per-Segment Font Size Slider */}
                     <div>
                       <label className="text-[10px] font-semibold text-zinc-400 block mb-1">
-                        Size ({segment.fontStyle?.fontSize || 48}px)
+                        Size ({segment.fontStyle?.fontSize || 52}px)
                       </label>
                       <input
                         type="range"
                         min="30"
-                        max="80"
-                        value={segment.fontStyle?.fontSize || 48}
+                        max="90"
+                        value={segment.fontStyle?.fontSize || 52}
                         onChange={(e) => handleSegmentPropChange(segment.id, 'fontSize', parseInt(e.target.value, 10))}
                         className="w-full h-1 bg-zinc-800 accent-yellow-400 rounded cursor-pointer"
                       />
                     </div>
                   </div>
 
-                  {/* Per-Segment Position Y Slider */}
                   <div>
                     <label className="text-[10px] font-semibold text-zinc-400 flex items-center justify-between mb-1">
                       <span>Vertical Position Y</span>
@@ -251,7 +288,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                 </div>
               )}
 
-              {/* Word Badges with Custom Word Colors & Emojis */}
               <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 {segment.words.map((w) => (
                   <div

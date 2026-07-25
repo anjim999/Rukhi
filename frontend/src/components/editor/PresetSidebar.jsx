@@ -30,7 +30,54 @@ const PRESET_OPTIONS = [
   { id: THEME_PRESETS.MINIMAL_CLEAN, name: 'Minimal White', description: 'Clean typography, subtle shadow', badge: 'Minimal', primaryColor: '#F4F4F5', highlightColor: '#E4E4E7', fontFamily: 'Inter' },
 ];
 
-const FONT_FAMILIES = ['Inter', 'Montserrat', 'Outfit', 'Roboto', 'Poppins', 'Oswald'];
+const FONT_FAMILIES_50 = [
+  'Inter',
+  'Montserrat',
+  'Outfit',
+  'Roboto',
+  'Poppins',
+  'Oswald',
+  'Bebas Neue',
+  'Anton',
+  'Pacifico',
+  'Dancing Script',
+  'Caveat',
+  'Great Vibes',
+  'Satisfy',
+  'Lobster',
+  'Permanent Marker',
+  'Playfair Display',
+  'Cinzel',
+  'Abril Fatface',
+  'Bungee',
+  'Rubik Glitch',
+  'Press Start 2P',
+  'Righteous',
+  'Space Grotesk',
+  'Syne',
+  'Fredoka',
+  'Kanit',
+  'Cinzel Decorative',
+  'Marck Script',
+  'Sacramento',
+  'Yellowtail',
+  'Alex Brush',
+  'Parisienne',
+  'Shadows Into Light',
+  'Indie Flower',
+  'Amatic SC',
+  'Chewy',
+  'Luckiest Guy',
+  'Bangers',
+  'Special Elite',
+  'Orbitron',
+  'Shrikhand',
+  'Changa One',
+  'Ultra',
+  'Black Ops One',
+  'Russo One',
+  'Staatliches',
+];
 
 const AI_SUGGESTIONS = [
   '🔥 High-Energy Red & Yellow Boxes',
@@ -60,6 +107,8 @@ export default function PresetSidebar({ timeline, setTimeline }) {
         gold: [THEME_PRESETS.GOLD_LUXURY, THEME_PRESETS.AMBER_GLOW, THEME_PRESETS.ROSE_GOLD, THEME_PRESETS.BOLD_VIRAL],
       };
 
+      const fontsList = ['Montserrat', 'Outfit', 'Inter', 'Poppins', 'Oswald', 'Bebas Neue', 'Pacifico', 'Dancing Script', 'Playfair Display'];
+
       const lower = promptText.toLowerCase();
       let selectedPalette = paletteMap.fire;
       if (lower.includes('cyan') || lower.includes('neon')) selectedPalette = paletteMap.cyan;
@@ -70,6 +119,10 @@ export default function PresetSidebar({ timeline, setTimeline }) {
         ...seg,
         styleOverride: selectedPalette[idx % selectedPalette.length],
         animation: idx % 2 === 0 ? 'pop' : 'bounce',
+        fontStyle: {
+          ...(seg.fontStyle || {}),
+          fontFamily: fontsList[idx % fontsList.length],
+        },
         words: seg.words.map((w) => ({
           ...w,
           caseFormat: 'uppercase',
@@ -287,21 +340,21 @@ export default function PresetSidebar({ timeline, setTimeline }) {
         <div className="flex items-center gap-2">
           <Type className="w-3.5 h-3.5 text-zinc-400" />
           <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-            Typography Controls
+            Typography Controls (50+ Google Fonts)
           </h4>
         </div>
 
         <div>
           <label className="text-[11px] font-medium text-zinc-400 block mb-1.5">
-            Font Family
+            Font Family (50+ Styles)
           </label>
           <select
             value={timeline.globalTheme?.fontFamily || 'Inter'}
             onChange={(e) => handleGlobalThemeChange('fontFamily', e.target.value)}
             className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400"
           >
-            {FONT_FAMILIES.map((font) => (
-              <option key={font} value={font}>
+            {FONT_FAMILIES_50.map((font) => (
+              <option key={font} value={font} style={{ fontFamily: font }}>
                 {font}
               </option>
             ))}
@@ -311,14 +364,14 @@ export default function PresetSidebar({ timeline, setTimeline }) {
         <div>
           <div className="flex justify-between items-center mb-1">
             <label className="text-[11px] font-medium text-zinc-400">
-              Font Size ({timeline.globalTheme?.fontSize || 48}px)
+              Font Size ({timeline.globalTheme?.fontSize || 52}px)
             </label>
           </div>
           <input
             type="range"
             min="30"
-            max="80"
-            value={timeline.globalTheme?.fontSize || 48}
+            max="90"
+            value={timeline.globalTheme?.fontSize || 52}
             onChange={(e) => handleGlobalThemeChange('fontSize', parseInt(e.target.value, 10))}
             className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer"
           />

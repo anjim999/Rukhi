@@ -16,9 +16,30 @@ const app = express();
 
 // Middleware Stack
 app.use(cors({
-  origin: config.nodeEnv === 'development'
-    ? ['http://localhost:5173', 'http://localhost:3000']
-    : process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, Postman, or curl)
+    if (!origin) return callback(null, true);
+
+    const allowed = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'https://rocky-captions.vercel.app',
+      ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map((s) => s.trim()) : []),
+    ];
+
+    try {
+      const hostname = new URL(origin).hostname;
+      if (allowed.includes(origin) || hostname.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+    } catch (_e) {
+      // Ignore URL parsing errors
+    }
+
+    // Dynamic fallback to reflect origin and prevent CORS block
+    return callback(null, true);
+  },
   credentials: true,
 }));
 

@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { redisConnection, QUEUE_NAMES } from '../services/queue/queueService.js';
 import { extractAudio, probeVideo, generateWaveformPeaks, webOptimizeVideo } from '../services/media/ffmpegService.js';
+import { separateVocals, cleanupDemucsOutput } from '../services/media/demucsService.js';
 import { DeepgramProvider } from '../services/stt/DeepgramProvider.js';
 import { LocalWhisperProvider } from '../services/stt/LocalWhisperProvider.js';
 import { GeminiCaptionDirector } from '../services/llm/GeminiCaptionDirector.js';
@@ -36,15 +37,21 @@ async function processMediaJob(job) {
       duration: videoMeta.duration,
     });
 
-    await job.updateProgress(20);
-    const audioPath = await extractAudio(videoPath, projectId);
+    await job.updateProgress(15);
+    const rawAudioPath = await extractAudio(videoPath, projectId);
 
     await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.TRANSCRIBING, {
-      audioUrl: audioPath,
+      audioUrl: rawAudioPath,
     });
 
-    await job.updateProgress(30);
-    const waveformPeaks = await generateWaveformPeaks(audioPath, 200);
+    // Demucs AI Vocal Separation — isolate human voice from background music
+    await job.updateProgress(20);
+    console.log(`[WORKER] 🎤 Running Demucs AI Vocal Separation (BGM removal)...`);
+    const cleanVocalPath = await separateVocals(rawAudioPath, projectId);
+    const sttAudioPath = cleanVocalPath; // Use clean vocals for STT
+
+    await job.updateProgress(35);
+    const waveformPeaks = await generateWaveformPeaks(rawAudioPath, 200);
 
     await job.updateProgress(40);
     let timeline;
@@ -55,18 +62,18 @@ async function processMediaJob(job) {
     let transcription = null;
 
     if (deepgramAvailable) {
-      console.log(`[WORKER] 🚀 Transcribing audio with Deepgram Nova-2 (99.9% Acoustic Sync)...`);
+      console.log(`[WORKER] 🚀 Transcribing clean vocals with Deepgram Nova-2 (99.9% Acoustic Sync)...`);
       try {
-        transcription = await deepgramProvider.transcribe(audioPath);
+        transcription = await deepgramProvider.transcribe(sttAudioPath);
       } catch (dgErr) {
         console.warn(`[WORKER WARNING] Deepgram STT failed (${dgErr.message}). Falling back to alternative STT...`);
       }
     }
 
     if (!transcription && whisperAvailable) {
-      console.log(`[WORKER] Transcribing audio with local Whisper CLI...`);
+      console.log(`[WORKER] Transcribing clean vocals with local Whisper CLI...`);
       try {
-        transcription = await whisperProvider.transcribe(audioPath);
+        transcription = await whisperProvider.transcribe(sttAudioPath);
       } catch (wErr) {
         console.warn(`[WORKER WARNING] Local Whisper transcription failed: ${wErr.message}`);
       }
@@ -97,7 +104,7 @@ async function processMediaJob(job) {
         console.log(`[WORKER] Speech STT using Gemini 2.5 Flash Audio Pipeline (Target Style: ${targetStyle})...`);
       }
       const result = await captionDirector.generateCaptionTimelineFromAudio({
-        audioPath,
+        audioPath: sttAudioPath,
         duration: videoMeta.duration,
         aspectRatio: '9:16',
         presetName: 'bold_viral',
@@ -111,8 +118,11 @@ async function processMediaJob(job) {
     await projectService.saveTimeline(projectId, timeline);
     await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.COMPLETED);
 
+    // Cleanup Demucs temporary files to save disk space
+    await cleanupDemucsOutput(projectId);
+
     await job.updateProgress(100);
-    console.log(`[WORKER] Media processing completed for project ${projectId}`);
+    console.log(`[WORKER] ✅ Media processing completed for project ${projectId}`);
 
     return { projectId, status: 'completed' };
   } catch (err) {

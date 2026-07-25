@@ -364,41 +364,6 @@ export default function PresetSidebar({ timeline, setTimeline }) {
           </div>
         </div>
 
-        {/* Modern Toggle Switch: Auto-Emoji & Keyword Highlight Engine */}
-        <div className="pt-3 border-t border-zinc-800/80">
-          <div
-            onClick={handleToggleEmojis}
-            className={`flex items-center justify-between p-3 rounded-xl border transition cursor-pointer group ${
-              autoEmojiEnabled
-                ? 'bg-yellow-400/10 border-yellow-500/40 shadow-lg shadow-yellow-500/5'
-                : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <div className={`p-2 rounded-lg transition ${autoEmojiEnabled ? 'bg-yellow-400 text-black' : 'bg-zinc-900 text-zinc-500'}`}>
-                {isEmojiApplying ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Sparkles className="w-4 h-4" />}
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white group-hover:text-yellow-400 transition flex items-center gap-1.5">
-                  <span>Auto-Emoji & Highlights</span>
-                  {autoEmojiEnabled && (
-                    <span className="text-[9px] bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 px-1.5 py-0.2 rounded font-mono font-semibold">
-                      {emojiCount} Active
-                    </span>
-                  )}
-                </p>
-                <p className="text-[10px] text-zinc-400">
-                  {autoEmojiEnabled ? 'Injecting viral emojis & yellow pop boxes' : 'Standard clean text captions'}
-                </p>
-              </div>
-            </div>
-
-            {/* Custom Submagic iOS Style Toggle Switch */}
-            <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${autoEmojiEnabled ? 'bg-yellow-400' : 'bg-zinc-800'}`}>
-              <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${autoEmojiEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-            </div>
-          </div>
-        </div>
       </form>
 
       {/* Quick Bulk Format Transformer Toolbar */}

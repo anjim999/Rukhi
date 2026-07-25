@@ -70,7 +70,7 @@ export async function extractAudio(videoPath, projectId) {
   }
 
   try {
-    console.log(`[FFMPEG] Extracting 16kHz mono WAV audio from: ${videoPath}`);
+    console.log(`[FFMPEG] Extracting clean 16kHz mono WAV audio from: ${videoPath}`);
     await runFFmpeg([
       '-i', videoPath,
       '-vn',
@@ -80,7 +80,7 @@ export async function extractAudio(videoPath, projectId) {
       '-y',
       outputPath,
     ]);
-    console.log(`[FFMPEG] ✅ Audio extracted cleanly: ${outputPath}`);
+    console.log(`[FFMPEG] ✅ Clean audio extracted: ${outputPath}`);
     return outputPath;
   } catch (err) {
     console.warn(`[FFMPEG WARNING] Audio extraction failed (${err.message}).`);

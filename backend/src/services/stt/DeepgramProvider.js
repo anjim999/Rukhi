@@ -46,6 +46,9 @@ export class DeepgramProvider extends STTProvider {
       smart_format: 'true',
       punctuate: 'true',
       utterances: 'true',
+      diarize: 'true',
+      filler_words: 'true',
+      paragraphs: 'true',
       detect_language: 'true',
     });
 

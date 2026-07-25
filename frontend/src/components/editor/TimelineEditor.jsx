@@ -170,6 +170,65 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
     setTimeline({ ...timeline, segments: updatedSegments });
   };
 
+  const handleTimeChange = (segmentId, field, valStr) => {
+    const num = parseFloat(valStr);
+    if (isNaN(num)) return;
+
+    let segmentsCopy = timeline.segments.map((seg) => ({ ...seg }));
+    const targetIdx = segmentsCopy.findIndex((s) => s.id === segmentId);
+    if (targetIdx === -1) return;
+
+    const target = segmentsCopy[targetIdx];
+    let newStart = field === 'start' ? Math.max(0, Math.round(num * 100) / 100) : target.start;
+    let newEnd = field === 'end' ? Math.max(newStart + 0.05, Math.round(num * 100) / 100) : target.end;
+
+    if (field === 'start' && newStart >= newEnd) {
+      newEnd = Math.round((newStart + 0.3) * 100) / 100;
+    }
+
+    // Scale target word timestamps proportionally
+    if (Array.isArray(target.words) && target.words.length > 0) {
+      const firstWStart = target.words[0].start;
+      const lastWEnd = target.words[target.words.length - 1].end;
+      const oldDur = Math.max(0.1, lastWEnd - firstWStart);
+      const newDur = Math.max(0.1, newEnd - newStart);
+      const scale = newDur / oldDur;
+
+      target.words = target.words.map((w) => {
+        const wRelStart = w.start - firstWStart;
+        const wRelEnd = w.end - firstWStart;
+        return {
+          ...w,
+          start: Math.round((newStart + wRelStart * scale) * 100) / 100,
+          end: Math.round((newStart + wRelEnd * scale) * 100) / 100,
+        };
+      });
+    }
+
+    target.start = newStart;
+    target.end = newEnd;
+
+    // Ripple Auto-Adjustment for subsequent segments to prevent overlaps
+    for (let i = targetIdx; i < segmentsCopy.length - 1; i++) {
+      const curr = segmentsCopy[i];
+      const next = segmentsCopy[i + 1];
+      if (next.start < curr.end) {
+        const delta = curr.end - next.start;
+        next.start = curr.end;
+        next.end = Math.max(next.start + 0.1, Math.round((next.end + delta) * 100) / 100);
+        if (Array.isArray(next.words)) {
+          next.words = next.words.map((w) => ({
+            ...w,
+            start: Math.max(next.start, Math.round((w.start + delta) * 100) / 100),
+            end: Math.max(next.start + 0.05, Math.round((w.end + delta) * 100) / 100),
+          }));
+        }
+      }
+    }
+
+    setTimeline({ ...timeline, segments: segmentsCopy });
+  };
+
   return (
     <div className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl p-5 space-y-4 max-h-[85vh] flex flex-col">
       <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
@@ -203,10 +262,29 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-                <span className="text-[11px] font-mono text-zinc-300 flex items-center gap-1 font-semibold">
-                  <Clock className="w-3 h-3 text-yellow-400" />
-                  {formatTime(segment.start)} → {formatTime(segment.end)}
-                </span>
+                <div className="flex items-center gap-1 font-mono text-[11px] font-semibold text-zinc-300" onClick={(e) => e.stopPropagation()}>
+                  <Clock className="w-3 h-3 text-yellow-400 shrink-0" />
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    value={segment.start}
+                    onChange={(e) => handleTimeChange(segment.id, 'start', e.target.value)}
+                    className="w-14 bg-zinc-900 border border-zinc-700/80 focus:border-yellow-400 text-yellow-400 font-bold rounded px-1 py-0.5 text-center text-[11px] focus:outline-none"
+                    title="Edit start time in seconds"
+                  />
+                  <span className="text-zinc-500">→</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    value={segment.end}
+                    onChange={(e) => handleTimeChange(segment.id, 'end', e.target.value)}
+                    className="w-14 bg-zinc-900 border border-zinc-700/80 focus:border-yellow-400 text-yellow-400 font-bold rounded px-1 py-0.5 text-center text-[11px] focus:outline-none"
+                    title="Edit end time in seconds"
+                  />
+                  <span className="text-zinc-500 text-[10px]">s</span>
+                </div>
 
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <select

@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Play, Pause, Volume2, VolumeX, Download, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
-import { exportProjectMP4 } from '../../services/projectService';
+import { exportProjectMP4, getFullMediaUrl } from '../../services/projectService';
 
 /**
  * CanvasVideoPlayer — Broadcast-Grade Smooth Player & Exporter
@@ -12,6 +12,7 @@ import { exportProjectMP4 } from '../../services/projectService';
 export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, currentTime, setCurrentTime }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const resolvedVideoUrl = getFullMediaUrl(videoUrl);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -262,7 +263,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
       <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-black shadow-2xl aspect-[9/16] max-h-[580px] w-auto group">
         <video
           ref={videoRef}
-          src={videoUrl}
+          src={resolvedVideoUrl}
           crossOrigin="anonymous"
           playsInline
           preload="auto"

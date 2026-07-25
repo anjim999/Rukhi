@@ -73,7 +73,14 @@ app.use('/outputs', cors(), express.static(config.outputDir, {
   },
 }));
 
-// API Routes
+// Root Health Probes (Render / Load Balancer Pings)
+app.get('/', (_req, res) => {
+  res.json({ success: true, message: 'Auto Captions API Server is Running!' });
+});
+app.head('/', (_req, res) => {
+  res.status(200).end();
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({
     success: true,

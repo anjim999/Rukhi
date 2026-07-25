@@ -151,3 +151,23 @@ export async function deleteProject(projectId) {
 
   console.log(`[PROJECT] Deleted project ${projectId}`);
 }
+
+export async function cancelProject(projectId) {
+  await updateProjectStatus(projectId, PROJECT_STATUSES.CANCELLED, {
+    errorMessage: 'Generation cancelled by user.',
+  });
+  console.log(`[PROJECT] Cancelled generation for project ${projectId}`);
+  return { id: projectId, status: PROJECT_STATUSES.CANCELLED };
+}
+
+export async function pauseProject(projectId) {
+  await updateProjectStatus(projectId, PROJECT_STATUSES.PAUSED);
+  console.log(`[PROJECT] Paused generation for project ${projectId}`);
+  return { id: projectId, status: PROJECT_STATUSES.PAUSED };
+}
+
+export async function resumeProject(projectId) {
+  await updateProjectStatus(projectId, PROJECT_STATUSES.TRANSCRIBING);
+  console.log(`[PROJECT] Resumed generation for project ${projectId}`);
+  return { id: projectId, status: PROJECT_STATUSES.TRANSCRIBING };
+}

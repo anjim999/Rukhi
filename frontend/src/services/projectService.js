@@ -1,6 +1,21 @@
 import axiosClient from '../api/axiosClient';
 
 /**
+ * Resolve relative media paths (/uploads/...) to full backend URLs.
+ * @param {string} url
+ */
+export function getFullMediaUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+    return url;
+  }
+  const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'https://rocky-captions.onrender.com/api';
+  const serverRoot = rawApiBase.replace(/\/api\/?$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${serverRoot}${cleanPath}`;
+}
+
+/**
  * Frontend Project Service
  */
 
@@ -82,4 +97,36 @@ export async function generateSocialPack(projectId) {
  */
 export async function exportProjectMP4(projectId) {
   return axiosClient.post(`/projects/${projectId}/export`);
+}
+
+/**
+ * Cancel project caption generation.
+ * @param {string} projectId
+ */
+export async function cancelProject(projectId) {
+  return axiosClient.post(`/projects/${projectId}/cancel`);
+}
+
+/**
+ * Pause project caption generation.
+ * @param {string} projectId
+ */
+export async function pauseProject(projectId) {
+  return axiosClient.post(`/projects/${projectId}/pause`);
+}
+
+/**
+ * Resume project caption generation.
+ * @param {string} projectId
+ */
+export async function resumeProject(projectId) {
+  return axiosClient.post(`/projects/${projectId}/resume`);
+}
+
+/**
+ * Delete a project.
+ * @param {string} projectId
+ */
+export async function deleteProject(projectId) {
+  return axiosClient.delete(`/projects/${projectId}`);
 }

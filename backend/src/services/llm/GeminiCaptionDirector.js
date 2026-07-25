@@ -184,15 +184,15 @@ Return ONLY a compact JSON object with this exact structure:
               chunkWords.push({ wText, wStart, wEnd, wEmp });
             }
 
-            // Acoustic Onset Alignment: Ensure first word does not start before real speech onset
-            if (chunkWords.length > 0 && speechOnset > 0.05) {
+            // Acoustic Onset Alignment: Ensure first word matches real acoustic speech onset
+            if (chunkWords.length > 0 && speechOnset >= 0) {
               const delta = speechOnset - chunkWords[0].wStart;
-              if (delta > 0.1) {
-                console.log(`[ACOUSTIC ONSET ALIGNMENT] Chunk ${c}: Shifting start time by +${delta.toFixed(2)}s to match speech onset (${speechOnset.toFixed(2)}s)`);
+              if (Math.abs(delta) > 0.15 && delta < 5.0) {
+                console.log(`[ACOUSTIC ONSET ALIGNMENT] Chunk ${c}: Adjusting start time by ${delta > 0 ? '+' : ''}${delta.toFixed(2)}s to match speech onset (${speechOnset.toFixed(2)}s)`);
                 chunkWords = chunkWords.map(w => ({
                   ...w,
-                  wStart: Math.round((w.wStart + delta) * 100) / 100,
-                  wEnd: Math.round((w.wEnd + delta) * 100) / 100,
+                  wStart: Math.max(speechOnset, Math.round((w.wStart + delta) * 100) / 100),
+                  wEnd: Math.max(speechOnset + 0.1, Math.round((w.wEnd + delta) * 100) / 100),
                 }));
               }
             }

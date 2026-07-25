@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { getProject, getProjectTimeline, updateProjectTimeline, generateSocialPack } from '../services/projectService';
+import {
+  getProject,
+  getProjectTimeline,
+  updateProjectTimeline,
+  generateSocialPack,
+  cancelProject,
+  pauseProject,
+  resumeProject,
+} from '../services/projectService';
 import CanvasVideoPlayer from '../components/editor/CanvasVideoPlayer';
 import PresetSidebar from '../components/editor/PresetSidebar';
 import TimelineEditor from '../components/editor/TimelineEditor';
-import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X, Pause, Play, XCircle } from 'lucide-react';
 
 export default function EditorPage({ projectId, onBack }) {
   const [project, setProject] = useState(null);
@@ -14,6 +22,8 @@ export default function EditorPage({ projectId, onBack }) {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [pausing, setPausing] = useState(false);
 
   // Social Post Generator Modal state
   const [showSocialModal, setShowSocialModal] = useState(false);
@@ -38,8 +48,8 @@ export default function EditorPage({ projectId, onBack }) {
               setLoading(false);
               if (intervalId) clearInterval(intervalId);
             }
-          } else if (projRes.data.status === 'failed') {
-            setError(projRes.data.error_message || 'Media processing failed. Please try re-uploading the video.');
+          } else if (projRes.data.status === 'failed' || projRes.data.status === 'cancelled') {
+            setError(projRes.data.error_message || 'Media processing failed or was cancelled.');
             setLoading(false);
             if (intervalId) clearInterval(intervalId);
           }
@@ -56,6 +66,44 @@ export default function EditorPage({ projectId, onBack }) {
 
     return () => clearInterval(intervalId);
   }, [projectId]);
+
+  const handleCancelGeneration = async () => {
+    setCancelling(true);
+    toast.loading('Cancelling caption generation...', { id: 'cancel-toast' });
+    try {
+      await cancelProject(projectId);
+      toast.success('Generation cancelled.', { id: 'cancel-toast' });
+      setError('Generation cancelled by user.');
+      setLoading(false);
+    } catch (err) {
+      toast.error(`Cancel failed: ${err.message}`, { id: 'cancel-toast' });
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handlePauseResumeToggle = async () => {
+    if (!project) return;
+    setPausing(true);
+    const isPaused = project.status === 'paused';
+    const actionText = isPaused ? 'Resuming' : 'Pausing';
+    toast.loading(`${actionText} generation...`, { id: 'pause-toast' });
+    try {
+      if (isPaused) {
+        await resumeProject(projectId);
+        setProject((p) => (p ? { ...p, status: 'transcribing' } : p));
+        toast.success('Generation resumed!', { id: 'pause-toast' });
+      } else {
+        await pauseProject(projectId);
+        setProject((p) => (p ? { ...p, status: 'paused' } : p));
+        toast.success('Generation paused.', { id: 'pause-toast' });
+      }
+    } catch (err) {
+      toast.error(`Action failed: ${err.message}`, { id: 'pause-toast' });
+    } finally {
+      setPausing(false);
+    }
+  };
 
   const handleSaveTimeline = async () => {
     if (!timeline) return;
@@ -111,22 +159,54 @@ export default function EditorPage({ projectId, onBack }) {
   };
 
   if (loading) {
+    const isPaused = project?.status === 'paused';
+
     return (
-      <div className="min-h-[75vh] flex flex-col items-center justify-center gap-4 text-center px-4">
-        <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
-          <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="min-h-[75vh] flex flex-col items-center justify-center gap-6 text-center px-4">
+        <div className={`w-16 h-16 rounded-2xl ${isPaused ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'} border flex items-center justify-center`}>
+          {isPaused ? <Pause className="w-8 h-8" /> : <Loader2 className="w-8 h-8 animate-spin" />}
         </div>
         <div>
           <h2 className="text-xl font-bold text-white mb-1">
-            Generating AI Captions...
+            {isPaused ? 'Generation Paused' : 'Generating AI Captions...'}
           </h2>
           <p className="text-sm text-zinc-400 max-w-sm">
-            Transcribing speech audio with Gemini 2.5 Flash and generating kinetic reel subtitles.
+            {isPaused
+              ? 'Processing is paused. Click Resume to continue generating subtitles.'
+              : 'Transcribing speech audio with Gemini 2.5 Flash and generating kinetic reel subtitles.'}
           </p>
         </div>
+
         <div className="flex items-center gap-2 text-xs text-yellow-400/80 bg-yellow-500/10 px-3 py-1.5 rounded-full border border-yellow-500/20">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+          <span className={`w-2 h-2 rounded-full ${isPaused ? 'bg-amber-400' : 'bg-yellow-400 animate-pulse'}`} />
           Status: {project?.status || 'transcribing'}
+        </div>
+
+        {/* Cancel, Pause & Resume Buttons */}
+        <div className="flex items-center gap-3 mt-2">
+          <button
+            onClick={handlePauseResumeToggle}
+            disabled={pausing}
+            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition flex items-center gap-2 border border-zinc-700 disabled:opacity-50"
+          >
+            {isPaused ? (
+              <>
+                <Play className="w-4 h-4 text-emerald-400" /> Resume Generation
+              </>
+            ) : (
+              <>
+                <Pause className="w-4 h-4 text-amber-400" /> Pause Generation
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={handleCancelGeneration}
+            disabled={cancelling}
+            className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition flex items-center gap-2 border border-red-500/20 disabled:opacity-50"
+          >
+            <XCircle className="w-4 h-4" /> Cancel Generation
+          </button>
         </div>
       </div>
     );

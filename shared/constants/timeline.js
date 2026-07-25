@@ -89,6 +89,8 @@ export const PROJECT_STATUSES = Object.freeze({
   EXTRACTING_AUDIO: 'extracting_audio',
   TRANSCRIBING: 'transcribing',
   ANALYZING: 'analyzing',
+  PAUSED: 'paused',
+  CANCELLED: 'cancelled',
   COMPLETED: 'completed',
   FAILED: 'failed',
 });

@@ -195,3 +195,42 @@ export async function exportProjectVideo(req, res, next) {
     next(err);
   }
 }
+
+export async function cancelProject(req, res, next) {
+  try {
+    const result = await projectService.cancelProject(req.params.id);
+    res.json({
+      success: true,
+      data: result,
+      message: 'Generation cancelled.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function pauseProject(req, res, next) {
+  try {
+    const result = await projectService.pauseProject(req.params.id);
+    res.json({
+      success: true,
+      data: result,
+      message: 'Generation paused.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resumeProject(req, res, next) {
+  try {
+    const result = await projectService.resumeProject(req.params.id);
+    res.json({
+      success: true,
+      data: result,
+      message: 'Generation resumed.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}

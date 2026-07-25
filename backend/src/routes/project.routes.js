@@ -10,6 +10,9 @@ import {
   deleteProject,
   getSocialPostPack,
   exportProjectVideo,
+  cancelProject,
+  pauseProject,
+  resumeProject,
 } from '../controllers/projectController.js';
 
 const router = Router();
@@ -23,6 +26,9 @@ router.get('/:id/timeline', getProjectTimeline);
 router.put('/:id/timeline', updateProjectTimeline);
 router.post('/:id/social-pack', getSocialPostPack);
 router.post('/:id/export', exportProjectVideo);
+router.post('/:id/cancel', cancelProject);
+router.post('/:id/pause', pauseProject);
+router.post('/:id/resume', resumeProject);
 router.delete('/:id', deleteProject);
 
 export default router;

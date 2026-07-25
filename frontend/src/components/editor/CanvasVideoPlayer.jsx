@@ -320,10 +320,20 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
         )}
 
         {isRecording && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-center p-4">
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-center p-4 z-20">
             <Loader2 className="w-10 h-10 animate-spin text-yellow-400 mb-2" />
             <p className="text-sm font-bold text-white mb-1">Exporting Smooth 4K Submagic Reel...</p>
-            <p className="text-xs text-yellow-400 font-mono">{recordProgress}% completed (25 Mbps Ultra-HD)</p>
+            <p className="text-xs text-yellow-400 font-mono mb-3">{recordProgress}% completed (25 Mbps Ultra-HD)</p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                isRecordingRef.current = false;
+                setIsRecording(false);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition"
+            >
+              Cancel / Close Overlay
+            </button>
           </div>
         )}
       </div>

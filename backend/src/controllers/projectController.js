@@ -174,3 +174,22 @@ export async function getSocialPostPack(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * POST /api/projects/:id/export
+ * Render broadcast-grade 60FPS H.264 MP4 video via FFmpeg.
+ */
+export async function exportProjectVideo(req, res, next) {
+  try {
+    const { renderProjectVideoMP4 } = await import('../services/media/exportService.js');
+    const result = await renderProjectVideoMP4(req.params.id);
+
+    res.json({
+      success: true,
+      data: result,
+      message: '60FPS H.264 MP4 video rendered successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}

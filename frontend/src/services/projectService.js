@@ -69,3 +69,11 @@ export async function updateProjectTimeline(projectId, timeline) {
 export async function generateSocialPack(projectId) {
   return axiosClient.post(`/projects/${projectId}/social-pack`);
 }
+
+/**
+ * Render broadcast-grade 60FPS H.264 MP4 video via server-side FFmpeg.
+ * @param {string} projectId
+ */
+export async function exportProjectMP4(projectId) {
+  return axiosClient.post(`/projects/${projectId}/export`);
+}

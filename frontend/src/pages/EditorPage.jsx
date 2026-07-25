@@ -61,13 +61,14 @@ export default function EditorPage({ projectId, onBack }) {
     if (!timeline) return;
     setSaving(true);
     setSaveSuccess(false);
+    toast.loading('Saving timeline...', { id: 'save-toast' });
     try {
       await updateProjectTimeline(projectId, timeline);
       setSaveSuccess(true);
-      toast.success('Timeline changes saved!');
+      toast.success('Timeline changes saved!', { id: 'save-toast' });
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      toast.error(`Save failed: ${err.message}`);
+      toast.error(`Save failed: ${err.message}`, { id: 'save-toast' });
     } finally {
       setSaving(false);
     }
@@ -77,14 +78,15 @@ export default function EditorPage({ projectId, onBack }) {
     setShowSocialModal(true);
     if (!socialData && !socialLoading) {
       setSocialLoading(true);
+      toast.loading('Generating AI Social Post Pack...', { id: 'social-toast' });
       try {
         const res = await generateSocialPack(projectId);
         if (res.success) {
           setSocialData(res.data);
-          toast.success('Generated AI Social Post Pack!');
+          toast.success('Generated AI Social Post Pack!', { id: 'social-toast' });
         }
       } catch (err) {
-        toast.error(`Failed to generate social pack: ${err.message}`);
+        toast.error(`Failed to generate social pack: ${err.message}`, { id: 'social-toast' });
       } finally {
         setSocialLoading(false);
       }
@@ -96,7 +98,7 @@ export default function EditorPage({ projectId, onBack }) {
     const text = `${socialData.instagram.caption}\n\n${socialData.instagram.hashtags.join(' ')}`;
     navigator.clipboard.writeText(text);
     setCopiedIg(true);
-    toast.success('Instagram Reel post copied to clipboard!');
+    toast.success('Instagram Reel post copied to clipboard!', { id: 'copy-toast' });
     setTimeout(() => setCopiedIg(false), 2000);
   };
 
@@ -157,10 +159,22 @@ export default function EditorPage({ projectId, onBack }) {
   const backendHost = rawApiUrl
     ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '')
     : 'http://localhost:5000';
-  const cleanVideoPath = project?.video_path
-    ? project.video_path.replace(/\\/g, '/').replace(/^\/+/, '')
-    : '';
-  const videoFullUrl = cleanVideoPath ? `${backendHost}/${cleanVideoPath}` : '';
+
+  const rawVideoPath = project?.video_url || project?.video_path || '';
+  let videoFullUrl = '';
+  if (rawVideoPath) {
+    if (rawVideoPath.startsWith('http://') || rawVideoPath.startsWith('https://')) {
+      videoFullUrl = rawVideoPath;
+    } else {
+      let normalized = rawVideoPath.replace(/\\/g, '/');
+      const uploadsIdx = normalized.indexOf('uploads/');
+      if (uploadsIdx !== -1) {
+        normalized = normalized.substring(uploadsIdx);
+      }
+      normalized = normalized.replace(/^\/+/, '');
+      videoFullUrl = `${backendHost}/${normalized}`;
+    }
+  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -225,6 +239,7 @@ export default function EditorPage({ projectId, onBack }) {
         {/* Middle Column: 60fps Canvas Video Player */}
         <div className="lg:col-span-5 flex justify-center">
           <CanvasVideoPlayer
+            projectId={projectId}
             videoUrl={videoFullUrl}
             timeline={timeline}
             currentTime={currentTime}

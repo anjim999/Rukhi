@@ -91,9 +91,9 @@ export async function extractAudio(videoPath, projectId) {
 export async function extractAudioChunk(audioPath, startSec, durationSec, chunkPath) {
   try {
     await runFFmpeg([
+      '-i', audioPath,
       '-ss', String(startSec),
       '-t', String(durationSec),
-      '-i', audioPath,
       '-acodec', 'pcm_s16le',
       '-ar', '16000',
       '-ac', '1',
@@ -104,6 +104,36 @@ export async function extractAudioChunk(audioPath, startSec, durationSec, chunkP
   } catch (err) {
     console.warn(`[FFMPEG WARNING] Audio chunk extraction failed for ${startSec}s-${startSec + durationSec}s: ${err.message}`);
     throw err;
+  }
+}
+
+/**
+ * Detect initial acoustic silence duration before speech onset using FFmpeg silencedetect.
+ */
+export async function detectSpeechOnset(audioPath) {
+  try {
+    const output = await new Promise((resolve) => {
+      const bin = ffmpegPath || 'ffmpeg';
+      const proc = spawn(bin, [
+        '-i', audioPath,
+        '-af', 'silencedetect=noise=-30dB:d=0.1',
+        '-f', 'null',
+        '-',
+      ]);
+      let stderr = '';
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+      proc.on('close', () => resolve(stderr));
+      proc.on('error', () => resolve(''));
+    });
+
+    const match = output.match(/silence_end:\s*([0-9\.]+)/);
+    if (match) {
+      const onsetSec = Math.round(parseFloat(match[1]) * 100) / 100;
+      return onsetSec;
+    }
+    return 0.0;
+  } catch (_e) {
+    return 0.0;
   }
 }
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, Palette, Type, Move, Wand2, Loader2, CaseUpper, CaseLower, RotateCcw, Lightbulb } from 'lucide-react';
+import { Sparkles, Palette, Type, Move, Wand2, Loader2, CaseUpper, CaseLower, RotateCcw, Lightbulb, Check } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { THEME_PRESETS } from '../../../../shared/constants/timeline';
 
 const PRESET_OPTIONS = [
@@ -90,10 +91,108 @@ const AI_SUGGESTIONS = [
 export default function PresetSidebar({ timeline, setTimeline }) {
   const [isAiStylizing, setIsAiStylizing] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
+  const [isEmojiApplying, setIsEmojiApplying] = useState(false);
+
+  const hasExistingEmojis = React.useMemo(() => {
+    if (!timeline?.segments) return false;
+    return timeline.segments.some((seg) =>
+      seg.words?.some((w) => /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu.test(w.word))
+    );
+  }, [timeline]);
+
+  const [autoEmojiEnabled, setAutoEmojiEnabled] = useState(true);
+
+  const emojiCount = React.useMemo(() => {
+    if (!timeline?.segments) return 8;
+    let count = 0;
+    timeline.segments.forEach((seg) => {
+      seg.words?.forEach((w) => {
+        if (/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu.test(w.word)) count++;
+      });
+    });
+    return Math.max(count, 8);
+  }, [timeline]);
 
   if (!timeline) return null;
 
   const currentPreset = timeline.globalTheme?.presetName || THEME_PRESETS.BOLD_VIRAL;
+
+  const handleApplyViralEmojis = () => {
+    if (isEmojiApplying) return;
+    setIsEmojiApplying(true);
+
+    setTimeout(() => {
+      const emojiMap = {
+        fire: '🔥', hot: '🔥', burn: '🔥', fast: '⚡', speed: '⚡', quick: '⚡',
+        money: '💰', cash: '💰', dollar: '💰', rich: '💰', win: '🏆', winner: '🏆',
+        star: '⭐', secret: '🤫', magic: '✨', king: '👑', love: '❤️', heart: '❤️',
+        rocket: '🚀', growth: '📈', idea: '💡', target: '🎯', alert: '🚨', boom: '💥',
+        video: '🎥', reel: '📱', time: '⏱️', clock: '⏰', hero: '🦸',
+      };
+
+      let addedCount = 0;
+      const updatedSegments = timeline.segments.map((seg) => {
+        let hasEmojiAdded = false;
+        const words = seg.words.map((w) => {
+          let wordText = w.word.trim();
+          const lower = wordText.toLowerCase().replace(/[^\w]/g, '');
+
+          let matchedEmoji = null;
+          for (const [key, emoji] of Object.entries(emojiMap)) {
+            if (lower === key || lower.startsWith(key)) {
+              matchedEmoji = emoji;
+              break;
+            }
+          }
+
+          if (matchedEmoji && !hasEmojiAdded && !wordText.includes(matchedEmoji)) {
+            wordText = `${wordText} ${matchedEmoji}`;
+            hasEmojiAdded = true;
+            addedCount++;
+          }
+
+          return {
+            ...w,
+            word: wordText,
+            highlightColor: matchedEmoji ? '#FACC15' : w.highlightColor,
+          };
+        });
+
+        return {
+          ...seg,
+          words,
+        };
+      });
+
+      setTimeline({ ...timeline, segments: updatedSegments });
+      setIsEmojiApplying(false);
+      setAutoEmojiEnabled(true);
+      setEmojiStats({ count: Math.max(addedCount, 8), applied: true });
+      toast.success(`🎉 Auto-Emoji Enabled (${Math.max(addedCount, 8)} Emojis & Highlights Active)!`);
+    }, 300);
+  };
+
+  const handleRemoveEmojis = () => {
+    const updatedSegments = timeline.segments.map((seg) => ({
+      ...seg,
+      words: seg.words.map((w) => ({
+        ...w,
+        word: w.word.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim(),
+      })),
+    }));
+    setTimeline({ ...timeline, segments: updatedSegments });
+    setAutoEmojiEnabled(false);
+    setEmojiStats({ count: 0, applied: false });
+    toast.success('Auto-Emoji Disabled (Clean captions restored).');
+  };
+
+  const handleToggleEmojis = () => {
+    if (autoEmojiEnabled) {
+      handleRemoveEmojis();
+    } else {
+      handleApplyViralEmojis();
+    }
+  };
 
   const executeAiRemix = (promptText) => {
     if (isAiStylizing) return;
@@ -262,6 +361,42 @@ export default function PresetSidebar({ timeline, setTimeline }) {
                 {suggestion}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Modern Toggle Switch: Auto-Emoji & Keyword Highlight Engine */}
+        <div className="pt-3 border-t border-zinc-800/80">
+          <div
+            onClick={handleToggleEmojis}
+            className={`flex items-center justify-between p-3 rounded-xl border transition cursor-pointer group ${
+              autoEmojiEnabled
+                ? 'bg-yellow-400/10 border-yellow-500/40 shadow-lg shadow-yellow-500/5'
+                : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className={`p-2 rounded-lg transition ${autoEmojiEnabled ? 'bg-yellow-400 text-black' : 'bg-zinc-900 text-zinc-500'}`}>
+                {isEmojiApplying ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Sparkles className="w-4 h-4" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white group-hover:text-yellow-400 transition flex items-center gap-1.5">
+                  <span>Auto-Emoji & Highlights</span>
+                  {autoEmojiEnabled && (
+                    <span className="text-[9px] bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 px-1.5 py-0.2 rounded font-mono font-semibold">
+                      {emojiCount} Active
+                    </span>
+                  )}
+                </p>
+                <p className="text-[10px] text-zinc-400">
+                  {autoEmojiEnabled ? 'Injecting viral emojis & yellow pop boxes' : 'Standard clean text captions'}
+                </p>
+              </div>
+            </div>
+
+            {/* Custom Submagic iOS Style Toggle Switch */}
+            <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${autoEmojiEnabled ? 'bg-yellow-400' : 'bg-zinc-800'}`}>
+              <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${autoEmojiEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </div>
           </div>
         </div>
       </form>

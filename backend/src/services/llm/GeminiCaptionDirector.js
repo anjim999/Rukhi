@@ -696,16 +696,39 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
         exactStart = Math.max(0, Math.round(exactStart * 100) / 100);
         exactEnd = Math.max(exactStart + 0.05, Math.round(exactEnd * 100) / 100);
 
+        let wordText = w.word || '';
+        const cleanLower = wordText.trim().toLowerCase().replace(/[^\w]/g, '');
+        const emojiMap = {
+          fire: '🔥', hot: '🔥', burn: '🔥', fast: '⚡', speed: '⚡', quick: '⚡',
+          money: '💰', cash: '💰', dollar: '💰', rich: '💰', win: '🏆', winner: '🏆',
+          star: '⭐', secret: '🤫', magic: '✨', king: '👑', love: '❤️', heart: '❤️',
+          rocket: '🚀', growth: '📈', idea: '💡', target: '🎯', alert: '🚨', boom: '💥',
+          video: '🎥', reel: '📱', time: '⏱️', clock: '⏰', hero: '🦸',
+        };
+
+        let autoEmoji = w.emoji || null;
+        if (!autoEmoji) {
+          for (const [key, emoji] of Object.entries(emojiMap)) {
+            if (cleanLower === key || cleanLower.startsWith(key)) {
+              autoEmoji = emoji;
+              if (!wordText.includes(emoji)) {
+                wordText = `${wordText.trim()} ${emoji}`;
+              }
+              break;
+            }
+          }
+        }
+
         return {
           id: uuidv4(),
-          word: w.word || '',
+          word: wordText,
           start: exactStart,
           end: exactEnd,
           confidence: exactConfidence,
           emphasisScore: w.emphasisScore || 0.5,
-          isHighlighted: w.isHighlighted || false,
-          highlightColor: w.highlightColor || null,
-          emoji: w.emoji || null,
+          isHighlighted: w.isHighlighted || !!autoEmoji,
+          highlightColor: w.highlightColor || (autoEmoji ? '#FACC15' : null),
+          emoji: autoEmoji,
           sfx: Object.values(SFX_TYPES).includes(w.sfx) ? w.sfx : SFX_TYPES.NONE,
           caseFormat: Object.values(CASE_FORMATS).includes(w.caseFormat)
             ? w.caseFormat

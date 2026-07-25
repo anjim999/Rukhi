@@ -38,36 +38,68 @@ export class GeminiCaptionDirector extends LLMProvider {
     return !!this.ai;
   }
 
+  async generateCaptionTimelineFromAudio(input) {
+    let audioPath, duration, targetStyle;
+    if (typeof input === 'string') {
+      audioPath = input;
+      duration = arguments[1] || 15;
+      targetStyle = arguments[2] || 'auto';
+    } else {
+      audioPath = input.audioPath;
+      duration = input.duration || 15;
+      targetStyle = input.targetStyle || 'auto';
+    }
+    return this.transcribeAndDirectFromAudio(audioPath, duration, targetStyle);
+  }
+
   /**
-   * Transcribe video audio directly with Gemini 2.5 Flash.
-   * Uses a compact array structure so response is NEVER truncated by token limits.
+   * Transcribe video audio directly with Gemini 2.5 Flash with script/language formatting.
    */
-  async transcribeAndDirectFromAudio(audioPath, duration = 15) {
+  async transcribeAndDirectFromAudio(audioPath, duration = 15, targetStyle = 'auto') {
+    if (typeof audioPath === 'object') {
+      targetStyle = audioPath.targetStyle || 'auto';
+      duration = audioPath.duration || 15;
+      audioPath = audioPath.audioPath;
+    }
     if (!this.ai) {
       throw new Error('Gemini API key not configured.');
     }
 
     const startTime = Date.now();
-    console.log(`[GEMINI AUDIO STT] Processing audio directly with Gemini 2.5 Flash: ${audioPath}`);
+    console.log(`[GEMINI AUDIO STT] Processing audio (Style: ${targetStyle}) with Gemini 2.5 Flash: ${audioPath}`);
 
     const mimeType = audioPath.endsWith('.mp4') ? 'video/mp4' : 'audio/wav';
     const audioPart = fileToGenerativePart(audioPath, mimeType);
 
+    let styleInstruction = 'Transcribe ONLY what is actually spoken in original language & code-switching.';
+    if (targetStyle === 'chatting') {
+      styleInstruction = 'Transcribe and format words into casual Romanized social media chatting script (e.g., Teluglish/Hinglish using English alphabet, e.g., "namaste dosto elaa unnaaru").';
+    } else if (targetStyle === 'english') {
+      styleInstruction = 'Translate all spoken speech (Telugu, Hindi, or mixed) into high-converting, punchy PURE ENGLISH words while matching playback timing.';
+    } else if (targetStyle === 'telugu') {
+      styleInstruction = 'Transcribe/translate spoken speech into PURE NATIVE TELUGU SCRIPT (తెలుగు) with exact word-level timing.';
+    } else if (targetStyle === 'hindi') {
+      styleInstruction = 'Transcribe/translate spoken speech into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी) with exact word-level timing.';
+    }
+
     const prompt = `You are an expert Speech Transcriber and Reel Caption Director.
-LISTEN carefully to the attached audio file and transcribe the EXACT spoken words.
+LISTEN carefully to the attached audio file and transcribe the spoken content.
+
+TARGET OUTPUT SCRIPT STYLE:
+${styleInstruction}
 
 CRITICAL INSTRUCTIONS:
-1. Transcribe ONLY what is actually spoken in this audio file. DO NOT use generic or sample text.
-2. Support English, Telugu, and Hindi speech (and Telugu-English / Hindi-English code switching).
-3. Provide word-level timestamps matching playback timing.
+1. Provide exact word-level timestamps matching audio playback timing.
+2. Structure output words according to requested script style (${targetStyle}).
+3. Support Telugu, English, Hindi, and code-switched speech.
 
 Return ONLY a compact JSON object with this exact structure:
 {
-  "fullText": "<exact transcript of the spoken audio in original languages>",
+  "fullText": "<transcript/translation in requested target script>",
   "language": "te|en|hi",
   "words": [
-    ["SpokenWord1", start_sec, end_sec, emphasis_0_to_1],
-    ["SpokenWord2", start_sec, end_sec, emphasis_0_to_1]
+    ["Word1", start_sec, end_sec, emphasis_0_to_1],
+    ["Word2", start_sec, end_sec, emphasis_0_to_1]
   ],
   "hook": "<VIRAL HOOK TITLE WITH EMOJI>"
 }`;

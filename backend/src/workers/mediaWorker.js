@@ -18,8 +18,8 @@ export async function processMediaDirectly(data) {
 }
 
 async function processMediaJob(job) {
-  const { projectId, videoPath, userId } = job.data;
-  console.log(`[WORKER] Starting media processing for project ${projectId}`);
+  const { projectId, videoPath, userId, targetStyle = 'auto' } = job.data;
+  console.log(`[WORKER] Starting media processing for project ${projectId} (Style: ${targetStyle})`);
 
   try {
     await job.updateProgress(10);
@@ -61,15 +61,17 @@ async function processMediaJob(job) {
         duration: transcription.duration,
         aspectRatio: '9:16',
         presetName: 'bold_viral',
+        targetStyle,
       });
       timeline = result.timeline;
     } else {
-      console.log(`[WORKER] Speech STT using Gemini 2.5 Flash Audio Pipeline...`);
+      console.log(`[WORKER] Speech STT using Gemini 2.5 Flash Audio Pipeline (Target Style: ${targetStyle})...`);
       const result = await captionDirector.generateCaptionTimelineFromAudio({
         audioPath,
         duration: videoMeta.duration,
         aspectRatio: '9:16',
         presetName: 'bold_viral',
+        targetStyle,
       });
       timeline = result.timeline;
     }

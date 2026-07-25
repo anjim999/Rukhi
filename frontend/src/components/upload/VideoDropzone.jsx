@@ -6,6 +6,7 @@ import { uploadVideo } from '../../services/projectService';
 export default function VideoDropzone({ onProjectCreated }) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState(null);
+  const [targetStyle, setTargetStyle] = useState('auto'); // 'auto' | 'chatting' | 'english' | 'telugu' | 'hindi'
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -39,11 +40,10 @@ export default function VideoDropzone({ onProjectCreated }) {
     if (!selectedFile.type.startsWith('video/')) {
       const msg = 'Please upload a valid video file (MP4, MOV, WebM).';
       setError(msg);
-      toast.error(msg);
+      toast.error(msg, { id: 'upload-toast' });
       return;
     }
     setFile(selectedFile);
-    toast.success(`Selected video: ${selectedFile.name}`);
   };
 
   const handleUpload = async () => {
@@ -52,21 +52,21 @@ export default function VideoDropzone({ onProjectCreated }) {
     setUploading(true);
     setProgress(0);
     setError(null);
-    toast.info('Uploading video and initializing AI engine...');
+    toast.loading('Uploading video & initializing AI engine...', { id: 'upload-toast' });
 
     try {
-      const response = await uploadVideo(file, file.name, (percent) => {
+      const response = await uploadVideo(file, file.name, targetStyle, (percent) => {
         setProgress(percent);
       });
 
       if (response.success && onProjectCreated) {
-        toast.success('🎉 Video uploaded! AI Processing started.');
+        toast.success('🎉 Video uploaded! Processing started.', { id: 'upload-toast' });
         onProjectCreated(response.data);
       }
     } catch (err) {
       const errMsg = err.message || 'Upload failed. Please try again.';
       setError(errMsg);
-      toast.error(errMsg);
+      toast.error(errMsg, { id: 'upload-toast' });
     } finally {
       setUploading(false);
     }
@@ -78,13 +78,13 @@ export default function VideoDropzone({ onProjectCreated }) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => !uploading && fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer ${
+        onClick={() => !uploading && !file && fileInputRef.current?.click()}
+        className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center transition-all ${
           isDragging
             ? 'border-yellow-400 bg-yellow-400/10 scale-[1.01]'
             : file
             ? 'border-zinc-700 bg-zinc-900/90'
-            : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900/80'
+            : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900/80 cursor-pointer'
         }`}
       >
         <input
@@ -114,7 +114,7 @@ export default function VideoDropzone({ onProjectCreated }) {
             </span>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
             <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
               <Film className="w-8 h-8" />
             </div>
@@ -125,6 +125,37 @@ export default function VideoDropzone({ onProjectCreated }) {
               <p className="text-xs text-zinc-400 mt-1">
                 {(file.size / (1024 * 1024)).toFixed(2)} MB
               </p>
+            </div>
+
+            {/* Target Caption Language & Script Style Selector */}
+            <div className="w-full max-w-md space-y-2 text-left bg-zinc-950/80 p-3.5 rounded-xl border border-zinc-800">
+              <label className="text-xs font-bold text-zinc-300 flex items-center justify-between">
+                <span>Caption Script & Language Style</span>
+                <span className="text-[10px] text-yellow-400 font-normal">AI Powered</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  { id: 'auto', label: '🌐 As Spoken', desc: 'Auto / Code-Switched' },
+                  { id: 'chatting', label: '💬 Chatting Script', desc: 'Teluglish / Hinglish' },
+                  { id: 'english', label: '🇬🇧 Pure English', desc: 'Auto-Translated' },
+                  { id: 'telugu', label: '🇮🇳 Pure Telugu', desc: 'తెలుగు Script' },
+                  { id: 'hindi', label: '🇮🇳 Pure Hindi', desc: 'हिंदी Script' },
+                ].map((style) => (
+                  <button
+                    key={style.id}
+                    type="button"
+                    onClick={() => setTargetStyle(style.id)}
+                    className={`p-2 rounded-lg border text-left transition flex flex-col justify-between ${
+                      targetStyle === style.id
+                        ? 'border-yellow-400 bg-yellow-500/10 text-white'
+                        : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                    }`}
+                  >
+                    <span className="text-xs font-bold truncate">{style.label}</span>
+                    <span className="text-[10px] opacity-75 truncate">{style.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {uploading ? (

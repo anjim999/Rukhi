@@ -11,10 +11,16 @@ import axiosClient from '../api/axiosClient';
  * @param {string} [title] - Optional title
  * @param {Function} [onProgress] - Upload progress callback (0-100)
  */
-export async function uploadVideo(file, title, onProgress) {
+export async function uploadVideo(file, title, targetStyle = 'auto', onProgress) {
+  if (typeof targetStyle === 'function') {
+    onProgress = targetStyle;
+    targetStyle = 'auto';
+  }
+
   const formData = new FormData();
   formData.append('video', file);
   if (title) formData.append('title', title);
+  if (targetStyle) formData.append('targetStyle', targetStyle);
 
   return axiosClient.post('/projects/upload', formData, {
     headers: {

@@ -5,7 +5,7 @@ import { addMediaProcessingJob } from './queue/queueService.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { PROJECT_STATUSES } from '../../../shared/constants/timeline.js';
 
-export async function createProject({ userId, title, videoPath }) {
+export async function createProject({ userId, title, videoPath, targetStyle = 'auto' }) {
   const id = uuidv4();
 
   // Store browser-accessible URL path, not filesystem absolute path
@@ -25,9 +25,10 @@ export async function createProject({ userId, title, videoPath }) {
     projectId: project.id,
     videoPath,
     userId,
+    targetStyle,
   });
 
-  console.log(`[PROJECT] Created project ${project.id} and queued for processing.`);
+  console.log(`[PROJECT] Created project ${project.id} (Style: ${targetStyle}) and queued for processing.`);
   return project;
 }
 

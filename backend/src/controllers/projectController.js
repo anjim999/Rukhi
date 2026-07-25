@@ -20,6 +20,7 @@ export async function uploadAndCreateProject(req, res, next) {
     }
 
     const title = req.body.title || req.file.originalname;
+    const targetStyle = req.body.targetStyle || 'auto';
 
     // TODO: Replace with real auth user ID once auth is implemented
     const userId = req.body.userId || req.headers['x-user-id'];
@@ -31,6 +32,7 @@ export async function uploadAndCreateProject(req, res, next) {
       userId,
       title,
       videoPath: req.file.path,
+      targetStyle,
     });
 
     res.status(201).json({

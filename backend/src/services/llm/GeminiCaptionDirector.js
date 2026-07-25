@@ -150,10 +150,17 @@ Return ONLY a compact JSON object with this exact structure:
             for (const wArr of rawData.words) {
               if (Array.isArray(wArr) && wArr.length >= 3) {
                 allWords.push([
-                  wArr[0],
+                  String(wArr[0] || ''),
                   Math.round((parseFloat(wArr[1]) + offset) * 100) / 100,
                   Math.round((parseFloat(wArr[2]) + offset) * 100) / 100,
-                  wArr[3] || 0.5,
+                  parseFloat(wArr[3]) || 0.5,
+                ]);
+              } else if (typeof wArr === 'object' && wArr !== null) {
+                allWords.push([
+                  String(wArr.word || wArr.text || ''),
+                  Math.round((parseFloat(wArr.start) + offset) * 100) / 100,
+                  Math.round((parseFloat(wArr.end) + offset) * 100) / 100,
+                  parseFloat(wArr.emphasisScore || wArr.emphasis) || 0.5,
                 ]);
               }
             }

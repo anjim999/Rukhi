@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { getProject, getProjectTimeline, updateProjectTimeline, generateSocialPack } from '../services/projectService';
 import CanvasVideoPlayer from '../components/editor/CanvasVideoPlayer';
 import PresetSidebar from '../components/editor/PresetSidebar';
@@ -63,9 +64,10 @@ export default function EditorPage({ projectId, onBack }) {
     try {
       await updateProjectTimeline(projectId, timeline);
       setSaveSuccess(true);
+      toast.success('Timeline changes saved!');
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      alert(`Save failed: ${err.message}`);
+      toast.error(`Save failed: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -79,9 +81,10 @@ export default function EditorPage({ projectId, onBack }) {
         const res = await generateSocialPack(projectId);
         if (res.success) {
           setSocialData(res.data);
+          toast.success('Generated AI Social Post Pack!');
         }
       } catch (err) {
-        alert(`Failed to generate social pack: ${err.message}`);
+        toast.error(`Failed to generate social pack: ${err.message}`);
       } finally {
         setSocialLoading(false);
       }
@@ -93,7 +96,8 @@ export default function EditorPage({ projectId, onBack }) {
     const text = `${socialData.instagram.caption}\n\n${socialData.instagram.hashtags.join(' ')}`;
     navigator.clipboard.writeText(text);
     setCopiedIg(true);
-    setTimeout(() => setCopiedIg(false), 2500);
+    toast.success('Instagram Reel post copied to clipboard!');
+    setTimeout(() => setCopiedIg(false), 2000);
   };
 
   const handleCopyYt = () => {

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Play, Pause, Volume2, VolumeX, Download, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 
 /**
@@ -15,6 +16,7 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
   const [duration, setDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
+  const [videoError, setVideoError] = useState(null);
   const lastSegIdRef = useRef(null);
   const segStartTimeRef = useRef(0);
   const lastUiUpdateRef = useRef(0);
@@ -41,7 +43,11 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
         ctx.imageSmoothingQuality = 'high';
 
         // Draw video frame 1:1 natively
-        ctx.drawImage(video, 0, 0, width, height);
+        try {
+          ctx.drawImage(video, 0, 0, width, height);
+        } catch (_e) {
+          // Ignore transient cross-origin or unready frame draw errors
+        }
         const time = video.currentTime;
 
         // Throttle UI slider update to 4Hz (every 250ms) to eliminate React re-render thrashing
@@ -75,11 +81,21 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
 
   const togglePlay = () => {
     if (!videoRef.current) return;
+    if (!videoUrl) {
+      toast.error('No video URL available.');
+      return;
+    }
     if (isPlaying) {
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      videoRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.error('Playback error:', err);
+          toast.error('Failed to play video. Check format or connection.');
+        });
     }
   };
 
@@ -104,14 +120,25 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
     const canvas = canvasRef.current;
     if (!video || !canvas || isRecording) return;
 
+    if (!videoUrl) {
+      toast.error('Video URL is missing.');
+      return;
+    }
+
+    if (video.readyState < 2) {
+      toast.info('Video is still loading. Please wait a moment...');
+      return;
+    }
+
     setIsRecording(true);
     setRecordProgress(0);
+    toast.info('Starting 4K video export...', { autoClose: 2000 });
 
     try {
       video.pause();
       video.currentTime = 0;
       setCurrentTime(0);
-      await new Promise((r) => setTimeout(r, 250));
+      await new Promise((r) => setTimeout(r, 300));
 
       const stream = canvas.captureStream(60);
       try {
@@ -122,26 +149,36 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
         }
       } catch (_e) {}
 
+      let mimeType = 'video/webm';
+      if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+        mimeType = 'video/webm;codecs=vp9';
+      } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+        mimeType = 'video/mp4';
+      }
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm',
+        mimeType,
         videoBitsPerSecond: 25000000,
       });
 
       const chunks = [];
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `auto_captions_submagic_${Date.now()}.webm`;
+        a.download = `auto_captions_reel_${Date.now()}.webm`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         setIsRecording(false);
         setRecordProgress(100);
+        toast.success('🎉 4K Reel exported successfully!');
       };
 
       mediaRecorder.start();
@@ -160,7 +197,8 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
         }
       }, 100);
     } catch (err) {
-      alert(`Export failed: ${err.message}`);
+      console.error('Export error:', err);
+      toast.error(`Export failed: ${err.message || 'Unknown error'}`);
       setIsRecording(false);
     }
   };
@@ -168,10 +206,32 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
   return (
     <div className="flex flex-col items-center gap-4 w-full">
       <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-black shadow-2xl aspect-[9/16] max-h-[580px] w-auto group">
-        <video ref={videoRef} src={videoUrl} playsInline
-          onLoadedMetadata={(e) => setDuration(e.target.duration)}
-          onEnded={() => setIsPlaying(false)} className="hidden" />
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          crossOrigin="anonymous"
+          playsInline
+          preload="auto"
+          onLoadedMetadata={(e) => {
+            setDuration(e.target.duration);
+            setVideoError(null);
+          }}
+          onError={() => {
+            const err = 'Failed to load video source.';
+            setVideoError(err);
+            toast.error(err);
+          }}
+          onEnded={() => setIsPlaying(false)}
+          className="hidden"
+        />
         <canvas ref={canvasRef} onClick={togglePlay} className="w-full h-full object-contain cursor-pointer" />
+
+        {videoError && (
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-center p-4">
+            <p className="text-red-400 font-semibold mb-1">Video Failed to Load</p>
+            <p className="text-xs text-zinc-400">Please verify backend media URL and CORS setup.</p>
+          </div>
+        )}
 
         {!isPlaying && !isRecording && (
           <div onClick={togglePlay}

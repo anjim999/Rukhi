@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, Film, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { uploadVideo } from '../../services/projectService';
 
 export default function VideoDropzone({ onProjectCreated }) {
@@ -36,10 +37,13 @@ export default function VideoDropzone({ onProjectCreated }) {
   const handleFileSelected = (selectedFile) => {
     setError(null);
     if (!selectedFile.type.startsWith('video/')) {
-      setError('Please upload a valid video file (MP4, MOV, WebM).');
+      const msg = 'Please upload a valid video file (MP4, MOV, WebM).';
+      setError(msg);
+      toast.error(msg);
       return;
     }
     setFile(selectedFile);
+    toast.success(`Selected video: ${selectedFile.name}`);
   };
 
   const handleUpload = async () => {
@@ -48,6 +52,7 @@ export default function VideoDropzone({ onProjectCreated }) {
     setUploading(true);
     setProgress(0);
     setError(null);
+    toast.info('Uploading video and initializing AI engine...');
 
     try {
       const response = await uploadVideo(file, file.name, (percent) => {
@@ -55,10 +60,13 @@ export default function VideoDropzone({ onProjectCreated }) {
       });
 
       if (response.success && onProjectCreated) {
+        toast.success('🎉 Video uploaded! AI Processing started.');
         onProjectCreated(response.data);
       }
     } catch (err) {
-      setError(err.message || 'Upload failed. Please try again.');
+      const errMsg = err.message || 'Upload failed. Please try again.';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setUploading(false);
     }

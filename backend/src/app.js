@@ -59,8 +59,18 @@ if (!fs.existsSync(config.uploadDir)) {
 if (!fs.existsSync(config.outputDir)) {
   fs.mkdirSync(config.outputDir, { recursive: true });
 }
-app.use('/uploads', express.static(config.uploadDir));
-app.use('/outputs', express.static(config.outputDir));
+app.use('/uploads', cors(), express.static(config.uploadDir, {
+  setHeaders: (res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  },
+}));
+app.use('/outputs', cors(), express.static(config.outputDir, {
+  setHeaders: (res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  },
+}));
 
 // API Routes
 app.get('/api/health', (_req, res) => {

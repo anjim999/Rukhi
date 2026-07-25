@@ -83,15 +83,18 @@ export class GeminiCaptionDirector extends LLMProvider {
     }
 
     const prompt = `You are an expert Speech Transcriber and Reel Caption Director.
-LISTEN carefully to the attached audio file and transcribe the spoken content.
+LISTEN carefully to the attached audio file and transcribe the spoken content with 100% precise synchronization.
 
 TARGET OUTPUT SCRIPT STYLE:
 ${styleInstruction}
 
-CRITICAL INSTRUCTIONS:
-1. Provide exact word-level timestamps matching audio playback timing.
-2. Structure output words according to requested script style (${targetStyle}).
-3. Support Telugu, English, Hindi, and code-switched speech.
+CRITICAL TIMING & SYNCHRONIZATION CONSTRAINTS:
+1. Provide exact word-level timestamps in seconds with 2 decimal places (e.g., 0.15, 1.42).
+2. Start time of the first word MUST match actual speech onset audio, not arbitrary 0.00.
+3. Word timestamps MUST be strictly monotonic and ordered: word[n].start < word[n].end and word[n].end <= word[n+1].start.
+4. DO NOT introduce artificial gaps or overlapping times between words.
+5. Structure output words according to requested script style (${targetStyle}).
+6. Support Telugu, English, Hindi, and code-switched speech.
 
 Return ONLY a compact JSON object with this exact structure:
 {
@@ -108,7 +111,7 @@ Return ONLY a compact JSON object with this exact structure:
       model: this.modelName,
       generationConfig: {
         responseMimeType: 'application/json',
-        temperature: 0.2,
+        temperature: 0.1,
         maxOutputTokens: 16384,
       },
     });
@@ -158,12 +161,16 @@ Return ONLY a compact JSON object with this exact structure:
     const totalDuration = Math.max(duration || 10, 5);
     const timePerWord = totalDuration / Math.max(rawWords.length, 1);
 
-    const words = rawWords.map((w, i) => [
-      w,
-      Math.round(i * timePerWord * 100) / 100,
-      Math.round((i + 1) * timePerWord * 90) / 100,
-      i % 4 === 0 ? 0.9 : 0.5,
-    ]);
+    const words = rawWords.map((w, i) => {
+      const start = Math.round(i * timePerWord * 100) / 100;
+      const end = Math.round((i + 1) * timePerWord * 100) / 100;
+      return [
+        w,
+        start,
+        Math.max(start + 0.05, end - 0.02),
+        i % 4 === 0 ? 0.9 : 0.5,
+      ];
+    });
 
     return {
       fullText,
@@ -171,6 +178,49 @@ Return ONLY a compact JSON object with this exact structure:
       words,
       hook: 'VIRAL REEL CAPTIONS 🔥',
     };
+  }
+
+  /**
+   * Validates and repairs word timestamps to prevent overlap, gap dropouts, and negative/out-of-bounds timings.
+   */
+  _validateAndRepairTimestamps(wordObjects, videoDuration) {
+    if (!Array.isArray(wordObjects) || wordObjects.length === 0) return [];
+
+    const maxDur = videoDuration && videoDuration > 0 ? videoDuration : 9999;
+    const repaired = [];
+
+    for (let i = 0; i < wordObjects.length; i++) {
+      const current = { ...wordObjects[i] };
+      current.start = Math.max(0, Math.round((parseFloat(current.start) || 0) * 100) / 100);
+      current.end = Math.max(current.start + 0.05, Math.round((parseFloat(current.end) || current.start + 0.3) * 100) / 100);
+
+      // Clamp to max video duration
+      if (current.start > maxDur) current.start = Math.max(0, maxDur - 0.1);
+      if (current.end > maxDur) current.end = maxDur;
+
+      if (repaired.length > 0) {
+        const prev = repaired[repaired.length - 1];
+
+        // Fix Overlaps: if current start is before previous end, pull previous end back or adjust current start
+        if (current.start < prev.end) {
+          prev.end = current.start;
+          if (prev.end <= prev.start) {
+            prev.end = Math.round((prev.start + 0.05) * 100) / 100;
+            current.start = prev.end;
+          }
+        }
+
+        // Fill Small Gaps (< 0.25s) so captions flow seamlessly without jarring visual dropouts
+        const gap = current.start - prev.end;
+        if (gap > 0 && gap <= 0.25) {
+          prev.end = current.start;
+        }
+      }
+
+      repaired.push(current);
+    }
+
+    return repaired;
   }
 
   /**
@@ -206,10 +256,13 @@ Return ONLY a compact JSON object with this exact structure:
       wordObjects = split.map((w, i) => ({
         word: w,
         start: Math.round(i * tpw * 100) / 100,
-        end: Math.round((i + 1) * tpw * 90) / 100,
+        end: Math.round((i + 1) * tpw * 100) / 100,
         emphasisScore: i % 4 === 0 ? 0.9 : 0.5,
       }));
     }
+
+    // Repair timestamps to guarantee strict monotonic progression and no gaps/overlaps
+    wordObjects = this._validateAndRepairTimestamps(wordObjects, videoDuration);
 
     const segments = [];
     const chunkSize = 3;
@@ -228,8 +281,14 @@ Return ONLY a compact JSON object with this exact structure:
     for (let i = 0; i < wordObjects.length; i += chunkSize) {
       const chunk = wordObjects.slice(i, i + chunkSize);
       const segStart = chunk[0].start;
-      const segEnd = chunk[chunk.length - 1].end;
+      let segEnd = chunk[chunk.length - 1].end;
       const segIndex = Math.floor(i / chunkSize);
+
+      // Extend segment end to next segment start if gap is small (<0.3s) for seamless caption display
+      const nextChunkFirstWord = wordObjects[i + chunkSize];
+      if (nextChunkFirstWord && (nextChunkFirstWord.start - segEnd) < 0.3) {
+        segEnd = nextChunkFirstWord.start;
+      }
 
       segments.push({
         id: uuidv4(),

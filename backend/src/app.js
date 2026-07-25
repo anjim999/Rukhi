@@ -7,6 +7,7 @@ import { closePool } from './db/pool.js';
 import { initDb } from './db/initDb.js';
 import { closeQueues } from './services/queue/queueService.js';
 import projectRoutes from './routes/project.routes.js';
+import authRoutes from './routes/auth.routes.js';
 
 /**
  * Express Application
@@ -83,6 +84,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 
 // Error Handling

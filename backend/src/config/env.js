@@ -18,6 +18,7 @@ export const config = {
   },
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
+  jwtSecret: process.env.JWT_SECRET || 'super-secret-key-autocaptions-dev',
   uploadDir: path.resolve(__dirname, '../../uploads'),
   outputDir: path.resolve(__dirname, '../../outputs'),
 };

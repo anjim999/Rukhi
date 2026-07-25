@@ -16,6 +16,17 @@ export async function initDb() {
       );
     `);
 
+    // Ensure auth columns exist on users table
+    try {
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`);
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255);`);
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);`);
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP WITH TIME ZONE;`);
+    } catch (colErr) {
+      console.error('[DB INIT] Auth column alteration notice:', colErr.message);
+    }
+
     await query(`
       CREATE TABLE IF NOT EXISTS projects (
           id UUID PRIMARY KEY,

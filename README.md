@@ -1,0 +1,232 @@
+# Auto Captions AI — Broadcast-Grade Reel Caption & Video Editing SaaS Engine
+
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-BullMQ-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![FFmpeg](https://img.shields.io/badge/FFmpeg-60FPS_Engine-0078D7?style=for-the-badge&logo=ffmpeg&logoColor=white)](https://ffmpeg.org/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+
+> **Auto Captions AI** is a production-grade, Submagic & Opus Clip-style SaaS platform engineered to generate high-converting, viral kinetic captions, animated subtitles, and social media post packs for Instagram Reels, YouTube Shorts, and TikTok with **100% millisecond-accurate video-audio-caption synchronization**.
+
+---
+
+## 🌟 Executive Overview & Key Capabilities
+
+Auto Captions AI transforms raw audio and video into viral reels with word-by-word kinetic typography, customizable animations, emojis, and sound effects.
+
+### Core Features
+
+* 🎙️ **Direct Audio Speech-to-Text & Transcribing Director**: Powered by Google Gemini 2.5 Flash, directly processing audio waveforms to handle Telugu, Hinglish, Teluglish, Hindi, English, and code-switched speech.
+* ⚡ **Perfect Video-Audio-Caption Sync Engine**: Built-in `_validateAndRepairTimestamps()` algorithm enforcing monotonic word ordering, millisecond timing precision, overlap repair, and seamless gap filling.
+* 🎨 **Interactive 60FPS Hardware-Synced Canvas Editor**: Built using React & HTML5 Canvas with `requestVideoFrameCallback` rendering for 1:1 stutter-free playback and frame-accurate seeking.
+* 📐 **Aspect-Ratio & Responsive Math**: Supports 9:16 Vertical Reels, 16:9 Widescreen, and 1:1 Square videos with dynamic font scaling and viewport safe-zone calculations.
+* 🎭 **15+ Kinetic Animation Physics Engines**: Pop, Bounce, Zoom In/Out, Slide Up/Left, Shake Rumble, Flip Rotate, and Glow Pulse animations.
+* 🎬 **Dual Export Engine**:
+  - **Server-Side FFmpeg 60FPS H.264 Render Engine**: High-speed, lossless MP4 video rendering with burned-in subtitles.
+  - **Client-Side 4K WebM/VP9 Fallback**: Instant 25 Mbps Ultra-HD client-side canvas stream recording.
+* 🚀 **Async Processing Architecture**: BullMQ and Redis queues offload media probing, audio extraction, and AI processing to background worker threads.
+* 📱 **Zero-Hallucination Social Media Post Generator**: Generates Instagram captions, viral hashtags, and YouTube Shorts titles/descriptions tailored to the video content.
+
+---
+
+## 🚀 Recent Production Upgrade: Video-Audio-Caption Sync Engine
+
+To deliver a commercial-grade user experience where captions align flawlessly with spoken speech, the timestamp pipeline was upgraded with 4 critical architectural improvements:
+
+### 1. Gemini STT Precision & Temperature Tuning
+* **Lowered Temperature (`0.2` → `0.1`)**: Reduced timestamp variance for deterministic output.
+* **Strict Timing Constraints**: Enforced 2-decimal-place second precision, speech onset alignment, and monotonic sequence validation (`word[n].start < word[n].end`).
+
+### 2. Microsecond Timestamp Validation & Repair Engine (`_validateAndRepairTimestamps`)
+* **Overlap Repair**: Pulls back preceding word end times if `word[n].start < word[n-1].end`.
+* **Gap Filling**: Automatically closes small silence gaps (`<= 0.25s`) between words to prevent captions from flashing on and off mid-sentence.
+* **Bounds Clamping**: Restricts all timestamps within `[0, videoDuration]`.
+
+### 3. Eliminated 10% Gap Bug in Fallback Generators
+* **Removed Legacy Gap Math**: Replaced `* 90 / 100` timestamp calculation in fallback generators with seamless contiguous timestamps (`i * tpw` to `(i + 1) * tpw`).
+
+### 4. Continuous Segment Chunking & Canvas Rendering
+* **Seamless Display**: Extended chunk boundary timings so adjacent 3-word caption blocks merge continuously without visual dropouts.
+* **Canvas Tolerance Buffer**: Implemented a `0.05s` tolerance buffer in [CanvasVideoPlayer.jsx](file:///home/anji/Documents/auto_captions/frontend/src/components/editor/CanvasVideoPlayer.jsx) to guarantee smooth transitions without boundary flicker.
+
+---
+
+## 🏗️ System Architecture & Data Flow
+
+```
+[ User Video Upload ]
+         │
+         ▼
+[ Express API Server ] ──► [ PostgreSQL ] (Project & Media Meta)
+         │
+         ▼
+[ BullMQ / Redis Queue ] ──► [ Background Media Worker ]
+                                     │
+                                     ├──► FFmpeg Audio Extraction (.wav)
+                                     │
+                                     ▼
+                        [ Gemini 2.5 Flash Director ]
+                                     │ (STT + Timestamp Repair Engine)
+                                     ▼
+                        [ Submagic Kinetic Timeline JSON ]
+                                     │
+         ┌───────────────────────────┴───────────────────────────┐
+         ▼                                                       ▼
+[ React Canvas Editor ]                                [ Server FFmpeg Render ]
+(60FPS Hardware Synced Loop)                           (60FPS Lossless H.264 MP4)
+```
+
+---
+
+## 📁 Repository Structure
+
+```
+auto_captions/
+├── backend/                        # Node.js Express & BullMQ Background Worker
+│   ├── src/
+│   │   ├── app.js                  # Express API server entrypoint
+│   │   ├── config/env.js           # Environment configurations
+│   │   ├── controllers/            # API Controllers (Project, Caption, Export)
+│   │   ├── db/                     # PostgreSQL pool & migrations
+│   │   ├── middleware/             # Auth & centralized error handling
+│   │   ├── routes/                 # Express API routes
+│   │   ├── services/               # Core Services
+│   │   │   ├── llm/                # Gemini Caption Director & Prompts
+│   │   │   ├── media/              # FFmpeg service & 60FPS MP4 Exporter
+│   │   │   ├── queue/              # BullMQ queue producers
+│   │   │   └── stt/                # Local Whisper & STT Providers
+│   │   ├── workers/                # BullMQ media processing consumer
+│   │   └── utils/                  # File uploads & helpers
+│   ├── uploads/                    # Raw uploaded videos
+│   └── outputs/                    # Exported 60FPS MP4 files
+│
+├── frontend/                       # React 18 + Vite + Tailwind CSS App
+│   ├── src/
+│   │   ├── components/             # Common & Editor UI Components
+│   │   │   └── editor/             # CanvasVideoPlayer & TimelineEditor
+│   │   ├── context/                # Auth & Theme Context
+│   │   ├── pages/                  # Auth, Dashboard, Editor Pages
+│   │   └── services/               # Axios API Clients
+│   └── index.css                   # Tailwind & Design tokens
+│
+└── shared/                         # Shared constants across FE/BE
+    └── constants/timeline.js       # Styles, Display Modes & Animations
+```
+
+---
+
+## 🛠️ Quick Start & Local Setup
+
+### Prerequisites
+* **Node.js**: v18.x or higher
+* **PostgreSQL**: v15.x running locally or remotely
+* **Redis**: Running on `127.0.0.1:6379` (for BullMQ queues)
+* **FFmpeg**: System installed or `ffmpeg-static` npm package
+* **Google Gemini API Key**: [Get API Key](https://ai.google.dev/)
+
+---
+
+### 1. Database Setup
+
+Create the PostgreSQL database and run the schema:
+
+```bash
+createdb auto_captions_db
+psql auto_captions_db < backend/src/db/schema.sql
+```
+
+---
+
+### 2. Backend Setup
+
+```bash
+cd backend
+
+# Install dependencies
+npm install
+
+# Configure environment variables
+cp .env.example .env
+```
+
+Edit `backend/.env`:
+```env
+PORT=5000
+NODE_ENV=development
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/auto_captions_db
+REDIS_URL=redis://127.0.0.1:6379
+GEMINI_API_KEY=your_gemini_api_key_here
+JWT_SECRET=your_jwt_secret_key
+```
+
+Run the Express API Server:
+```bash
+npm run dev
+```
+
+In a second terminal, run the Background Media Worker:
+```bash
+npm run worker
+```
+
+---
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Configure environment variables
+cp .env.example .env
+```
+
+Edit `frontend/.env`:
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+```
+
+Start the Vite development server:
+```bash
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## ⚡ API Reference Overview
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Create a new account |
+| `POST` | `/api/auth/login` | User login & JWT issuance |
+| `POST` | `/api/projects/upload` | Upload video & create async caption job |
+| `GET` | `/api/projects` | List user projects (paginated) |
+| `GET` | `/api/projects/:id` | Get single project status & metadata |
+| `GET` | `/api/projects/:id/timeline` | Get kinetic caption timeline JSON |
+| `PUT` | `/api/projects/:id/timeline` | Save edited caption timeline |
+| `POST` | `/api/projects/:id/export` | Render 60FPS MP4 video with FFmpeg |
+| `POST` | `/api/projects/:id/social-pack` | Generate AI Instagram & YouTube post captions |
+| `DELETE`| `/api/projects/:id` | Delete project and associated media files |
+
+---
+
+## 🎨 Theme Presets & Styles Supported
+
+* 🟢 **Hormozi Green** (`#22C55E`)
+* 🟡 **Hormozi Yellow** (`#EAB308`)
+* 🔴 **Fire Red** (`#EF4444`)
+* 🔵 **Neon Glow Cyan** (`#06B6D4`)
+* 🟣 **Cyber Purple** (`#D946EF`)
+* ⚡ **Electric Lime** (`#84CC16`)
+* 🏆 **Gold Luxury** (`#F59E0B`)
+
+---
+
+## 📜 License
+
+This project is proprietary and built for high-performance AI video caption generation.

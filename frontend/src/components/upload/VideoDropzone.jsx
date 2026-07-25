@@ -83,8 +83,8 @@ export default function VideoDropzone({ onProjectCreated }) {
           isDragging
             ? 'border-yellow-400 bg-yellow-400/10 scale-[1.01]'
             : file
-            ? 'border-zinc-700 bg-zinc-900/90'
-            : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900/80 cursor-pointer'
+            ? 'border-slate-300 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 shadow-xl'
+            : 'border-slate-300 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-slate-400 dark:hover:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-900/80 cursor-pointer shadow-md'
         }`}
       >
         <input
@@ -98,40 +98,40 @@ export default function VideoDropzone({ onProjectCreated }) {
 
         {!file ? (
           <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-yellow-400 shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700/50 flex items-center justify-center text-yellow-500 shadow-inner">
               <UploadCloud className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white mb-1">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
                 Drop your video clip here
               </h3>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-slate-500 dark:text-zinc-400">
                 Supports MP4, MOV, WebM (Up to 500MB, 9:16 vertical reels recommended)
               </p>
             </div>
-            <span className="px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700">
+            <span className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
               Browse File
             </span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
-            <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
+            <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500">
               <Film className="w-8 h-8" />
             </div>
             <div>
-              <h4 className="text-base font-semibold text-white truncate max-w-md">
+              <h4 className="text-base font-semibold text-slate-900 dark:text-white truncate max-w-md">
                 {file.name}
               </h4>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
                 {(file.size / (1024 * 1024)).toFixed(2)} MB
               </p>
             </div>
 
             {/* Target Caption Language & Script Style Selector */}
-            <div className="w-full max-w-md space-y-2 text-left bg-zinc-950/80 p-3.5 rounded-xl border border-zinc-800">
-              <label className="text-xs font-bold text-zinc-300 flex items-center justify-between">
+            <div className="w-full max-w-md space-y-2 text-left bg-slate-50 dark:bg-zinc-950/80 p-3.5 rounded-xl border border-slate-200 dark:border-zinc-800">
+              <label className="text-xs font-bold text-slate-800 dark:text-zinc-300 flex items-center justify-between">
                 <span>Caption Script & Language Style</span>
-                <span className="text-[10px] text-yellow-400 font-normal">AI Powered</span>
+                <span className="text-[10px] text-yellow-500 font-normal">AI Powered</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
@@ -147,8 +147,8 @@ export default function VideoDropzone({ onProjectCreated }) {
                     onClick={() => setTargetStyle(style.id)}
                     className={`p-2 rounded-lg border text-left transition flex flex-col justify-between ${
                       targetStyle === style.id
-                        ? 'border-yellow-400 bg-yellow-500/10 text-white'
-                        : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                        ? 'border-yellow-500 bg-yellow-500/10 text-slate-900 dark:text-white font-bold'
+                        : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
                     }`}
                   >
                     <span className="text-xs font-bold truncate">{style.label}</span>

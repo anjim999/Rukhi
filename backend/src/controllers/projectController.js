@@ -22,11 +22,8 @@ export async function uploadAndCreateProject(req, res, next) {
     const title = req.body.title || req.file.originalname;
     const targetStyle = req.body.targetStyle || 'auto';
 
-    // TODO: Replace with real auth user ID once auth is implemented
-    const userId = req.body.userId || req.headers['x-user-id'];
-    if (!userId) {
-      throw new AppError('User ID is required (pass via x-user-id header or body).', 400);
-    }
+    // Extract user ID from JWT auth token, header, or body, falling back to default dev user
+    const userId = req.user?.id || req.body.userId || req.headers['x-user-id'] || '00000000-0000-0000-0000-000000000001';
 
     const project = await projectService.createProject({
       userId,
@@ -68,9 +65,12 @@ export async function getProject(req, res, next) {
  */
 export async function listProjects(req, res, next) {
   try {
-    const userId = req.headers['x-user-id'];
+    const userId = req.user?.id || req.headers['x-user-id'];
     if (!userId) {
-      throw new AppError('User ID is required (pass via x-user-id header).', 400);
+      return res.json({
+        success: true,
+        data: { projects: [], total: 0, page: 1, limit: 20 },
+      });
     }
 
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);

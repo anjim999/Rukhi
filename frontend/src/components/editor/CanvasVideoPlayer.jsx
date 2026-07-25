@@ -56,15 +56,15 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
 
         const time = video.currentTime;
 
-        // Throttle UI slider updates so React re-renders don't thrash the video decoder
-        if (!isRecordingRef.current && Date.now() - lastUiUpdateRef.current > 500) {
+        // Throttle UI slider updates (100ms) for smooth slider feedback without thrashing react state
+        if (!isRecordingRef.current && Date.now() - lastUiUpdateRef.current > 100) {
           lastUiUpdateRef.current = Date.now();
           setCurrentTime(time);
         }
 
         if (timeline?.segments) {
           const activeSegment = timeline.segments.find(
-            (seg) => time >= seg.start && time <= seg.end
+            (seg) => time >= (seg.start - 0.05) && time <= (seg.end + 0.05)
           );
 
           if (activeSegment) {

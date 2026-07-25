@@ -17,6 +17,8 @@ frontend/dist/
 # Uploads & Temporary Media
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/outputs/*
+!backend/outputs/.gitkeep
 
 # Logs & System
 *.log

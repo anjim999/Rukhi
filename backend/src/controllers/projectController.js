@@ -234,3 +234,20 @@ export async function resumeProject(req, res, next) {
     next(err);
   }
 }
+
+export async function renameProject(req, res, next) {
+  try {
+    const { title } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Title is required.' });
+    }
+    const result = await projectService.updateProjectTitle(req.params.id, title.trim());
+    res.json({
+      success: true,
+      data: result,
+      message: 'Project title updated successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}

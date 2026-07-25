@@ -115,6 +115,20 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateProfile = async (name) => {
+    try {
+      const res = await axiosClient.put('/auth/me', { name });
+      if (res.user) {
+        setUser(res.user);
+      }
+      toast.success(res.message || 'Profile name updated!');
+      return res.user;
+    } catch (err) {
+      toast.error(err.message || 'Failed to update profile name.');
+      throw err;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('auto_captions_token');
     setToken(null);
@@ -138,6 +152,7 @@ export function AuthProvider({ children }) {
         googleAuth,
         forgotPassword,
         resetPassword,
+        updateProfile,
         logout,
       }}
     >

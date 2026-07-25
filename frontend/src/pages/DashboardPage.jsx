@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import VideoDropzone from '../components/upload/VideoDropzone';
-import { listProjects, deleteProject } from '../services/projectService';
-import { Film, Clock, Sparkles, Volume2, CheckCircle2, ArrowRight, Trash2 } from 'lucide-react';
+import { listProjects, deleteProject, renameProject } from '../services/projectService';
+import { Film, Clock, Sparkles, Volume2, CheckCircle2, ArrowRight, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const TELUGU_CAPTION_WORDS = [
@@ -19,6 +19,34 @@ export default function DashboardPage({ onSelectProject }) {
   const [activeWordIndex, setActiveWordIndex] = useState(3);
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
   const [deleting, setDeleting] = useState(false);
+
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameInput, setRenameInput] = useState('');
+  const [renaming, setRenaming] = useState(false);
+
+  const openRenameModal = (e, project) => {
+    e.stopPropagation();
+    setRenameTarget(project);
+    setRenameInput(project.title || '');
+  };
+
+  const confirmRenameProject = async () => {
+    if (!renameTarget || !renameInput.trim()) return;
+    setRenaming(true);
+    toast.loading('Renaming project...', { id: 'rename-toast' });
+    try {
+      await renameProject(renameTarget.id, renameInput.trim());
+      setProjects((prev) =>
+        prev.map((p) => (p.id === renameTarget.id ? { ...p, title: renameInput.trim() } : p))
+      );
+      toast.success('Project renamed successfully!', { id: 'rename-toast' });
+      setRenameTarget(null);
+    } catch (err) {
+      toast.error(`Rename failed: ${err.message}`, { id: 'rename-toast' });
+    } finally {
+      setRenaming(false);
+    }
+  };
   const { openAuthModal, user } = useAuth();
 
   const fetchProjects = async () => {
@@ -208,6 +236,13 @@ export default function DashboardPage({ onSelectProject }) {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <StatusBadge status={project.status} />
                     <button
+                      onClick={(e) => openRenameModal(e, project)}
+                      title="Rename Project"
+                      className="p-1 rounded-lg hover:bg-yellow-500/10 text-slate-400 hover:text-yellow-400 transition"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                       onClick={(e) => openDeleteModal(e, project)}
                       title="Delete Project"
                       className="p-1 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition"
@@ -261,6 +296,52 @@ export default function DashboardPage({ onSelectProject }) {
                 className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-lg shadow-red-600/20 disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Yes, Delete Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Confirmation Modal */}
+      {renameTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl space-y-6 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
+              <Pencil className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-white">Rename Video Project</h3>
+              <p className="text-xs text-zinc-400">Enter a new name for your reel project.</p>
+            </div>
+
+            <input
+              type="text"
+              value={renameInput}
+              onChange={(e) => setRenameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmRenameProject();
+                if (e.key === 'Escape') setRenameTarget(null);
+              }}
+              autoFocus
+              placeholder="Enter project name..."
+              className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none"
+            />
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setRenameTarget(null)}
+                disabled={renaming}
+                className="flex-1 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRenameProject}
+                disabled={renaming || !renameInput.trim()}
+                className="flex-1 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs transition shadow-lg shadow-yellow-500/10 disabled:opacity-50"
+              >
+                {renaming ? 'Saving...' : 'Save Title'}
               </button>
             </div>
           </div>

@@ -158,10 +158,11 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
             ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '')
             : 'http://localhost:5000';
           const downloadUrl = `${backendHost}${res.data.outputUrl}`;
+          const exportFilename = getSanitizedFilename(projectTitle, res.data?.filename || 'reel', 'mp4');
 
           const a = document.createElement('a');
           a.href = downloadUrl;
-          a.download = res.data.filename || `auto_captions_60fps_${Date.now()}.mp4`;
+          a.download = exportFilename;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -223,7 +224,8 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `auto_captions_reel_${Date.now()}.webm`;
+        const fallbackExt = mimeType.includes('webm') ? 'webm' : 'mp4';
+        a.download = getSanitizedFilename(projectTitle, 'reel', fallbackExt);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -266,6 +268,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
           src={resolvedVideoUrl}
           crossOrigin="anonymous"
           playsInline
+          webkit-playsinline="true"
           preload="auto"
           onLoadedMetadata={(e) => {
             setDuration(e.target.duration);
@@ -416,7 +419,7 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
 
   ctx.font = `${fontWeight} ${baseFontSize}px ${fontFamily}`;
 
-  const classified = words.map((w) => {
+  const classified = words.map((w, idx) => {
     let text = (w.word || '').replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|🔥|⚡|🚀|💸/gu, '').trim();
     if (presetId === THEME_PRESETS.HORMOZI || presetId === THEME_PRESETS.FIRE_RED || w.caseFormat === 'uppercase') {
       text = text.toUpperCase();
@@ -425,8 +428,10 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
     const rawWidth = ctx.measureText(displayStr).width;
     const effectiveWidth = rawWidth + (isSolidBox ? padX * 2 : 0);
 
-    const isActive = time >= w.start && time <= w.end;
-    const isPast = time > w.end;
+    const nextWord = words[idx + 1];
+    const nextStart = nextWord ? nextWord.start : (w.end + 0.35);
+    const isActive = (time >= w.start - 0.05 && time < nextStart) || (time >= w.start && time <= w.end + 0.35);
+    const isPast = time >= nextStart;
 
     return { ...w, text: displayStr, rawWidth, effectiveWidth, isActive, isPast };
   });

@@ -173,3 +173,15 @@ export async function resumeProject(projectId) {
   console.log(`[PROJECT] Resumed generation for project ${projectId}`);
   return { id: projectId, status: PROJECT_STATUSES.TRANSCRIBING };
 }
+
+export async function updateProjectTitle(projectId, title) {
+  const result = await query(
+    `UPDATE projects SET title = $2 WHERE id = $1 RETURNING id, title`,
+    [projectId, title]
+  );
+  if (result.rows.length === 0) {
+    throw new AppError('Project not found', 404);
+  }
+  console.log(`[PROJECT] Renamed project ${projectId} to "${title}"`);
+  return result.rows[0];
+}

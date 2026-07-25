@@ -91,8 +91,8 @@ export async function extractAudio(videoPath, projectId) {
 export async function extractAudioChunk(audioPath, startSec, durationSec, chunkPath) {
   try {
     await runFFmpeg([
-      '-i', audioPath,
       '-ss', String(startSec),
+      '-i', audioPath,
       '-t', String(durationSec),
       '-acodec', 'pcm_s16le',
       '-ar', '16000',
@@ -167,6 +167,31 @@ export async function probeVideo(videoPath) {
   } catch (err) {
     console.warn(`[FFMPEG WARNING] ffprobe failed (${err.message}). Using fallback metadata.`);
     return { duration: 15, width: 1080, height: 1920, fps: 30 };
+  }
+}
+
+export async function webOptimizeVideo(inputPath, outputPath) {
+  try {
+    console.log(`[FFMPEG] Web-Optimizing video for mobile & Instagram compatibility: ${inputPath}`);
+    await runFFmpeg([
+      '-i', inputPath,
+      '-c:v', 'libx264',
+      '-profile:v', 'main',
+      '-level', '4.1',
+      '-preset', 'fast',
+      '-crf', '20',
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-movflags', '+faststart',
+      '-y',
+      outputPath,
+    ]);
+    console.log(`[FFMPEG] ✅ Web optimization complete: ${outputPath}`);
+    return outputPath;
+  } catch (err) {
+    console.warn(`[FFMPEG WARNING] Web optimization failed: ${err.message}`);
+    return inputPath;
   }
 }
 

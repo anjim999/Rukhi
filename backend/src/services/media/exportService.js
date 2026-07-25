@@ -60,6 +60,15 @@ function convertTimelineToSRT(timeline) {
   return srtContent;
 }
 
+function getSanitizedFilename(title) {
+  if (!title || !title.trim()) return `reel_${Date.now()}.mp4`;
+  let clean = title.trim();
+  clean = clean.replace(/\.(mp4|mov|webm|m4v|avi|mkv)$/i, '');
+  clean = clean.replace(/[^\w\s\-\.]/g, '').trim().replace(/\s+/g, '_');
+  if (!clean) return `reel_${Date.now()}.mp4`;
+  return `${clean}.mp4`;
+}
+
 export async function renderProjectVideoMP4(projectId) {
   // Fetch project details
   const projRes = await query(`SELECT * FROM projects WHERE id = $1`, [projectId]);
@@ -97,23 +106,30 @@ export async function renderProjectVideoMP4(projectId) {
   // Output MP4 file
   const outputFileName = `export_${projectId}_60fps.mp4`;
   const outputFilePath = path.join(config.outputDir, outputFileName);
+  const userDownloadName = getSanitizedFilename(project.title);
 
   // Escaped SRT path for FFmpeg subtitles filter
   const escapedSrtPath = srtFilePath.replace(/\\/g, '/').replace(/:/g, '\\:');
   const forceStyle = "FontName=Arial,FontSize=22,PrimaryColour=&H0005FACC,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=45,Alignment=2,Bold=1";
 
-  console.log(`[FFMPEG 60FPS EXPORT] Burning subtitles into 60FPS MP4 video for project ${projectId}...`);
+  console.log(`[FFMPEG INSTAGRAM REEL EXPORT] Burning subtitles into Ultra-HD MP4 video for project ${projectId} (${userDownloadName})...`);
 
   await runFFmpeg([
     '-i', inputVideoPath,
     '-vf', `subtitles='${escapedSrtPath}':force_style='${forceStyle}'`,
-    '-r', '60',
+    '-r', '30',
     '-c:v', 'libx264',
-    '-preset', 'fast',
+    '-profile:v', 'high',
+    '-level', '4.2',
+    '-preset', 'medium',
     '-crf', '18',
+    '-maxrate', '15M',
+    '-bufsize', '30M',
     '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
     '-b:a', '192k',
+    '-ar', '44100',
+    '-ac', '2',
     '-movflags', '+faststart',
     '-y',
     outputFilePath,
@@ -124,6 +140,6 @@ export async function renderProjectVideoMP4(projectId) {
   const outputUrl = `/outputs/${outputFileName}`;
   return {
     outputUrl,
-    filename: outputFileName,
+    filename: userDownloadName,
   };
 }

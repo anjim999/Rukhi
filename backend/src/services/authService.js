@@ -326,3 +326,17 @@ export async function getUserById(userId) {
 
   return res.rows[0];
 }
+
+export async function updateUserProfile(userId, name) {
+  if (!name || !name.trim()) {
+    throw new AppError('Name is required.', 400);
+  }
+  const res = await query(
+    `UPDATE users SET name = $2 WHERE id = $1 RETURNING id, name, email, avatar_url, created_at`,
+    [userId, name.trim()]
+  );
+  if (res.rows.length === 0) {
+    throw new AppError('User not found.', 404);
+  }
+  return res.rows[0];
+}

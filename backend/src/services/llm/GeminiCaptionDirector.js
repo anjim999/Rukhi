@@ -33,7 +33,7 @@ export class GeminiCaptionDirector extends LLMProvider {
     }
 
     this.ai = config.geminiApiKey ? new GoogleGenerativeAI(config.geminiApiKey) : null;
-    this.modelName = 'gemini-3.5-flash';
+    this.modelName = 'gemini-2.5-flash';
   }
 
   async isAvailable() {
@@ -112,13 +112,16 @@ ${speechOnset > 0.1 ? `EXACT SPEECH ONSET CONSTRAINT: Initial silence in this cl
 TARGET OUTPUT SCRIPT STYLE:
 ${styleInstruction}
 
+AUDIO ENVIRONMENT & BGM INSTRUCTION:
+This audio clip may contain background music (BGM), beats, or noise. IGNORE background music and instruments. Isolate and transcribe ALL spoken human voice words across the full ${chunkDur.toFixed(1)}-second duration from start to end without missing any phrases!
+
 CRITICAL TIMING & SYNCHRONIZATION CONSTRAINTS:
 1. Provide exact word-level timestamps relative to THIS CHUNK (start 0.00s to ${chunkDur.toFixed(2)}s).
 2. Start time of the first word MUST match actual speech onset (${speechOnset.toFixed(2)}s) in this audio clip.
 3. Allocate timestamps so each word matches the EXACT acoustic playback window of the spoken phrase in this audio clip.
 4. Timestamps MUST be in seconds with 2 decimal places (e.g. 0.15, 1.42).
 5. Word timestamps MUST be strictly ordered and monotonic: word[n].start < word[n].end and word[n].end <= word[n+1].start.
-6. DO NOT hallucinate speech outside this ${chunkDur.toFixed(1)}-second audio chunk.
+6. Transcribe ALL words spoken in this ${chunkDur.toFixed(1)}-second audio chunk. DO NOT truncate speech early.
 
 Return ONLY a compact JSON object with this exact structure:
 {
@@ -184,26 +187,23 @@ Return ONLY a compact JSON object with this exact structure:
               chunkWords.push({ wText, wStart, wEnd, wEmp });
             }
 
-            // Acoustic Onset Alignment: Ensure first word matches real acoustic speech onset
-            if (chunkWords.length > 0 && speechOnset >= 0) {
+            // Acoustic Onset Alignment: Ensure first word matches real acoustic speech onset within chunk
+            if (chunkWords.length > 0 && speechOnset > 0.1 && speechOnset < chunkDur) {
               const delta = speechOnset - chunkWords[0].wStart;
-              if (Math.abs(delta) > 0.15 && delta < 5.0) {
+              if (Math.abs(delta) > 0.15 && Math.abs(delta) < (chunkDur / 2)) {
                 console.log(`[ACOUSTIC ONSET ALIGNMENT] Chunk ${c}: Adjusting start time by ${delta > 0 ? '+' : ''}${delta.toFixed(2)}s to match speech onset (${speechOnset.toFixed(2)}s)`);
-                chunkWords = chunkWords.map(w => ({
-                  ...w,
-                  wStart: Math.max(speechOnset, Math.round((w.wStart + delta) * 100) / 100),
-                  wEnd: Math.max(speechOnset + 0.1, Math.round((w.wEnd + delta) * 100) / 100),
-                }));
+                chunkWords = chunkWords.map(w => {
+                  const newStart = Math.max(speechOnset, Math.round((w.wStart + delta) * 100) / 100);
+                  const newEnd = Math.max(newStart + 0.1, Math.round((w.wEnd + delta) * 100) / 100);
+                  return { ...w, wStart: newStart, wEnd: newEnd };
+                });
               }
             }
 
             for (const w of chunkWords) {
-              allWords.push([
-                w.wText,
-                Math.round((w.wStart + offset) * 100) / 100,
-                Math.round((w.wEnd + offset) * 100) / 100,
-                w.wEmp,
-              ]);
+              const startSec = Math.round((w.wStart + offset) * 100) / 100;
+              const endSec = Math.max(startSec + 0.1, Math.round((w.wEnd + offset) * 100) / 100);
+              allWords.push([w.wText, startSec, endSec, w.wEmp]);
             }
           }
 
@@ -355,16 +355,23 @@ Return ONLY a compact JSON object with this exact structure:
     if (!Array.isArray(wordObjects) || wordObjects.length === 0) return [];
 
     const maxDur = videoDuration && videoDuration > 0 ? videoDuration : 9999;
+
+    // Filter valid objects and sort strictly by start timestamp
+    const cleanWords = wordObjects.map((w) => {
+      let start = Math.max(0, Math.round((parseFloat(w.start) || 0) * 100) / 100);
+      let end = Math.round((parseFloat(w.end) || start + 0.3) * 100) / 100;
+      if (end <= start) end = Math.round((start + 0.25) * 100) / 100;
+      return { ...w, start, end };
+    }).sort((a, b) => a.start - b.start);
+
     const repaired = [];
 
-    for (let i = 0; i < wordObjects.length; i++) {
-      const current = { ...wordObjects[i] };
-      current.start = Math.max(0, Math.round((parseFloat(current.start) || 0) * 100) / 100);
-      current.end = Math.max(current.start + 0.05, Math.round((parseFloat(current.end) || current.start + 0.3) * 100) / 100);
+    for (let i = 0; i < cleanWords.length; i++) {
+      const current = { ...cleanWords[i] };
 
-      // Clamp to max video duration
       if (current.start > maxDur) current.start = Math.max(0, maxDur - 0.1);
       if (current.end > maxDur) current.end = maxDur;
+      if (current.end <= current.start) current.end = Math.round((current.start + 0.25) * 100) / 100;
 
       if (repaired.length > 0) {
         const prev = repaired[repaired.length - 1];
@@ -378,18 +385,21 @@ Return ONLY a compact JSON object with this exact structure:
           continue;
         }
 
-        // Fix Overlaps: if current start is before previous end, pull previous end back or adjust current start
+        // Fix Overlaps: if current start is before previous end
         if (current.start < prev.end) {
           prev.end = current.start;
           if (prev.end <= prev.start) {
-            prev.end = Math.round((prev.start + 0.05) * 100) / 100;
+            prev.end = Math.round((prev.start + 0.1) * 100) / 100;
             current.start = prev.end;
+            if (current.end <= current.start) {
+              current.end = Math.round((current.start + 0.25) * 100) / 100;
+            }
           }
         }
 
-        // Fill Small Gaps (< 0.25s) so captions flow seamlessly without jarring visual dropouts
+        // Fill Small Gaps (<= 0.3s) so captions flow seamlessly without jarring visual dropouts
         const gap = current.start - prev.end;
-        if (gap > 0 && gap <= 0.25) {
+        if (gap > 0 && gap <= 0.3) {
           prev.end = current.start;
         }
       }
@@ -501,9 +511,9 @@ Return ONLY a compact JSON object with this exact structure:
       const segStart = chunk[0].start;
       let segEnd = chunk[chunk.length - 1].end;
 
-      // Extend segment end to next segment start if gap is small (<0.3s) for seamless caption display
+      // Extend segment end to next segment start if gap is natural speech pause (<0.65s) for 100% seamless caption display
       const nextChunk = chunks[segIndex + 1];
-      if (nextChunk && (nextChunk[0].start - segEnd) < 0.3) {
+      if (nextChunk && (nextChunk[0].start - segEnd) < 0.65) {
         segEnd = nextChunk[0].start;
       }
 
@@ -647,44 +657,113 @@ LANG: ${language}
 Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|chunk_3","animation":"pop|bounce|slide|glow|none","words":[{"word":"W","start":N,"end":N,"emphasisScore":N,"isHighlighted":bool,"highlightColor":"#hex|null","emoji":"emoji|null","sfx":"pop|whoosh|none","caseFormat":"uppercase|lowercase|original"}]}],"stickyHook":{"text":"hook with emoji","position":"top"}}`;
   }
 
-  _normalizeTimeline(raw, enrichedWords, aspectRatio, presetName) {
-    const segments = (raw.segments || []).map((seg) => ({
-      id: uuidv4(),
-      start: seg.start || 0,
-      end: seg.end || 0,
-      displayMode: Object.values(DISPLAY_MODES).includes(seg.displayMode)
-        ? seg.displayMode
-        : DISPLAY_MODES.CHUNK_2,
-      animation: Object.values(ANIMATION_TYPES).includes(seg.animation)
-        ? seg.animation
-        : ANIMATION_TYPES.NONE,
-      position: { x: 50, y: 75 },
-      fontStyle: {
-        fontFamily: 'Inter',
-        fontSize: 48,
-        fontWeight: '800',
-        textColor: '#FFFFFF',
-        strokeColor: '#000000',
-        strokeWidth: 2,
-        backgroundColor: null,
-        shadow: '0 2px 8px rgba(0,0,0,0.6)',
-      },
-      words: (seg.words || []).map((w) => ({
+  _normalizeTimeline(raw, enrichedWords = [], aspectRatio, presetName) {
+    let wordPointer = 0;
+
+    const segments = (raw.segments || []).map((seg) => {
+      const segWords = (seg.words || []).map((w) => {
+        let exactStart = w.start || 0;
+        let exactEnd = w.end || 0;
+        let exactConfidence = w.confidence || 0.9;
+
+        // If we have precise STT enrichedWords (e.g. from Deepgram Nova-2), lock timestamps to STT truth
+        if (Array.isArray(enrichedWords) && enrichedWords.length > 0) {
+          const cleanWText = (w.word || '').trim().toLowerCase().replace(/[^\w]/g, '');
+          let matched = null;
+
+          // Look ahead up to 5 words to find exact matching word in enrichedWords
+          for (let p = wordPointer; p < Math.min(enrichedWords.length, wordPointer + 5); p++) {
+            const ewText = (enrichedWords[p].word || '').trim().toLowerCase().replace(/[^\w]/g, '');
+            if (cleanWText === ewText || cleanWText.includes(ewText) || ewText.includes(cleanWText)) {
+              matched = enrichedWords[p];
+              wordPointer = p + 1;
+              break;
+            }
+          }
+
+          if (!matched && wordPointer < enrichedWords.length) {
+            matched = enrichedWords[wordPointer];
+            wordPointer++;
+          }
+
+          if (matched) {
+            exactStart = matched.start;
+            exactEnd = matched.end;
+            exactConfidence = matched.confidence || 0.9;
+          }
+        }
+
+        exactStart = Math.max(0, Math.round(exactStart * 100) / 100);
+        exactEnd = Math.max(exactStart + 0.05, Math.round(exactEnd * 100) / 100);
+
+        return {
+          id: uuidv4(),
+          word: w.word || '',
+          start: exactStart,
+          end: exactEnd,
+          confidence: exactConfidence,
+          emphasisScore: w.emphasisScore || 0.5,
+          isHighlighted: w.isHighlighted || false,
+          highlightColor: w.highlightColor || null,
+          emoji: w.emoji || null,
+          sfx: Object.values(SFX_TYPES).includes(w.sfx) ? w.sfx : SFX_TYPES.NONE,
+          caseFormat: Object.values(CASE_FORMATS).includes(w.caseFormat)
+            ? w.caseFormat
+            : CASE_FORMATS.ORIGINAL,
+        };
+      }).filter((w) => w.word.trim().length > 0);
+
+      if (segWords.length === 0) return null;
+
+      const segStart = segWords[0].start;
+      let segEnd = segWords[segWords.length - 1].end;
+      if (segEnd <= segStart) {
+        segEnd = Math.round((segStart + 0.25) * 100) / 100;
+      }
+
+      return {
         id: uuidv4(),
-        word: w.word || '',
-        start: w.start || 0,
-        end: w.end || 0,
-        confidence: w.confidence || 0.9,
-        emphasisScore: w.emphasisScore || 0.5,
-        isHighlighted: w.isHighlighted || false,
-        highlightColor: w.highlightColor || null,
-        emoji: w.emoji || null,
-        sfx: Object.values(SFX_TYPES).includes(w.sfx) ? w.sfx : SFX_TYPES.NONE,
-        caseFormat: Object.values(CASE_FORMATS).includes(w.caseFormat)
-          ? w.caseFormat
-          : CASE_FORMATS.ORIGINAL,
-      })),
-    }));
+        start: segStart,
+        end: segEnd,
+        displayMode: Object.values(DISPLAY_MODES).includes(seg.displayMode)
+          ? seg.displayMode
+          : DISPLAY_MODES.CHUNK_2,
+        animation: Object.values(ANIMATION_TYPES).includes(seg.animation)
+          ? seg.animation
+          : ANIMATION_TYPES.NONE,
+        position: { x: 50, y: 75 },
+        fontStyle: {
+          fontFamily: 'Inter',
+          fontSize: 48,
+          fontWeight: '800',
+          textColor: '#FFFFFF',
+          strokeColor: '#000000',
+          strokeWidth: 2,
+          backgroundColor: null,
+          shadow: '0 2px 8px rgba(0,0,0,0.6)',
+        },
+        words: segWords,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.start - b.start);
+
+    // Fix continuity and prevent backward end timestamps between adjacent segments
+    for (let i = 0; i < segments.length - 1; i++) {
+      const current = segments[i];
+      const next = segments[i + 1];
+      if (current.end > next.start) {
+        current.end = next.start;
+        if (current.end <= current.start) {
+          current.end = Math.round((current.start + 0.1) * 100) / 100;
+        }
+      } else {
+        const gap = next.start - current.end;
+        if (gap > 0 && gap <= 0.35) {
+          current.end = next.start;
+        }
+      }
+    }
 
     const stickyHook = raw.stickyHook
       ? {

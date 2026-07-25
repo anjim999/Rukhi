@@ -8,11 +8,12 @@ import {
   cancelProject,
   pauseProject,
   resumeProject,
+  renameProject,
 } from '../services/projectService';
 import CanvasVideoPlayer from '../components/editor/CanvasVideoPlayer';
 import PresetSidebar from '../components/editor/PresetSidebar';
 import TimelineEditor from '../components/editor/TimelineEditor';
-import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X, Pause, Play, XCircle } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X, Pause, Play, XCircle, Pencil } from 'lucide-react';
 
 export default function EditorPage({ projectId, onBack }) {
   const [project, setProject] = useState(null);
@@ -25,12 +26,37 @@ export default function EditorPage({ projectId, onBack }) {
   const [cancelling, setCancelling] = useState(false);
   const [pausing, setPausing] = useState(false);
 
+  // Title edit state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [renamingTitle, setRenamingTitle] = useState(false);
+
   // Social Post Generator Modal state
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
   const [socialData, setSocialData] = useState(null);
   const [copiedIg, setCopiedIg] = useState(false);
   const [copiedYt, setCopiedYt] = useState(false);
+
+  const handleSaveTitle = async () => {
+    if (!titleInput.trim() || titleInput.trim() === project?.title) {
+      setIsEditingTitle(false);
+      return;
+    }
+    setRenamingTitle(true);
+    try {
+      const res = await renameProject(projectId, titleInput.trim());
+      if (res.success) {
+        setProject((prev) => (prev ? { ...prev, title: titleInput.trim() } : prev));
+        toast.success('Project title updated!');
+      }
+    } catch (err) {
+      toast.error(`Rename failed: ${err.message}`);
+    } finally {
+      setRenamingTitle(false);
+      setIsEditingTitle(false);
+    }
+  };
 
   useEffect(() => {
     let intervalId;
@@ -268,9 +294,52 @@ export default function EditorPage({ projectId, onBack }) {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-base font-bold text-white leading-none mb-1">
-              {project?.title || 'Untitled Video Project'}
-            </h1>
+            {isEditingTitle ? (
+              <div className="flex items-center gap-1.5 mb-1">
+                <input
+                  type="text"
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTitle();
+                    if (e.key === 'Escape') setIsEditingTitle(false);
+                  }}
+                  autoFocus
+                  className="bg-zinc-950 border border-yellow-500/50 rounded-lg px-2.5 py-1 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                />
+                <button
+                  onClick={handleSaveTitle}
+                  disabled={renamingTitle}
+                  className="p-1 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-black transition"
+                  title="Save title"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setIsEditingTitle(false)}
+                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition"
+                  title="Cancel"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-2 mb-1 group cursor-pointer"
+                onClick={() => {
+                  setTitleInput(project?.title || '');
+                  setIsEditingTitle(true);
+                }}
+                title="Click to edit project title"
+              >
+                <h1 className="text-base font-bold text-white leading-none group-hover:text-yellow-400 transition">
+                  {project?.title || 'Untitled Video Project'}
+                </h1>
+                <button className="text-zinc-500 group-hover:text-yellow-400 opacity-70 group-hover:opacity-100 transition">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
             <p className="text-xs text-zinc-400">
               Kinetic Subtitle Studio • {timeline?.segments?.length || 0} Timeblocks
             </p>
@@ -324,6 +393,7 @@ export default function EditorPage({ projectId, onBack }) {
             timeline={timeline}
             currentTime={currentTime}
             setCurrentTime={setCurrentTime}
+            projectTitle={project?.title}
           />
         </div>
 

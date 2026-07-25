@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Sparkles, Video, FolderOpen, Sun, Moon, Menu, X, LogOut, ChevronDown, HelpCircle } from 'lucide-react';
+import { Sparkles, Video, FolderOpen, Sun, Moon, Menu, X, LogOut, ChevronDown, HelpCircle, Pencil, User, Check } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,9 +8,14 @@ export default function Header({ activeProject, onOpenTour }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { user, openAuthModal, logout } = useAuth();
+  const { user, openAuthModal, logout, updateProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  // Profile Edit modal state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileNameInput, setProfileNameInput] = useState('');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
 
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
 
@@ -22,6 +27,25 @@ export default function Header({ activeProject, onOpenTour }) {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleOpenProfileModal = () => {
+    setUserDropdownOpen(false);
+    setProfileNameInput(user?.name || '');
+    setShowProfileModal(true);
+  };
+
+  const handleSaveProfileName = async () => {
+    if (!profileNameInput.trim()) return;
+    setUpdatingProfile(true);
+    try {
+      await updateProfile(profileNameInput.trim());
+      setShowProfileModal(false);
+    } catch (_err) {
+      // Toast handles error
+    } finally {
+      setUpdatingProfile(false);
+    }
   };
 
   return (
@@ -122,6 +146,14 @@ export default function Header({ activeProject, onOpenTour }) {
                     <p className="font-bold text-xs text-slate-900 dark:text-white truncate">{user.name}</p>
                     <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user.email}</p>
                   </div>
+
+                  <button
+                    onClick={handleOpenProfileModal}
+                    className="w-full mt-1 flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition"
+                  >
+                    <Pencil className="w-4 h-4 text-yellow-500" />
+                    Change Profile Name
+                  </button>
 
                   <button
                     onClick={() => {
@@ -226,6 +258,51 @@ export default function Header({ activeProject, onOpenTour }) {
               </button>
             </div>
           )}
+        </div>
+      )}
+      {/* Profile Display Name Edit Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500">
+              <User className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Change Profile Name</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">Update your public display name for your account.</p>
+            </div>
+
+            <input
+              type="text"
+              value={profileNameInput}
+              onChange={(e) => setProfileNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveProfileName();
+                if (e.key === 'Escape') setShowProfileModal(false);
+              }}
+              autoFocus
+              placeholder="Enter your name..."
+              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 focus:border-yellow-500 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:outline-none"
+            />
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setShowProfileModal(false)}
+                disabled={updatingProfile}
+                className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-semibold text-xs transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProfileName}
+                disabled={updatingProfile || !profileNameInput.trim()}
+                className="flex-1 py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs transition shadow-lg shadow-yellow-500/10 disabled:opacity-50"
+              >
+                {updatingProfile ? 'Saving...' : 'Update Name'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </header>

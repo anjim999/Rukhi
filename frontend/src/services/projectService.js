@@ -123,6 +123,10 @@ export async function resumeProject(projectId) {
   return axiosClient.post(`/projects/${projectId}/resume`);
 }
 
+export async function renameProject(projectId, title) {
+  return axiosClient.patch(`/projects/${projectId}/rename`, { title });
+}
+
 /**
  * Delete a project.
  * @param {string} projectId

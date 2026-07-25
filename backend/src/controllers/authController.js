@@ -58,3 +58,13 @@ export async function me(req, res, next) {
     next(err);
   }
 }
+
+export async function updateProfile(req, res, next) {
+  try {
+    const { name } = req.body;
+    const user = await authService.updateUserProfile(req.user.id, name);
+    res.json({ success: true, user, message: 'Profile name updated successfully.' });
+  } catch (err) {
+    next(err);
+  }
+}

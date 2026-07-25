@@ -13,6 +13,7 @@ import {
   cancelProject,
   pauseProject,
   resumeProject,
+  renameProject,
 } from '../controllers/projectController.js';
 
 const router = Router();
@@ -24,6 +25,7 @@ router.get('/', listProjects);
 router.get('/:id', getProject);
 router.get('/:id/timeline', getProjectTimeline);
 router.put('/:id/timeline', updateProjectTimeline);
+router.patch('/:id/rename', renameProject);
 router.post('/:id/social-pack', getSocialPostPack);
 router.post('/:id/export', exportProjectVideo);
 router.post('/:id/cancel', cancelProject);

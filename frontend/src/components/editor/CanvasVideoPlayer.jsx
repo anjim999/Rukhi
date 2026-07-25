@@ -241,17 +241,38 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
       await video.play();
       setIsPlaying(true);
 
+      let stopTriggered = false;
+      let safetyTimer = null;
+
+      const stopRecording = () => {
+        if (stopTriggered) return;
+        stopTriggered = true;
+        if (checkEnd) clearInterval(checkEnd);
+        if (safetyTimer) clearTimeout(safetyTimer);
+        try { video.pause(); } catch (_e) {}
+        setIsPlaying(false);
+        if (mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+      };
+
       const checkEnd = setInterval(() => {
         if (video.duration) {
           setRecordProgress(Math.min(100, Math.round((video.currentTime / video.duration) * 100)));
         }
-        if (video.ended || video.currentTime >= video.duration - 0.05) {
-          clearInterval(checkEnd);
-          video.pause();
-          setIsPlaying(false);
-          mediaRecorder.stop();
+        if (
+          video.ended ||
+          (video.duration && video.currentTime >= video.duration - 0.15) ||
+          (video.paused && video.currentTime > 0.5)
+        ) {
+          stopRecording();
         }
       }, 50);
+
+      safetyTimer = setTimeout(() => {
+        console.warn('[EXPORT WATCHDOG] Max duration reached, completing export...');
+        stopRecording();
+      }, Math.max(4000, ((video.duration || 15) + 2) * 1000));
     } catch (err) {
       console.error('Export error:', err);
       toast.error(`Export failed: ${err.message || 'Unknown error'}`, { id: 'export-toast' });

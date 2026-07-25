@@ -7,7 +7,6 @@ import { config } from '../config/env.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { sendEmail } from '../utils/mailer.js';
 
-it should send welcome mail when on lo
 /**
  * Sign JWT token for user
  */
@@ -56,6 +55,43 @@ export async function registerUser({ name, email, password }) {
   const user = insertRes.rows[0];
   const token = generateToken(user);
 
+  // Send Welcome Email
+  try {
+    const welcomeHtml = `
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #09090b; color: #ffffff; border-radius: 16px; border: 1px solid #27272a;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #facc15; font-size: 32px; font-weight: 800; margin: 0;">Rocky Captions</h1>
+          <p style="color: #a1a1aa; font-size: 16px; margin-top: 8px;">Your AI Reel Studio</p>
+        </div>
+        <div style="background-color: #18181b; padding: 30px; border-radius: 12px; border: 1px solid #3f3f46;">
+          <h2 style="font-size: 24px; margin-top: 0;">Welcome aboard, ${user.name}! 🚀</h2>
+          <p style="font-size: 16px; line-height: 1.6; color: #d4d4d8;">
+            We're thrilled to have you! You now have access to the ultimate AI-powered captioning engine. 
+            Turn your raw videos into viral masterpieces in seconds.
+          </p>
+          <ul style="color: #d4d4d8; font-size: 15px; line-height: 1.8; margin-top: 20px; padding-left: 20px;">
+            <li>✨ <strong>100% Accurate Sync:</strong> Zero drift, sample-accurate timelines.</li>
+            <li>🎨 <strong>Viral Styles:</strong> Hormozi, MrBeast, and Gold Luxury presets.</li>
+            <li>🌍 <strong>Multi-Lingual:</strong> English, Telugu, Hindi, and Teluglish support.</li>
+          </ul>
+          <div style="text-align: center; margin-top: 35px;">
+            <a href="https://rocky-captions.vercel.app/" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">Create Your First Reel</a>
+          </div>
+        </div>
+        <p style="text-align: center; color: #71717a; font-size: 13px; margin-top: 30px;">
+          © ${new Date().getFullYear()} Rocky Captions. All rights reserved.
+        </p>
+      </div>
+    `;
+    await sendEmail({
+      to: normalizedEmail,
+      subject: '🚀 Welcome to Rocky Captions! Your AI Studio is ready.',
+      html: welcomeHtml,
+    });
+  } catch (err) {
+    console.error('[MAILER] Welcome email failed silently:', err.message);
+  }
+
   return { user, token };
 }
 
@@ -89,6 +125,34 @@ export async function loginUser({ email, password }) {
 
   const token = generateToken(user);
   const { password_hash, ...userWithoutPassword } = user;
+
+  // Send Login Alert Email
+  try {
+    const loginHtml = `
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #09090b; color: #ffffff; border-radius: 16px; border: 1px solid #27272a;">
+        <h2 style="color: #facc15; text-align: center; font-size: 24px; font-weight: 800; margin-bottom: 30px;">🔒 New Login Detected</h2>
+        <div style="background-color: #18181b; padding: 25px; border-radius: 12px; border: 1px solid #3f3f46;">
+          <p style="font-size: 16px; color: #d4d4d8; margin-top: 0;">Hi ${user.name},</p>
+          <p style="font-size: 15px; color: #a1a1aa; line-height: 1.6;">
+            We noticed a new login to your Rocky Captions account. If this was you, you can safely ignore this email.
+          </p>
+          <div style="background-color: #27272a; padding: 15px; border-radius: 8px; margin-top: 20px;">
+            <p style="margin: 0; font-size: 14px; color: #e4e4e7;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          <p style="font-size: 14px; color: #ef4444; margin-top: 20px; line-height: 1.5;">
+            If you did not authorize this login, please reset your password immediately to secure your account.
+          </p>
+        </div>
+      </div>
+    `;
+    await sendEmail({
+      to: normalizedEmail,
+      subject: '🔒 Security Alert: New Login to Rocky Captions',
+      html: loginHtml,
+    });
+  } catch (err) {
+    console.error('[MAILER] Login alert email failed silently:', err.message);
+  }
 
   return { user: userWithoutPassword, token };
 }
@@ -128,6 +192,34 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
       [userId, name || 'Google User', normalizedEmail, googleId || null, avatarUrl || null]
     );
     user = insertRes.rows[0];
+
+    // Send Welcome Email for new Google signups
+    try {
+      const welcomeHtml = `
+        <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #09090b; color: #ffffff; border-radius: 16px; border: 1px solid #27272a;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #facc15; font-size: 32px; font-weight: 800; margin: 0;">Rocky Captions</h1>
+            <p style="color: #a1a1aa; font-size: 16px; margin-top: 8px;">Your AI Reel Studio</p>
+          </div>
+          <div style="background-color: #18181b; padding: 30px; border-radius: 12px; border: 1px solid #3f3f46;">
+            <h2 style="font-size: 24px; margin-top: 0;">Welcome aboard, ${user.name}! 🚀</h2>
+            <p style="font-size: 16px; line-height: 1.6; color: #d4d4d8;">
+              You successfully joined using Google. You now have access to the ultimate AI-powered captioning engine.
+            </p>
+            <div style="text-align: center; margin-top: 35px;">
+              <a href="https://rocky-captions.vercel.app/" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase;">Launch Studio</a>
+            </div>
+          </div>
+        </div>
+      `;
+      await sendEmail({
+        to: normalizedEmail,
+        subject: '🚀 Welcome to Rocky Captions! Your AI Studio is ready.',
+        html: welcomeHtml,
+      });
+    } catch (err) {
+      console.error('[MAILER] Welcome email failed silently:', err.message);
+    }
   }
 
   const token = generateToken(user);
@@ -192,11 +284,11 @@ export async function forgotPassword(email) {
  */
 export async function resetPassword({ token, newPassword }) {
   if (!token || !newPassword) {
-    throw new Error('Reset token and new password are required.');
+    throw new AppError('Reset token and new password are required.', 400);
   }
 
   if (newPassword.length < 6) {
-    throw new Error('Password must be at least 6 characters long.');
+    throw new AppError('Password must be at least 6 characters long.', 400);
   }
 
   const res = await query(
@@ -205,7 +297,7 @@ export async function resetPassword({ token, newPassword }) {
   );
 
   if (res.rows.length === 0) {
-    throw new Error('Invalid or expired password reset token.');
+    throw new AppError('Invalid or expired password reset token.', 400);
   }
 
   const user = res.rows[0];

@@ -176,8 +176,8 @@ export async function webOptimizeVideo(inputPath, outputPath) {
     await runFFmpeg([
       '-i', inputPath,
       '-c:v', 'libx264',
-      '-profile:v', 'main',
-      '-level', '4.1',
+      '-profile:v', 'baseline',
+      '-level', '3.0',
       '-preset', 'fast',
       '-crf', '20',
       '-pix_fmt', 'yuv420p',

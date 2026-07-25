@@ -25,10 +25,16 @@ const DEMUCS_STEM = 'vocals';
  */
 export async function isDemucsAvailable() {
   return new Promise((resolve) => {
-    const proc = spawn('python3', ['-m', 'demucs', '--help'], {
+    // Use importlib.util.find_spec to check if demucs is installed
+    // WITHOUT importing it (avoids 60s PyTorch load time)
+    const proc = spawn('python3', [
+      '-c', 'import importlib.util; print("yes" if importlib.util.find_spec("demucs") else "no")',
+    ], {
       timeout: 10000,
     });
-    proc.on('close', (code) => resolve(code === 0));
+    let stdout = '';
+    proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    proc.on('close', (code) => resolve(code === 0 && stdout.trim() === 'yes'));
     proc.on('error', () => resolve(false));
   });
 }
@@ -71,7 +77,7 @@ export async function separateVocals(audioPath, projectId) {
         '--jobs', '2',
         audioPath,
       ], {
-        timeout: 120000, // 2 minute max timeout
+        timeout: 300000, // 5 minute max (PyTorch cold-start ~60s + separation processing)
       });
 
       let stderr = '';

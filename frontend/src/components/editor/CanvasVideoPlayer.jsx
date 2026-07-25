@@ -180,21 +180,39 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
         clearInterval(progressTicker);
 
         if (res.success && res.data?.outputUrl) {
-          setRecordProgress(100);
-          const rawApiUrl = import.meta.env.VITE_API_BASE_URL || '';
-          const backendHost = rawApiUrl
-            ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '')
-            : 'http://localhost:5000';
-          const downloadUrl = `${backendHost}${res.data.outputUrl}`;
-          const exportFilename = getSanitizedFilename(projectTitle, res.data?.filename || 'reel', 'mp4');
+          setRecordProgress(90);
 
+          // Use the dedicated download API endpoint that streams with proper headers
+          toast.loading('Downloading video file...', { id: 'export-toast' });
+          const rawApiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+          const downloadApiUrl = `${rawApiUrl}/projects/${projectId}/download`;
+
+          const blobRes = await fetch(downloadApiUrl);
+          if (!blobRes.ok) throw new Error(`Download failed (HTTP ${blobRes.status})`);
+          const blob = await blobRes.blob();
+
+          // Extract filename from Content-Disposition header or use fallback
+          let exportFilename = 'reel.mp4';
+          const disposition = blobRes.headers.get('content-disposition');
+          if (disposition) {
+            const match = disposition.match(/filename="?([^"]+)"?/);
+            if (match) exportFilename = match[1];
+          } else {
+            exportFilename = getSanitizedFilename(projectTitle, res.data?.filename || 'reel', 'mp4');
+          }
+
+          const blobUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = downloadUrl;
+          a.href = blobUrl;
           a.download = exportFilename;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
 
+          // Delay revoke so browser has time to start the download
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+          setRecordProgress(100);
           isRecordingRef.current = false;
           setIsRecording(false);
           toast.success(`🎉 Exported successfully as "${exportFilename}"!`, { id: 'export-toast' });

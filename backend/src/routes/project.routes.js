@@ -10,6 +10,7 @@ import {
   deleteProject,
   getSocialPostPack,
   exportProjectVideo,
+  downloadExportedVideo,
   cancelProject,
   pauseProject,
   resumeProject,
@@ -28,6 +29,7 @@ router.put('/:id/timeline', updateProjectTimeline);
 router.patch('/:id/rename', renameProject);
 router.post('/:id/social-pack', getSocialPostPack);
 router.post('/:id/export', exportProjectVideo);
+router.get('/:id/download', downloadExportedVideo);
 router.post('/:id/cancel', cancelProject);
 router.post('/:id/pause', pauseProject);
 router.post('/:id/resume', resumeProject);

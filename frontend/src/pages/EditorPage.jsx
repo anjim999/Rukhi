@@ -149,12 +149,14 @@ export default function EditorPage({ projectId, onBack }) {
     );
   }
 
-  const backendHost = import.meta.env.VITE_API_BASE_URL
-    ? import.meta.env.VITE_API_BASE_URL.replace('/api', '')
+  const rawApiUrl = import.meta.env.VITE_API_BASE_URL || '';
+  const backendHost = rawApiUrl
+    ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '')
     : 'http://localhost:5000';
-  const videoFullUrl = project?.video_path
-    ? `${backendHost}/${project.video_path.replace(/\\/g, '/')}`
+  const cleanVideoPath = project?.video_path
+    ? project.video_path.replace(/\\/g, '/').replace(/^\/+/, '')
     : '';
+  const videoFullUrl = cleanVideoPath ? `${backendHost}/${cleanVideoPath}` : '';
 
   return (
     <div className="space-y-6 pb-12">

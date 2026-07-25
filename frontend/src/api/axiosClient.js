@@ -3,8 +3,11 @@ import axios from 'axios';
 /**
  * Global Axios Client Configuration
  */
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const baseURL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL,
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',

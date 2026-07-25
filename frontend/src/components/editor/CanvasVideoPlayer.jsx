@@ -304,7 +304,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
       </div>
 
       <div className="w-full max-w-sm flex flex-col gap-2 p-3 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-xl">
-        <input type="range" min="0" max={duration || 100} step="0.05" value={currentTime} onChange={handleSeek}
+        <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek}
           className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer transition-all hover:h-2" />
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
@@ -588,8 +588,9 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
 }
 
 function formatTime(seconds) {
-  if (!seconds || isNaN(seconds)) return '0:00';
+  if (!seconds || isNaN(seconds)) return '0:00.00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  const ms = Math.floor((seconds % 1) * 100);
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}.${ms < 10 ? '0' : ''}${ms}`;
 }

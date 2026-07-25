@@ -341,6 +341,47 @@ Return ONLY a compact JSON object with this exact structure:
   }
 
   /**
+   * Dynamically groups words into segments based on punctuation, emphasis, speech pauses, and cadence.
+   * NO MORE rigid fixed 3-word chunks.
+   */
+  _buildSmartDynamicSegments(wordObjects) {
+    if (!Array.isArray(wordObjects) || wordObjects.length === 0) return [];
+
+    const chunks = [];
+    let currentChunk = [];
+
+    for (let i = 0; i < wordObjects.length; i++) {
+      const w = wordObjects[i];
+      const next = wordObjects[i + 1];
+
+      currentChunk.push(w);
+
+      const wordText = (w.word || '').trim();
+      const hasPunctuation = /[.,!?-]$/.test(wordText);
+      const isHighEmphasis = (w.emphasisScore || 0) >= 0.78;
+      const gapToNext = next ? (next.start - w.end) : 0;
+      const hasPause = next && gapToNext > 0.18;
+
+      if (
+        (isHighEmphasis && currentChunk.length === 1) ||
+        hasPunctuation ||
+        hasPause ||
+        currentChunk.length >= 3 ||
+        !next
+      ) {
+        chunks.push(currentChunk);
+        currentChunk = [];
+      }
+    }
+
+    if (currentChunk.length > 0) {
+      chunks.push(currentChunk);
+    }
+
+    return chunks;
+  }
+
+  /**
    * Builds kinetic timeline segments from compact word array.
    */
   _buildTimelineFromWords(rawData, videoDuration) {
@@ -382,7 +423,7 @@ Return ONLY a compact JSON object with this exact structure:
     wordObjects = this._validateAndRepairTimestamps(wordObjects, videoDuration);
 
     const segments = [];
-    const chunkSize = 3;
+    const chunks = this._buildSmartDynamicSegments(wordObjects);
 
     const stylePresetsList = [
       THEME_PRESETS.HORMOZI,
@@ -395,16 +436,15 @@ Return ONLY a compact JSON object with this exact structure:
     ];
     const animTypesList = ['pop', 'bounce', 'glow', 'slide'];
 
-    for (let i = 0; i < wordObjects.length; i += chunkSize) {
-      const chunk = wordObjects.slice(i, i + chunkSize);
+    for (let segIndex = 0; segIndex < chunks.length; segIndex++) {
+      const chunk = chunks[segIndex];
       const segStart = chunk[0].start;
       let segEnd = chunk[chunk.length - 1].end;
-      const segIndex = Math.floor(i / chunkSize);
 
       // Extend segment end to next segment start if gap is small (<0.3s) for seamless caption display
-      const nextChunkFirstWord = wordObjects[i + chunkSize];
-      if (nextChunkFirstWord && (nextChunkFirstWord.start - segEnd) < 0.3) {
-        segEnd = nextChunkFirstWord.start;
+      const nextChunk = chunks[segIndex + 1];
+      if (nextChunk && (nextChunk[0].start - segEnd) < 0.3) {
+        segEnd = nextChunk[0].start;
       }
 
       segments.push({
@@ -425,7 +465,7 @@ Return ONLY a compact JSON object with this exact structure:
           backgroundColor: null,
           shadow: '0 2px 8px rgba(0,0,0,0.6)',
         },
-        words: chunk.map((w, idx) => ({
+        words: chunk.map((w) => ({
           id: uuidv4(),
           word: w.word,
           start: w.start,

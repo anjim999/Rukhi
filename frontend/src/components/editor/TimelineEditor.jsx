@@ -350,6 +350,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
 }
 
 function formatTime(sec) {
-  if (!sec && sec !== 0) return '0.0s';
-  return `${sec.toFixed(1)}s`;
+  if (!sec && sec !== 0) return '0.00s';
+  return `${sec.toFixed(2)}s`;
 }

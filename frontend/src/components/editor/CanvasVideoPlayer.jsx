@@ -366,7 +366,6 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
     </>
   );
 }
-}
 
 // ═══════════════════════════════════════════════════════════════════════
 //  TRUE SUBMAGIC PRODUCTION RENDER ENGINE (Exact Box Layout Math)

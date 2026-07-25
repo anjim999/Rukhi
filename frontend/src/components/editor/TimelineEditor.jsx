@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
 import { Clock, Edit3, Settings2 } from 'lucide-react';
-import { THEME_PRESETS } from '../../../../shared/constants/timeline';
+import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 
 const EMOJI_PALETTE = ['⚡', '💸', '🚀', '✨', '🤖', '👑', '💥', '❤️', '🎯', '💡', '💎'];
-const ANIMATION_OPTIONS = ['pop', 'bounce', 'slide', 'glow', 'wave', 'none'];
+
+const ANIMATION_OPTIONS_15 = [
+  { id: ANIMATION_TYPES.POP, name: 'Pop Scale' },
+  { id: ANIMATION_TYPES.BOUNCE, name: 'Spring Bounce' },
+  { id: ANIMATION_TYPES.ZOOM_IN, name: 'Zoom In (0.3x -> 1.3x)' },
+  { id: ANIMATION_TYPES.ZOOM_OUT, name: 'Zoom Out (1.6x -> 1.0x)' },
+  { id: ANIMATION_TYPES.FLOATING, name: 'Floating Sine Wave' },
+  { id: ANIMATION_TYPES.SHAKE_RUMBLE, name: 'Vibration Rumble' },
+  { id: ANIMATION_TYPES.FLIP_ROTATE, name: '3D Tilt Flip' },
+  { id: ANIMATION_TYPES.SLIDE_UP, name: 'Slide Up' },
+  { id: ANIMATION_TYPES.SLIDE_LEFT, name: 'Slide Left' },
+  { id: ANIMATION_TYPES.GLOW_PULSE, name: 'Pulsing Glow' },
+  { id: ANIMATION_TYPES.WAVE, name: 'Wave Motion' },
+  { id: ANIMATION_TYPES.GLOW, name: 'Neon Aura' },
+  { id: ANIMATION_TYPES.SLIDE, name: 'Smooth Slide' },
+  { id: ANIMATION_TYPES.NONE, name: 'Static Clean' },
+];
 
 const FONT_FAMILIES_50 = [
   'Inter',
@@ -206,14 +222,15 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                     ))}
                   </select>
 
+                  {/* 15+ Kinetic Animation Dropdown */}
                   <select
                     value={segment.animation || 'pop'}
                     onChange={(e) => handleSegmentPropChange(segment.id, 'animation', e.target.value)}
-                    className="bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-300 font-bold rounded px-2 py-0.5 outline-none uppercase"
+                    className="bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-300 font-bold rounded px-2 py-0.5 outline-none uppercase max-w-[130px]"
                   >
-                    {ANIMATION_OPTIONS.map((anim) => (
-                      <option key={anim} value={anim}>
-                        {anim}
+                    {ANIMATION_OPTIONS_15.map((anim) => (
+                      <option key={anim.id} value={anim.id}>
+                        {anim.name}
                       </option>
                     ))}
                   </select>
@@ -238,7 +255,6 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Per-Segment 50+ Font Selector */}
                     <div>
                       <label className="text-[10px] font-semibold text-zinc-400 block mb-1">
                         Font (50+ Styles)

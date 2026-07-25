@@ -13,9 +13,20 @@ export const DISPLAY_MODES = Object.freeze({
 export const ANIMATION_TYPES = Object.freeze({
   POP: 'pop',
   BOUNCE: 'bounce',
-  SLIDE: 'slide',
+  ZOOM_IN: 'zoom_in',
+  ZOOM_OUT: 'zoom_out',
+  FLOATING: 'floating',
+  STREAMING: 'streaming',
+  GLOW_PULSE: 'glow_pulse',
+  SHAKE_RUMBLE: 'shake_rumble',
+  FLIP_ROTATE: 'flip_rotate',
+  FADE_IN: 'fade_in',
+  SLIDE_UP: 'slide_up',
+  SLIDE_LEFT: 'slide_left',
+  SINGLE_FLASH: 'single_flash',
   WAVE: 'wave',
   GLOW: 'glow',
+  SLIDE: 'slide',
   NONE: 'none',
 });
 
@@ -97,7 +108,7 @@ export function createEmptyTimeline(aspectRatio = ASPECT_RATIOS.PORTRAIT, preset
     segments: [],
     globalTheme: {
       fontFamily: 'Inter',
-      fontSize: 48,
+      fontSize: 52,
       fontWeight: '900',
       primaryColor: '#FFFFFF',
       highlightColor: '#FACC15',

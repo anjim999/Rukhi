@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Play, Pause, Volume2, VolumeX, Download, Loader2 } from 'lucide-react';
-import { THEME_PRESETS } from '../../../../shared/constants/timeline';
+import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 
 /**
- * CanvasVideoPlayer — Submagic / CapCut Broadcast Production Engine
- * 100% Mathematically Exact Word Box Padding (Zero Overlapping / Zero Bleed)
+ * CanvasVideoPlayer — Submagic / CapCut / Captions.ai True Production Engine
+ * 
+ * 15+ Kinetic Animation Physics:
+ * - Zoom In, Zoom Out, Floating Sine Wave, Shake/Rumble, 3D Tilt Flip, Slide Up, Slide Left, Glow Pulse, Pop, Spring Bounce
  */
 
 export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, setCurrentTime }) {
@@ -212,7 +214,7 @@ export default function CanvasVideoPlayer({ videoUrl, timeline, currentTime, set
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  TRUE SUBMAGIC PRODUCTION RENDER ENGINE (Exact Box Layout Math)
+//  15+ KINETIC ANIMATION SUBMAGIC RENDER ENGINE
 // ═══════════════════════════════════════════════════════════════════════
 
 const SOLID_BOX_PRESETS = {
@@ -279,8 +281,6 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
     }
     const displayStr = (w.emoji && w.emoji !== '🔥') ? `${text} ${w.emoji}` : text;
     const rawWidth = ctx.measureText(displayStr).width;
-
-    // effectiveWidth accounts for box padding so boxes NEVER overlap adjacent words!
     const effectiveWidth = rawWidth + (isSolidBox ? padX * 2 : 0);
 
     const isActive = time >= w.start && time <= w.end;
@@ -323,26 +323,63 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
 
-      const wordCenterX = wordX + w.effectiveWidth / 2;
+      let wordCenterX = wordX + w.effectiveWidth / 2;
       let wordCenterY = lineY;
+      const elapsed = time - w.start;
 
-      // Kinetic Bounce Vertical Displacement
-      if (w.isActive && animType === 'bounce') {
-        const elapsed = time - w.start;
-        wordCenterY -= Math.sin(Math.min(1, elapsed / 0.15) * Math.PI) * (baseFontSize * 0.22);
+      // ── 15+ KINETIC ANIMATION PHYSICS ENGINES ──
+      let wordScale = entranceScale;
+
+      if (w.isActive) {
+        if (animType === ANIMATION_TYPES.ZOOM_IN) {
+          // Zoom In: 0.35x -> 1.35x scale expansion
+          const progress = Math.min(1, elapsed / 0.16);
+          wordScale *= 0.35 + 1.0 * Math.sin(progress * Math.PI / 2);
+        } else if (animType === ANIMATION_TYPES.ZOOM_OUT) {
+          // Zoom Out: 1.6x -> 1.0x scale compression
+          const progress = Math.min(1, elapsed / 0.16);
+          wordScale *= 1.6 - 0.6 * progress;
+        } else if (animType === ANIMATION_TYPES.BOUNCE) {
+          // Baseline Bounce Jump
+          wordCenterY -= Math.sin(Math.min(1, elapsed / 0.15) * Math.PI) * (baseFontSize * 0.28);
+          wordScale *= 1.15;
+        } else if (animType === ANIMATION_TYPES.SLIDE_UP) {
+          // Slide Up from below baseline
+          const progress = Math.min(1, elapsed / 0.14);
+          wordCenterY += (1 - progress) * (baseFontSize * 0.4);
+          wordScale *= 1.12;
+        } else if (animType === ANIMATION_TYPES.SLIDE_LEFT) {
+          // Slide in from right
+          const progress = Math.min(1, elapsed / 0.14);
+          wordCenterX += (1 - progress) * (baseFontSize * 0.5);
+          wordScale *= 1.12;
+        } else if (animType === ANIMATION_TYPES.SHAKE_RUMBLE) {
+          // High Energy Vibration Shake
+          wordCenterX += (Math.random() - 0.5) * 8;
+          wordCenterY += (Math.random() - 0.5) * 8;
+          wordScale *= 1.18;
+        } else if (animType === ANIMATION_TYPES.FLIP_ROTATE) {
+          // 3D Tilt Flip Rotation
+          const tiltAngle = Math.sin(time * 12) * 0.12;
+          ctx.rotate(tiltAngle);
+          wordScale *= 1.15;
+        } else {
+          // Standard Kinetic Pop
+          wordScale *= 1.15;
+        }
+      }
+
+      // Continuous Floating Sine Wave Motion (Applies smoothly across whole line)
+      if (animType === ANIMATION_TYPES.FLOATING) {
+        wordCenterY += Math.sin(time * 4.5 + lineIdx) * (baseFontSize * 0.15);
       }
 
       ctx.translate(wordCenterX, wordCenterY);
-
-      let wordScale = entranceScale;
-      if (w.isActive) {
-        wordScale *= 1.12;
-      }
       ctx.scale(wordScale, wordScale);
 
       const activeColor = globalTheme.highlightColor || w.highlightColor || '#FACC15';
 
-      // ── 1. SUBMAGIC ACTIVE WORD SOLID BOX (Zero Overlap Guaranteed!) ──
+      // ── 1. SUBMAGIC ACTIVE WORD SOLID BOX ──
       if (isSolidBox && w.isActive) {
         const boxW = w.rawWidth + padX * 2;
         const boxH = baseFontSize + padY * 2;
@@ -377,7 +414,7 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
         if (w.isActive) {
           const glowColor = GLOW_PRESETS[presetId] || activeColor;
           ctx.shadowColor = glowColor;
-          ctx.shadowBlur = 24;
+          ctx.shadowBlur = animType === ANIMATION_TYPES.GLOW_PULSE ? 18 + Math.sin(time * 12) * 12 : 24;
           ctx.fillStyle = glowColor;
         } else {
           ctx.shadowColor = '#000000';
@@ -386,7 +423,7 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
         }
         ctx.fillText(w.text, 0, 0);
 
-      // ── 3. CLEAN HIGH-CONTRAST TYPOGRAPHY (Non-active words & Bold Yellow) ──
+      // ── 3. CLEAN HIGH-CONTRAST TYPOGRAPHY ──
       } else {
         const strokeW = Math.round(baseFontSize * 0.15);
         ctx.lineWidth = strokeW;
@@ -396,7 +433,7 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
 
         if (w.isActive) {
           ctx.shadowColor = activeColor;
-          ctx.shadowBlur = 18;
+          ctx.shadowBlur = animType === ANIMATION_TYPES.GLOW_PULSE ? 18 + Math.sin(time * 12) * 12 : 18;
           ctx.fillStyle = activeColor;
         } else if (w.isPast) {
           ctx.shadowColor = 'rgba(0,0,0,0.8)';

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import VideoDropzone from '../components/upload/VideoDropzone';
-import { listProjects } from '../services/projectService';
-import { Film, Clock, Sparkles, Volume2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { listProjects, deleteProject } from '../services/projectService';
+import { Film, Clock, Sparkles, Volume2, CheckCircle2, ArrowRight, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const TELUGU_CAPTION_WORDS = [
@@ -16,6 +17,8 @@ export default function DashboardPage({ onSelectProject }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeWordIndex, setActiveWordIndex] = useState(3);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
+  const [deleting, setDeleting] = useState(false);
   const { openAuthModal, user } = useAuth();
 
   const fetchProjects = async () => {
@@ -28,6 +31,27 @@ export default function DashboardPage({ onSelectProject }) {
       console.error('Failed to fetch projects:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openDeleteModal = (e, project) => {
+    e.stopPropagation(); // Stop opening project editor
+    setDeleteTarget(project);
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    toast.loading('Deleting project...', { id: 'delete-toast' });
+    try {
+      await deleteProject(deleteTarget.id);
+      setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      toast.success('Project deleted successfully!', { id: 'delete-toast' });
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(`Failed to delete project: ${err.message}`, { id: 'delete-toast' });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -178,10 +202,19 @@ export default function DashboardPage({ onSelectProject }) {
                 className="group p-4 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:border-yellow-500/50 hover:shadow-lg dark:hover:bg-zinc-850 transition cursor-pointer space-y-3 relative overflow-hidden"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-yellow-500 transition">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-yellow-500 transition flex-1">
                     {project.title}
                   </h4>
-                  <StatusBadge status={project.status} />
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <StatusBadge status={project.status} />
+                    <button
+                      onClick={(e) => openDeleteModal(e, project)}
+                      title="Delete Project"
+                      className="p-1 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 font-mono pt-2 border-t border-slate-100 dark:border-zinc-800/60">
@@ -198,6 +231,41 @@ export default function DashboardPage({ onSelectProject }) {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl space-y-6 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-white">Delete Project?</h3>
+              <p className="text-sm text-zinc-400">
+                Are you sure you want to delete <span className="text-white font-semibold">"{deleteTarget.title}"</span>? This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteProject}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-lg shadow-red-600/20 disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -146,10 +146,12 @@ export async function deleteProject(projectId) {
   );
 
   if (result.rowCount === 0) {
-    throw new AppError('Project not found', 404);
+    console.log(`[PROJECT] Project ${projectId} already deleted or not found in database.`);
+    return { id: projectId, deleted: true };
   }
 
   console.log(`[PROJECT] Deleted project ${projectId}`);
+  return { id: projectId, deleted: true };
 }
 
 export async function cancelProject(projectId) {

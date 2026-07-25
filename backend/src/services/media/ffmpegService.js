@@ -88,6 +88,26 @@ export async function extractAudio(videoPath, projectId) {
   }
 }
 
+export async function extractAudioChunk(audioPath, startSec, durationSec, chunkPath) {
+  try {
+    await runFFmpeg([
+      '-ss', String(startSec),
+      '-t', String(durationSec),
+      '-i', audioPath,
+      '-acodec', 'pcm_s16le',
+      '-ar', '16000',
+      '-ac', '1',
+      '-y',
+      chunkPath,
+    ]);
+    return chunkPath;
+  } catch (err) {
+    console.warn(`[FFMPEG WARNING] Audio chunk extraction failed for ${startSec}s-${startSec + durationSec}s: ${err.message}`);
+    throw err;
+  }
+}
+
+
 export async function probeVideo(videoPath) {
   try {
     console.log(`[FFMPEG] Probing video: ${videoPath}`);

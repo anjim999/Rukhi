@@ -19,6 +19,12 @@ export const config = {
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
   jwtSecret: process.env.JWT_SECRET || 'super-secret-key-autocaptions-dev',
+  smtp: {
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    user: process.env.SMTP_USER || 'anjaneyulumandagiri@gmail.com',
+    pass: process.env.SMTP_PASS || 'zwrg acwn kdxv srue',
+  },
   uploadDir: path.resolve(__dirname, '../../uploads'),
   outputDir: path.resolve(__dirname, '../../outputs'),
 };

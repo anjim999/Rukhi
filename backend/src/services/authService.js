@@ -4,7 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { query } from '../db/pool.js';
 import { config } from '../config/env.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { sendEmail } from '../utils/mailer.js';
 
+it should send welcome mail when on lo
 /**
  * Sign JWT token for user
  */
@@ -25,11 +28,11 @@ function generateToken(user) {
  */
 export async function registerUser({ name, email, password }) {
   if (!name || !email || !password) {
-    throw new Error('Name, email, and password are required.');
+    throw new AppError('Name, email, and password are required.', 400);
   }
 
   if (password.length < 6) {
-    throw new Error('Password must be at least 6 characters long.');
+    throw new AppError('Password must be at least 6 characters long.', 400);
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -37,7 +40,7 @@ export async function registerUser({ name, email, password }) {
   // Check if user exists
   const existingRes = await query(`SELECT id FROM users WHERE LOWER(email) = $1`, [normalizedEmail]);
   if (existingRes.rows.length > 0) {
-    throw new Error('An account with this email already exists.');
+    throw new AppError('An account with this email already exists.', 400);
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -61,7 +64,7 @@ export async function registerUser({ name, email, password }) {
  */
 export async function loginUser({ email, password }) {
   if (!email || !password) {
-    throw new Error('Email and password are required.');
+    throw new AppError('Email and password are required.', 400);
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -71,17 +74,17 @@ export async function loginUser({ email, password }) {
   );
 
   if (res.rows.length === 0) {
-    throw new Error('Invalid email or password.');
+    throw new AppError('Invalid email or password.', 401);
   }
 
   const user = res.rows[0];
   if (!user.password_hash) {
-    throw new Error('This account was created with Google Sign In. Please use Google to log in.');
+    throw new AppError('This account was created with Google Sign In. Please use Google to log in.', 400);
   }
 
   const isValidPassword = await bcrypt.compare(password, user.password_hash);
   if (!isValidPassword) {
-    throw new Error('Invalid email or password.');
+    throw new AppError('Invalid email or password.', 401);
   }
 
   const token = generateToken(user);
@@ -137,14 +140,13 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
  */
 export async function forgotPassword(email) {
   if (!email) {
-    throw new Error('Email is required.');
+    throw new AppError('Email is required.', 400);
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  const res = await query(`SELECT id FROM users WHERE LOWER(email) = $1`, [normalizedEmail]);
+  const res = await query(`SELECT id, name FROM users WHERE LOWER(email) = $1`, [normalizedEmail]);
 
   if (res.rows.length === 0) {
-    // Return generic success to avoid email enumeration
     return { message: 'If an account with that email exists, password reset instructions have been sent.' };
   }
 
@@ -157,9 +159,31 @@ export async function forgotPassword(email) {
     [resetToken, expiry.toISOString(), user.id]
   );
 
+  const resetUrl = `https://rocky-captions.vercel.app/reset-password?token=${resetToken}`;
+  const html = `
+    <div style="font-family: sans-serif; padding: 20px; background: #09090b; color: #fff; border-radius: 12px;">
+      <h2 style="color: #facc15;">Auto Captions — Password Reset Request</h2>
+      <p>Hello ${user.name || 'User'},</p>
+      <p>We received a request to reset your password for Auto Captions.</p>
+      <p>Click the button below to set a new password:</p>
+      <a href="${resetUrl}" style="display: inline-block; background: #facc15; color: #000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin: 16px 0;">Reset Password</a>
+      <p style="color: #a1a1aa; font-size: 12px;">This link is valid for 1 hour. If you did not request this, please ignore this email.</p>
+    </div>
+  `;
+
+  try {
+    await sendEmail({
+      to: normalizedEmail,
+      subject: '🔑 Reset Your Auto Captions Password',
+      html,
+    });
+  } catch (mailErr) {
+    console.error('[AUTH MAILER WARNING] Email dispatch failed:', mailErr.message);
+  }
+
   return {
     message: 'If an account with that email exists, password reset instructions have been sent.',
-    resetToken, // Provided for dev testing
+    resetToken,
   };
 }
 

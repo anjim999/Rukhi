@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, Download, Loader2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Download, Loader2, Maximize2, Minimize2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 import { exportProjectMP4 } from '../../services/projectService';
@@ -18,6 +18,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
   const [isRecording, setIsRecording] = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
   const [videoError, setVideoError] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const isRecordingRef = useRef(false);
   const lastSegIdRef = useRef(null);
   const segStartTimeRef = useRef(0);
@@ -257,9 +258,18 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
     }
   };
 
-  return (
-    <div className="flex flex-col items-center gap-4 w-full">
-      <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-black shadow-2xl aspect-[9/16] max-h-[580px] w-auto group">
+  const playerContent = (
+    <div className={`flex flex-col items-center gap-4 w-full ${isFullscreen ? 'max-w-2xl' : ''}`}>
+      <div className={`relative rounded-2xl overflow-hidden border border-zinc-800 bg-black shadow-2xl aspect-[9/16] ${isFullscreen ? 'max-h-[75vh] h-[75vh]' : 'max-h-[580px]'} w-auto group transition-all`}>
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          title={isFullscreen ? "Minimize Theater Mode" : "Maximize Theater Mode"}
+          className="absolute top-3 right-3 z-20 p-2 rounded-xl bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition shadow-lg flex items-center gap-1.5 text-xs font-semibold border border-zinc-800 hover:border-yellow-400/50"
+        >
+          {isFullscreen ? <Minimize2 className="w-4 h-4 text-yellow-400" /> : <Maximize2 className="w-4 h-4 text-yellow-400" />}
+          <span>{isFullscreen ? "Minimize" : "Maximize"}</span>
+        </button>
+
         <video
           ref={videoRef}
           src={videoUrl}
@@ -295,7 +305,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
         )}
 
         {isRecording && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-center p-4">
+          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-center p-4 z-30">
             <Loader2 className="w-10 h-10 animate-spin text-yellow-400 mb-2" />
             <p className="text-sm font-bold text-white mb-1">Exporting Smooth 4K Submagic Reel...</p>
             <p className="text-xs text-yellow-400 font-mono">{recordProgress}% completed (25 Mbps Ultra-HD)</p>
@@ -307,7 +317,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
         <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek}
           className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer transition-all hover:h-2" />
         <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button onClick={togglePlay}
               className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition flex items-center gap-1 font-semibold text-xs">
               {isPlaying ? <Pause className="w-4 h-4 text-yellow-400" /> : <Play className="w-4 h-4 text-yellow-400" />}
@@ -317,8 +327,12 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
               className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition">
               {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
+            <button onClick={() => setIsFullscreen(!isFullscreen)} title={isFullscreen ? "Minimize Preview" : "Maximize Preview"}
+              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition">
+              {isFullscreen ? <Minimize2 className="w-4 h-4 text-yellow-400" /> : <Maximize2 className="w-4 h-4 text-yellow-400" />}
+            </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className="font-mono text-zinc-400 text-[11px] bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
@@ -332,6 +346,26 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
       </div>
     </div>
   );
+
+  return (
+    <>
+      {isFullscreen ? (
+        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 backdrop-blur-2xl animate-fade-in overflow-y-auto">
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-5 right-5 z-50 px-4 py-2 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-white transition flex items-center gap-2 font-bold text-xs shadow-2xl"
+          >
+            <X className="w-4 h-4 text-red-400" />
+            <span>Minimize (ESC)</span>
+          </button>
+          {playerContent}
+        </div>
+      ) : (
+        playerContent
+      )}
+    </>
+  );
+}
 }
 
 // ═══════════════════════════════════════════════════════════════════════

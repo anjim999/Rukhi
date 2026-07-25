@@ -86,21 +86,20 @@ export async function addMediaProcessingJob(data) {
         jobId: `media-${data.projectId}`,
       });
       console.log(`[QUEUE] Media processing job added to Redis: ${job.id}`);
-      return job;
     } catch (_e) {
       // Fallback below
     }
   }
 
-  // Fallback to In-Memory direct processing (Zero Redis required!)
-  console.log(`⚡ [IN-MEMORY] Processing media for project ${data.projectId} directly in background...`);
+  // Always trigger direct background processing for instant zero-wait execution
+  console.log(`⚡ [ASYNC ENGINE] Processing media for project ${data.projectId} directly in background...`);
   setTimeout(() => {
     processMediaDirectly(data).catch((err) => {
-      console.error(`❌ [IN-MEMORY] Error processing media for project ${data.projectId}:`, err);
+      console.error(`❌ [ASYNC ENGINE] Error processing media for project ${data.projectId}:`, err);
     });
-  }, 100);
+  }, 50);
 
-  return { id: `in-memory-${data.projectId}` };
+  return { id: `media-${data.projectId}` };
 }
 
 export async function addVideoRenderJob(data) {

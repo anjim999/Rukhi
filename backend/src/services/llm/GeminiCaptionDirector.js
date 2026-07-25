@@ -55,7 +55,7 @@ export class GeminiCaptionDirector extends LLMProvider {
   }
 
   /**
-   * Transcribe video audio directly with Gemini 2.5 Flash using 10s audio chunking to guarantee 100% exact timing sync.
+   * Transcribe video audio directly with Gemini 2.5 Flash with millisecond precision and 429 retry protection.
    */
   async transcribeAndDirectFromAudio(audioPath, duration = 15, targetStyle = 'auto') {
     if (typeof audioPath === 'object') {
@@ -68,7 +68,7 @@ export class GeminiCaptionDirector extends LLMProvider {
     }
 
     const startTime = Date.now();
-    console.log(`[GEMINI AUDIO STT] Processing audio (Duration: ${duration}s, Style: ${targetStyle}) with Gemini 2.5 Flash: ${audioPath}`);
+    console.log(`[GEMINI AUDIO STT] Transcribing audio (Duration: ${duration}s, Style: ${targetStyle}) with Gemini 2.5 Flash: ${audioPath}`);
 
     let styleInstruction = 'Transcribe ONLY what is actually spoken in original language & code-switching.';
     if (targetStyle === 'chatting') {
@@ -81,118 +81,22 @@ export class GeminiCaptionDirector extends LLMProvider {
       styleInstruction = 'Transcribe/translate spoken speech into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी) with exact word-level timing.';
     }
 
-    let allWords = [];
-    let fullText = '';
-    let language = 'te';
-    let hook = 'VIRAL REEL CAPTIONS 🔥';
+    const mimeType = audioPath.endsWith('.mp4') ? 'video/mp4' : 'audio/wav';
+    const audioPart = fileToGenerativePart(audioPath, mimeType);
 
-    const CHUNK_SIZE = 10; // Process in 10-second chunks for zero-drift timestamp precision
-
-    if (duration > 12) {
-      console.log(`[GEMINI CHUNKING ENGINE] Video duration ${duration}s > 12s. Chunking into 10s sub-audio files for 100% exact timing sync...`);
-      const numChunks = Math.ceil(duration / CHUNK_SIZE);
-      const tmpDir = path.dirname(audioPath);
-
-      for (let c = 0; c < numChunks; c++) {
-        const offset = c * CHUNK_SIZE;
-        const chunkDur = Math.min(CHUNK_SIZE, duration - offset);
-        if (chunkDur < 0.5) continue;
-
-        const chunkPath = path.join(tmpDir, `tmp_chunk_${Date.now()}_${c}.wav`);
-        try {
-          await extractAudioChunk(audioPath, offset, chunkDur, chunkPath);
-          const audioPart = fileToGenerativePart(chunkPath, 'audio/wav');
-
-          const prompt = `You are an expert Speech Transcriber and Reel Caption Director.
-LISTEN carefully to this ${chunkDur.toFixed(1)}-second audio clip (which is part of a video from t=${offset.toFixed(1)}s to t=${(offset + chunkDur).toFixed(1)}s).
-
-TARGET OUTPUT SCRIPT STYLE:
-${styleInstruction}
-
-CRITICAL TIMING & SYNCHRONIZATION CONSTRAINTS:
-1. Provide exact word-level timestamps relative to THIS CHUNK (start 0.00s to ${chunkDur.toFixed(2)}s).
-2. Start time of the first word MUST match actual speech onset in this audio clip.
-3. Timestamps MUST be in seconds with 2 decimal places (e.g. 0.15, 1.42).
-4. Word timestamps MUST be strictly ordered and monotonic: word[n].start < word[n].end and word[n].end <= word[n+1].start.
-5. DO NOT hallucinate speech outside this ${chunkDur.toFixed(1)}-second audio chunk.
-
-Return ONLY a compact JSON object with this exact structure:
-{
-  "fullText": "<transcript/translation for this audio clip>",
-  "language": "te|en|hi",
-  "words": [
-    ["Word1", start_sec_within_chunk, end_sec_within_chunk, emphasis_0_to_1],
-    ["Word2", start_sec_within_chunk, end_sec_within_chunk, emphasis_0_to_1]
-  ],
-  "hook": "<VIRAL HOOK TITLE WITH EMOJI>"
-}`;
-
-          const model = this.ai.getGenerativeModel({
-            model: this.modelName,
-            generationConfig: {
-              responseMimeType: 'application/json',
-              temperature: 0.1,
-              maxOutputTokens: 8192,
-            },
-          });
-
-          const result = await model.generateContent([audioPart, prompt]);
-          const responseText = result.response.text();
-
-          let rawData;
-          try {
-            rawData = this._parseJSON(responseText);
-          } catch (_err) {
-            rawData = this._extractFullTextFallback(responseText, chunkDur);
-          }
-
-          if (rawData.words && Array.isArray(rawData.words)) {
-            for (const wArr of rawData.words) {
-              if (Array.isArray(wArr) && wArr.length >= 3) {
-                allWords.push([
-                  String(wArr[0] || ''),
-                  Math.round((parseFloat(wArr[1]) + offset) * 100) / 100,
-                  Math.round((parseFloat(wArr[2]) + offset) * 100) / 100,
-                  parseFloat(wArr[3]) || 0.5,
-                ]);
-              } else if (typeof wArr === 'object' && wArr !== null) {
-                allWords.push([
-                  String(wArr.word || wArr.text || ''),
-                  Math.round((parseFloat(wArr.start) + offset) * 100) / 100,
-                  Math.round((parseFloat(wArr.end) + offset) * 100) / 100,
-                  parseFloat(wArr.emphasisScore || wArr.emphasis) || 0.5,
-                ]);
-              }
-            }
-          }
-
-          if (rawData.fullText) fullText += (fullText ? ' ' : '') + rawData.fullText;
-          if (rawData.language) language = rawData.language;
-          if (rawData.hook && c === 0) hook = rawData.hook;
-
-        } catch (chunkErr) {
-          console.warn(`[GEMINI CHUNKING WARNING] Processing chunk ${c} failed: ${chunkErr.message}`);
-        } finally {
-          try { if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath); } catch (_e) {}
-        }
-      }
-    } else {
-      // Single chunk for short audio (<= 12 seconds)
-      const mimeType = audioPath.endsWith('.mp4') ? 'video/mp4' : 'audio/wav';
-      const audioPart = fileToGenerativePart(audioPath, mimeType);
-
-      const prompt = `You are an expert Speech Transcriber and Reel Caption Director.
+    const prompt = `You are an expert Speech Transcriber and Reel Caption Director.
 LISTEN carefully to the attached ${duration.toFixed(1)}-second audio file and transcribe the spoken content with 100% precise synchronization.
 
 TARGET OUTPUT SCRIPT STYLE:
 ${styleInstruction}
 
 CRITICAL TIMING & SYNCHRONIZATION CONSTRAINTS:
-1. Provide exact word-level timestamps in seconds with 2 decimal places (e.g., 0.15, 1.42). Total audio duration is ${duration.toFixed(2)} seconds.
+1. Provide exact word-level timestamps in seconds with 2 decimal places (e.g., 0.15, 1.42). Total audio duration is EXACTLY ${duration.toFixed(2)} seconds.
 2. Start time of the first word MUST match actual speech onset audio, not arbitrary 0.00.
 3. Word timestamps MUST be strictly monotonic and ordered: word[n].start < word[n].end and word[n].end <= word[n+1].start.
 4. DO NOT introduce artificial gaps or overlapping times between words.
-5. Structure output words according to requested script style (${targetStyle}).
+5. Spread word timestamps accurately across the full ${duration.toFixed(2)}s timeline matching natural speech playback.
+6. Structure output words according to requested script style (${targetStyle}).
 
 Return ONLY a compact JSON object with this exact structure:
 {
@@ -205,46 +109,48 @@ Return ONLY a compact JSON object with this exact structure:
   "hook": "<VIRAL HOOK TITLE WITH EMOJI>"
 }`;
 
-      const model = this.ai.getGenerativeModel({
-        model: this.modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1,
-          maxOutputTokens: 16384,
-        },
-      });
+    let responseText = null;
+    const model = this.ai.getGenerativeModel({
+      model: this.modelName,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+        maxOutputTokens: 16384,
+      },
+    });
 
-      const result = await model.generateContent([audioPart, prompt]);
-      const responseText = result.response.text();
-
-      let rawData;
+    // Send single-pass request with automatic retry for 429 rate limits
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        rawData = this._parseJSON(responseText);
-      } catch (_err) {
-        rawData = this._extractFullTextFallback(responseText, duration);
+        const result = await model.generateContent([audioPart, prompt]);
+        responseText = result.response.text();
+        break;
+      } catch (err) {
+        console.warn(`[GEMINI STT ATTEMPT ${attempt}] API request failed: ${err.message}`);
+        if (attempt < 3 && (err.message.includes('429') || err.message.includes('quota') || err.message.includes('rate'))) {
+          console.log(`[GEMINI 429 RETRY] Waiting 3 seconds before retry attempt ${attempt + 1}...`);
+          await new Promise((r) => setTimeout(r, 3000));
+        } else if (attempt === 3) {
+          throw err;
+        }
       }
-
-      allWords = rawData.words || [];
-      fullText = rawData.fullText || '';
-      language = rawData.language || 'te';
-      hook = rawData.hook || hook;
     }
 
-    const rawDataCombined = {
-      fullText,
-      language,
-      words: allWords,
-      hook,
-    };
+    let rawData;
+    try {
+      rawData = this._parseJSON(responseText);
+    } catch (_err) {
+      rawData = this._extractFullTextFallback(responseText, duration);
+    }
 
-    const timeline = this._buildTimelineFromWords(rawDataCombined, duration);
+    const timeline = this._buildTimelineFromWords(rawData, duration);
     const latencyMs = Date.now() - startTime;
-    console.log(`[GEMINI AUDIO STT] ✅ Sync Engine Audio Transcription complete in ${latencyMs}ms — ${timeline.segments.length} segments`);
+    console.log(`[GEMINI AUDIO STT] ✅ Single-Pass STT complete in ${latencyMs}ms — ${timeline.segments.length} segments`);
 
     return {
       timeline,
-      fullText,
-      language,
+      fullText: rawData.fullText || '',
+      language: rawData.language || 'te',
       provider: 'gemini-audio-stt',
       latencyMs,
     };

@@ -9,7 +9,16 @@ import { exportProjectMP4, getFullMediaUrl } from '../../services/projectService
  * 100% Stutter-Free Fluid Video Playback & Lossless 4K Recording Engine
  */
 
-export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, currentTime, setCurrentTime }) {
+function getSanitizedFilename(title, fallback = 'reel', ext = 'mp4') {
+  if (!title || !title.trim()) return `${fallback}_${Date.now()}.${ext}`;
+  let clean = title.trim();
+  clean = clean.replace(/\.(mp4|mov|webm|m4v|avi|mkv)$/i, '');
+  clean = clean.replace(/[^\w\s\-\.]/g, '').trim().replace(/\s+/g, '_');
+  if (!clean) return `${fallback}_${Date.now()}.${ext}`;
+  return `${clean}.${ext}`;
+}
+
+export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, currentTime, setCurrentTime, projectTitle }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const resolvedVideoUrl = getFullMediaUrl(videoUrl);
@@ -103,7 +112,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
   }, [timeline, setCurrentTime]);
 
   const togglePlay = () => {
-    if (!videoRef.current || !videoUrl) return;
+    if (!videoRef.current || !videoUrl || isRecording) return;
     if (isPlaying) {
       videoRef.current.pause();
       setIsPlaying(false);
@@ -143,16 +152,35 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
       return;
     }
 
+    // Keep preview video paused during export so it doesn't play out loud in UI
+    try { video.pause(); } catch (_e) {}
+    setIsPlaying(false);
+
     isRecordingRef.current = true;
     setIsRecording(true);
-    setRecordProgress(0);
+    setRecordProgress(10);
 
     // Primary Production Pipeline: Server-Side 60FPS FFmpeg H.264 MP4 Render Engine
     if (projectId) {
-      toast.loading('Rendering 60FPS MP4 Video on Server...', { id: 'export-toast' });
+      toast.loading('Rendering Ultra-HD MP4 Video on Server...', { id: 'export-toast' });
+      
+      // Auto-save latest modified timeline to backend before rendering
+      if (timeline) {
+        try {
+          await updateProjectTimeline(projectId, timeline);
+        } catch (_e) {}
+      }
+
+      const progressTicker = setInterval(() => {
+        setRecordProgress((p) => (p < 95 ? p + 10 : p));
+      }, 400);
+
       try {
         const res = await exportProjectMP4(projectId);
+        clearInterval(progressTicker);
+
         if (res.success && res.data?.outputUrl) {
+          setRecordProgress(100);
           const rawApiUrl = import.meta.env.VITE_API_BASE_URL || '';
           const backendHost = rawApiUrl
             ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '')
@@ -169,12 +197,18 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
 
           isRecordingRef.current = false;
           setIsRecording(false);
-          setRecordProgress(100);
-          toast.success('🎉 Broadcast 60FPS MP4 Exported Successfully!', { id: 'export-toast' });
+          toast.success(`🎉 Exported successfully as "${exportFilename}"!`, { id: 'export-toast' });
           return;
+        } else {
+          throw new Error(res.message || 'Export failed on server.');
         }
       } catch (err) {
-        console.warn('[SERVER EXPORT FALLBACK] Server render failed, falling back to client canvas stream:', err);
+        clearInterval(progressTicker);
+        console.error('[SERVER EXPORT ERROR]', err);
+        toast.error(`Export failed: ${err.message || 'Server error'}`, { id: 'export-toast' });
+        isRecordingRef.current = false;
+        setIsRecording(false);
+        return;
       }
     }
 
@@ -262,8 +296,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
         }
         if (
           video.ended ||
-          (video.duration && video.currentTime >= video.duration - 0.15) ||
-          (video.paused && video.currentTime > 0.5)
+          (video.duration && video.currentTime >= video.duration - 0.15)
         ) {
           stopRecording();
         }
@@ -339,17 +372,17 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
       </div>
 
       <div className="w-full max-w-sm flex flex-col gap-2 p-3 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-xl">
-        <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek}
-          className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer transition-all hover:h-2" />
+        <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek} disabled={isRecording}
+          className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer transition-all hover:h-2 disabled:opacity-50 disabled:cursor-not-allowed" />
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <button onClick={togglePlay}
-              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition flex items-center gap-1 font-semibold text-xs">
+            <button onClick={togglePlay} disabled={isRecording}
+              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition flex items-center gap-1 font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed">
               {isPlaying ? <Pause className="w-4 h-4 text-yellow-400" /> : <Play className="w-4 h-4 text-yellow-400" />}
               <span>{isPlaying ? 'Pause' : 'Play'}</span>
             </button>
-            <button onClick={toggleMute}
-              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition">
+            <button onClick={toggleMute} disabled={isRecording}
+              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed">
               {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
           </div>

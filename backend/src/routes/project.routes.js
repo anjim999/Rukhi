@@ -7,6 +7,7 @@ import {
   getProjectTimeline,
   updateProjectTimeline,
   deleteProject,
+  getSocialPostPack,
 } from '../controllers/projectController.js';
 
 /**

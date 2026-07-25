@@ -61,3 +61,11 @@ export async function getProjectTimeline(projectId) {
 export async function updateProjectTimeline(projectId, timeline) {
   return axiosClient.put(`/projects/${projectId}/timeline`, { timeline });
 }
+
+/**
+ * Generate AI Instagram & YouTube post-ready title, caption, and #hashtags.
+ * @param {string} projectId
+ */
+export async function generateSocialPack(projectId) {
+  return axiosClient.post(`/projects/${projectId}/social-pack`);
+}

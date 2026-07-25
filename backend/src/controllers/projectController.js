@@ -144,3 +144,33 @@ export async function deleteProject(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * POST /api/projects/:id/social-pack
+ * Generate zero-hallucination Instagram & YouTube post-ready title, caption, and #hashtags based on exact video speech.
+ */
+export async function getSocialPostPack(req, res, next) {
+  try {
+    const project = await projectService.getProjectById(req.params.id);
+    const timeline = await projectService.getTimeline(req.params.id);
+
+    let fullText = project.title || '';
+    if (timeline && timeline.segments) {
+      fullText = timeline.segments.flatMap((s) => s.words.map((w) => w.word)).join(' ');
+    }
+
+    const { GeminiCaptionDirector } = await import('../services/llm/GeminiCaptionDirector.js');
+    const director = new GeminiCaptionDirector();
+    const postPack = await director.generateSocialPostPack({
+      fullText: fullText || 'Viral video reel content',
+      language: 'en',
+    });
+
+    res.json({
+      success: true,
+      data: postPack,
+    });
+  } catch (err) {
+    next(err);
+  }
+}

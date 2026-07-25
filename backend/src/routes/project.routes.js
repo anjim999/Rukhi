@@ -21,6 +21,7 @@ import {
  *   GET    /api/projects/:id           → Get single project
  *   GET    /api/projects/:id/timeline  → Get caption timeline
  *   PUT    /api/projects/:id/timeline  → Update caption timeline (editor saves)
+ *   POST   /api/projects/:id/social-pack → Get social post pack
  *   DELETE /api/projects/:id           → Delete project
  */
 
@@ -31,6 +32,7 @@ router.get('/', listProjects);
 router.get('/:id', getProject);
 router.get('/:id/timeline', getProjectTimeline);
 router.put('/:id/timeline', updateProjectTimeline);
+router.post('/:id/social-pack', getSocialPostPack);
 router.delete('/:id', deleteProject);
 
 export default router;

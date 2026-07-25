@@ -399,4 +399,44 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
       },
     };
   }
+
+  /**
+   * Generate zero-hallucination Instagram & YouTube post captions, titles & #hashtags
+   * based strictly on the video transcript.
+   */
+  async generateSocialPostPack({ fullText, language = 'en' }) {
+    if (!this.ai) {
+      throw new Error('Gemini API key not configured.');
+    }
+
+    const prompt = `You are a World-Class Social Media Copywriter for Instagram Reels, TikTok, and YouTube Shorts.
+Based STRICTLY on the actual video transcript provided below, generate a 100% accurate, high-engagement, viral post pack with ZERO hallucinations.
+
+TRANSCRIPT: "${fullText}"
+LANGUAGE: ${language}
+
+Return ONLY a JSON object with this exact structure:
+{
+  "instagram": {
+    "caption": "<Engaging 2-3 sentence Instagram caption based strictly on the transcript topic>",
+    "hashtags": ["#ReelsIndia", "#ViralReels", "#Trending", "#Hashtag4", "#Hashtag5", "#Hashtag6", "#Hashtag7", "#Hashtag8"]
+  },
+  "youtubeShorts": {
+    "title": "<High CTR Viral YouTube Shorts Title with emoji>",
+    "description": "<Concise YouTube Shorts Description with call-to-action>",
+    "hashtags": ["#Shorts", "#ViralShorts", "#TrendingShorts", "#Hashtag4", "#Hashtag5"]
+  }
+}`;
+
+    const model = this.ai.getGenerativeModel({
+      model: this.modelName,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.3,
+      },
+    });
+
+    const result = await model.generateContent(prompt);
+    return this._parseJSON(result.response.text());
+  }
 }

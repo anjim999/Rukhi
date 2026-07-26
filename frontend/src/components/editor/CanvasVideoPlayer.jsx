@@ -243,7 +243,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
 
   const togglePlay = (e) => {
     const video = videoRef.current;
-    if (!video || !videoUrl || isRecording) return;
+    if (!video || !videoUrl || isRecording || videoError) return;
 
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(15);
@@ -589,7 +589,8 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
             if (e.target.duration) setDuration(e.target.duration);
           }}
           onError={() => {
-            setVideoError('Failed to load video source.');
+            setVideoError('Media file unavailable on server.');
+            setIsPlaying(false);
           }}
           onEnded={() => setIsPlaying(false)}
           className="absolute top-0 left-0 opacity-0 pointer-events-none w-1 h-1"
@@ -607,9 +608,11 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
         />
 
         {videoError && (
-          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-center p-4">
-            <p className="text-red-400 font-semibold mb-1">Video Failed to Load</p>
-            <p className="text-xs text-zinc-400">Please verify backend media URL and CORS setup.</p>
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center text-center p-6 space-y-3">
+            <p className="text-sm font-bold text-white">Media File Unavailable (HTTP 404)</p>
+            <p className="text-xs text-zinc-400 max-w-xs leading-relaxed">
+              This video file was cleared when the cloud server restarted. Please upload a new video to generate captions.
+            </p>
           </div>
         )}
 

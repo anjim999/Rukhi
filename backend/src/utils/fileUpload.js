@@ -23,10 +23,10 @@ const ALLOWED_MIME_TYPES = Object.freeze([
 ]);
 
 /**
- * Maximum file size: 500 MB
- * Sufficient for most short-form reels (15s – 3min).
+ * Maximum file size: 1 GB (1024 MB)
+ * Supports high-bitrate 4K 60FPS raw video clips up to 1GB.
  */
-const MAX_FILE_SIZE = 500 * 1024 * 1024;
+const MAX_FILE_SIZE = 1024 * 1024 * 1024;
 
 /**
  * Multer disk storage configuration.

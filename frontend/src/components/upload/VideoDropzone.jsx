@@ -43,6 +43,13 @@ export default function VideoDropzone({ onProjectCreated }) {
       toast.error(msg, { id: 'upload-toast' });
       return;
     }
+    const maxBytes = 1024 * 1024 * 1024; // 1 GB
+    if (selectedFile.size > maxBytes) {
+      const msg = 'Video file size exceeds maximum 1GB limit. Please select a smaller clip.';
+      setError(msg);
+      toast.error(msg, { id: 'upload-toast' });
+      return;
+    }
     setFile(selectedFile);
   };
 

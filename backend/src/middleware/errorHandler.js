@@ -17,11 +17,22 @@ export class AppError extends Error {
  * Express error-handling middleware.
  */
 export function errorHandler(err, req, res, _next) {
-  const statusCode = err.statusCode || 500;
-  const isOperational = err.isOperational || false;
+  let statusCode = err.statusCode || 500;
+  let isOperational = err.isOperational || false;
+  let message = err.message;
+
+  if (err.name === 'MulterError') {
+    statusCode = 400;
+    isOperational = true;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'Video file size exceeds maximum 1GB limit. Please upload a smaller clip.';
+    } else {
+      message = `File upload error: ${err.message}`;
+    }
+  }
 
   console.error('[ERROR]', {
-    message: err.message,
+    message,
     statusCode,
     isOperational,
     path: req.originalUrl,

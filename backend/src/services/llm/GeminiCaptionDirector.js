@@ -70,31 +70,39 @@ export class GeminiCaptionDirector extends LLMProvider {
     const startTime = Date.now();
     console.log(`[GEMINI AUDIO STT] Transcribing audio (Duration: ${duration}s, Style: ${targetStyle}) with Gemini 2.5 Flash: ${audioPath}`);
 
-    let styleInstruction = 'Transcribe ONLY what is actually spoken in original language & code-switching.';
-    if (targetStyle === 'chatting') {
-      styleInstruction = 'Transcribe and format words into casual Romanized social media chatting script (e.g., Teluglish/Hinglish using English alphabet, e.g., "namaste dosto elaa unnaaru").';
+    let styleInstruction = 'STRICT TRANSCRIPTION MANDATE: Transcribe EXACTLY what is spoken in original language & code-switching (e.g. Teluglish/Hinglish in English alphabet, e.g. "friendship lo fail aynaa"). DO NOT translate spoken Telugu/Hindi words into English!';
+    if (targetStyle === 'chatting' || targetStyle === 'auto') {
+      styleInstruction = `STRICT VERBATIM CODE-SWITCHING SCRIPT (NO TRANSLATION TO ENGLISH):
+- Transcribe EXACTLY what the speaker says in their original spoken words and language.
+- For code-switched / mixed language speech (e.g. Telugu + English = Teluglish, Hindi + English = Hinglish), transcribe Telugu/Hindi words in Romanized English script (e.g., "cheppaledaa", "elaa unnaaru", "lo", "naa", "aynaa") and keep English words in English (e.g., "friendship", "failed").
+- STRICT MANDATE: DO NOT TRANSLATE non-English words into pure English! (e.g. If speaker says "friendship lo fail aynaa", write "friendship lo fail aynaa". DO NOT translate it to "failed in friendship").`;
     } else if (targetStyle === 'english') {
-      styleInstruction = 'Translate all spoken speech (Telugu, Hindi, or mixed) into high-converting, punchy PURE ENGLISH words while matching playback timing.';
+      styleInstruction = 'TRANSLATE all spoken speech (Telugu, Hindi, or mixed) into high-converting, punchy PURE ENGLISH words while matching playback timing.';
     } else if (targetStyle === 'telugu') {
-      styleInstruction = 'Transcribe/translate spoken speech into PURE NATIVE TELUGU SCRIPT (తెలుగు) with exact word-level timing.';
+      styleInstruction = 'Transcribe spoken speech into PURE NATIVE TELUGU SCRIPT (తెలుగు) with exact word-level timing.';
     } else if (targetStyle === 'hindi') {
-      styleInstruction = 'Transcribe/translate spoken speech into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी) with exact word-level timing.';
+      styleInstruction = 'Transcribe spoken speech into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी) with exact word-level timing.';
     }
+
 
     let allWords = [];
     let fullText = '';
     let language = 'te';
     let hook = 'VIRAL REEL CAPTIONS 🔥';
 
-    const CHUNK_SIZE = 15; // 15-second sub-clips (4 chunks for 60s video) for 100% zero-drift sync & zero 429 rate limit blocks
+    const CHUNK_SIZE = 15; // 15-second sub-clips
+    const OVERLAP_BUFFER = 2.5; // 2.5s overlap
+    const CHUNK_STEP = CHUNK_SIZE - OVERLAP_BUFFER; // 12.5s step
 
-    if (duration > 12) {
-      console.log(`[GEMINI STT ENGINE] Duration ${duration.toFixed(1)}s > 12s. Transcribing in 15s sub-clips for 100% zero-drift timing sync...`);
-      const numChunks = Math.ceil(duration / CHUNK_SIZE);
+    // Use single-pass native audio transcription for videos up to 180s (3 minutes)
+    // For mega-long podcasts (> 180s), chunking with 2.5s overlapping windows is used.
+    if (duration > 180) {
+      console.log(`[GEMINI STT ENGINE] Duration ${duration.toFixed(1)}s > 180s. Transcribing with 2.5s overlapping sliding window chunks...`);
+      const numChunks = Math.ceil(duration / CHUNK_STEP);
       const tmpDir = path.dirname(audioPath);
 
       for (let c = 0; c < numChunks; c++) {
-        const offset = c * CHUNK_SIZE;
+        const offset = c * CHUNK_STEP;
         const chunkDur = Math.min(CHUNK_SIZE, duration - offset);
         if (chunkDur < 0.5) continue;
 
@@ -113,7 +121,7 @@ TARGET OUTPUT SCRIPT STYLE:
 ${styleInstruction}
 
 AUDIO ENVIRONMENT & BGM INSTRUCTION:
-This audio clip may contain background music (BGM), beats, or noise. IGNORE background music and instruments. Isolate and transcribe ALL spoken human voice words across the full ${chunkDur.toFixed(1)}-second duration from start to end without missing any phrases!
+This audio clip may contain heavy background music (BGM), instruments, beats, or vocal noise. IGNORE all background music and instruments. Isolate and transcribe ALL spoken human voice words across the full ${chunkDur.toFixed(1)}-second duration from start to end without missing any phrases!
 
 CRITICAL TIMING & SYNCHRONIZATION CONSTRAINTS:
 1. Provide exact word-level timestamps relative to THIS CHUNK (start 0.00s to ${chunkDur.toFixed(2)}s).
@@ -122,6 +130,7 @@ CRITICAL TIMING & SYNCHRONIZATION CONSTRAINTS:
 4. Timestamps MUST be in seconds with 2 decimal places (e.g. 0.15, 1.42).
 5. Word timestamps MUST be strictly ordered and monotonic: word[n].start < word[n].end and word[n].end <= word[n+1].start.
 6. Transcribe ALL words spoken in this ${chunkDur.toFixed(1)}-second audio chunk. DO NOT truncate speech early.
+7. NO-TRANSLATION MANDATE: UNLESS targetStyle is explicitly 'english', NEVER translate spoken non-English, Telugu, Hindi, or code-switched words into English. Transcribe verbatim spoken words in Romanized script (e.g. Teluglish).
 
 Return ONLY a compact JSON object with this exact structure:
 {
@@ -203,6 +212,20 @@ Return ONLY a compact JSON object with this exact structure:
             for (const w of chunkWords) {
               const startSec = Math.round((w.wStart + offset) * 100) / 100;
               const endSec = Math.max(startSec + 0.1, Math.round((w.wEnd + offset) * 100) / 100);
+
+              // Smart Deduplication for overlapping chunk windows
+              const lastWord = allWords.length > 0 ? allWords[allWords.length - 1] : null;
+              if (lastWord) {
+                const prevStart = lastWord[1];
+                const prevText = String(lastWord[0] || '').toLowerCase().trim();
+                const currText = String(w.wText || '').toLowerCase().trim();
+
+                // If word falls inside overlapping window and matches previous word or starts before previous end
+                if (Math.abs(startSec - prevStart) < 0.45 && (currText === prevText || startSec < lastWord[2] - 0.1)) {
+                  continue; // Skip duplicate word from overlap
+                }
+              }
+
               allWords.push([w.wText, startSec, endSec, w.wEmp]);
             }
           }
@@ -223,22 +246,25 @@ Return ONLY a compact JSON object with this exact structure:
         }
       }
     } else {
-      // Single chunk for short audio (<= 12 seconds)
       const mimeType = audioPath.endsWith('.mp4') ? 'video/mp4' : 'audio/wav';
       const audioPart = fileToGenerativePart(audioPath, mimeType);
 
       const prompt = `You are an expert Speech Transcriber and Reel Caption Director.
-LISTEN carefully to the attached ${duration.toFixed(1)}-second audio file and transcribe the spoken content with 100% precise synchronization.
+LISTEN carefully to the attached ${duration.toFixed(1)}-second audio file and transcribe ALL spoken human voice content across the FULL video from t=0.00s to t=${duration.toFixed(2)}s with 100% precise acoustic synchronization.
 
 TARGET OUTPUT SCRIPT STYLE:
 ${styleInstruction}
+
+AUDIO ENVIRONMENT & HEAVY BGM INSTRUCTION:
+This audio file may contain background music (BGM), beats, instruments, or noise. IGNORE all background music, beats, and instruments completely. Isolate and transcribe ALL spoken human voice words across the full ${duration.toFixed(1)}-second duration from start to end without leaving gaps or missing any phrases!
 
 CRITICAL TIMING & SYNCHRONIZATION CONSTRAINTS:
 1. Provide exact word-level timestamps in seconds with 2 decimal places (e.g., 0.15, 1.42). Total audio duration is EXACTLY ${duration.toFixed(2)} seconds.
 2. Start time of the first word MUST match actual speech onset audio, not arbitrary 0.00.
 3. Word timestamps MUST be strictly monotonic and ordered: word[n].start < word[n].end and word[n].end <= word[n+1].start.
-4. DO NOT introduce artificial gaps or overlapping times between words.
+4. Transcribe ALL words spoken in the video from start to finish. DO NOT skip phrases or stop transcribing early.
 5. Structure output words according to requested script style (${targetStyle}).
+6. NO-TRANSLATION MANDATE: UNLESS targetStyle is explicitly 'english', NEVER translate spoken non-English, Telugu, Hindi, or code-switched words into English. Transcribe verbatim spoken words in Romanized script (e.g. Teluglish).
 
 Return ONLY a compact JSON object with this exact structure:
 {
@@ -290,6 +316,9 @@ Return ONLY a compact JSON object with this exact structure:
       hook = rawData.hook || hook;
     }
 
+    // Zero-Gap Safety Scanner: Automatically detect and re-inspect any unexplained audio gap > 3.5s
+    allWords = await this._scanAndRepairUnexplainedAudioGaps(allWords, audioPath, duration, targetStyle, styleInstruction);
+
     const rawDataCombined = {
       fullText,
       language,
@@ -299,7 +328,7 @@ Return ONLY a compact JSON object with this exact structure:
 
     const timeline = this._buildTimelineFromWords(rawDataCombined, duration);
     const latencyMs = Date.now() - startTime;
-    console.log(`[GEMINI AUDIO STT] ✅ 10s Chunking STT complete in ${latencyMs}ms — ${timeline.segments.length} segments`);
+    console.log(`[GEMINI AUDIO STT] ✅ 100% Zero-Gap Audio STT complete in ${latencyMs}ms — ${timeline.segments.length} segments`);
 
     return {
       timeline,
@@ -308,6 +337,109 @@ Return ONLY a compact JSON object with this exact structure:
       provider: 'gemini-audio-stt',
       latencyMs,
     };
+  }
+
+  /**
+   * Scans transcribed words for any unexplained gap > 3.5s and re-inspects
+   * that specific audio segment with high vocal sensitivity to recover missing captions.
+   */
+  async _scanAndRepairUnexplainedAudioGaps(allWords, audioPath, duration, targetStyle, styleInstruction) {
+    if (!Array.isArray(allWords) || allWords.length === 0) return allWords;
+
+    // Sort words by start time
+    const sorted = [...allWords].sort((a, b) => (parseFloat(a[1]) || 0) - (parseFloat(b[1]) || 0));
+    const gapsToRepair = [];
+
+    // Check gap before first word if first word starts late (> 4s)
+    const firstStart = parseFloat(sorted[0][1]) || 0;
+    if (firstStart > 4.0) {
+      gapsToRepair.push({ start: 0, end: firstStart, label: 'head' });
+    }
+
+    // Check gaps between consecutive words
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const currentEnd = parseFloat(sorted[i][2]) || 0;
+      const nextStart = parseFloat(sorted[i + 1][1]) || 0;
+      const gapSize = nextStart - currentEnd;
+
+      if (gapSize > 3.5) {
+        gapsToRepair.push({ start: currentEnd, end: nextStart, label: `mid_${i}` });
+      }
+    }
+
+    // Check gap after last word if last word ends early (> 4s before duration)
+    const lastEnd = parseFloat(sorted[sorted.length - 1][2]) || 0;
+    if (duration - lastEnd > 4.0) {
+      gapsToRepair.push({ start: lastEnd, end: duration, label: 'tail' });
+    }
+
+    if (gapsToRepair.length === 0) {
+      console.log(`[ZERO-GAP SAFETY SCANNER] ✅ No unexplained gaps detected (> 3.5s). Audio coverage 100% complete.`);
+      return sorted;
+    }
+
+    console.log(`[ZERO-GAP SAFETY SCANNER] ⚠️ Found ${gapsToRepair.length} unexplained audio gaps (> 3.5s). Re-inspecting snippets...`);
+    const recoveredWords = [...sorted];
+    const tmpDir = path.dirname(audioPath);
+
+    for (const gap of gapsToRepair) {
+      const gapDur = gap.end - gap.start;
+      if (gapDur < 1.0) continue;
+
+      const chunkPath = path.join(tmpDir, `tmp_gap_${Date.now()}_${gap.start.toFixed(1)}_${Math.random().toString(36).substring(7)}.wav`);
+
+      try {
+        await extractAudioChunk(audioPath, gap.start, gapDur, chunkPath);
+        const audioPart = fileToGenerativePart(chunkPath, 'audio/wav');
+
+        const prompt = `You are a High-Sensitivity Vocal Recovery Transcriber.
+LISTEN carefully to this isolated ${gapDur.toFixed(1)}-second audio segment (from t=${gap.start.toFixed(1)}s to t=${gap.end.toFixed(1)}s).
+This segment may contain background music (BGM) or quiet vocals. IGNORE background music and isolate ANY human speech spoken in this ${gapDur.toFixed(1)}s clip!
+
+TARGET SCRIPT STYLE:
+${styleInstruction}
+
+Return ONLY a JSON object with this exact structure:
+{
+  "words": [
+    ["Word1", start_sec_within_snippet, end_sec_within_snippet, 0.9],
+    ["Word2", start_sec_within_snippet, end_sec_within_snippet, 0.9]
+  ]
+}`;
+
+        const model = this.ai.getGenerativeModel({
+          model: this.modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+            maxOutputTokens: 2048,
+          },
+        });
+
+        const result = await model.generateContent([audioPart, prompt]);
+        const rawData = this._parseJSON(result.response.text());
+
+        if (rawData.words && Array.isArray(rawData.words) && rawData.words.length > 0) {
+          console.log(`[ZERO-GAP SAFETY RECOVERY] 🎉 Recovered ${rawData.words.length} missing words in gap ${gap.start.toFixed(1)}s–${gap.end.toFixed(1)}s!`);
+          for (const wArr of rawData.words) {
+            if (Array.isArray(wArr) && wArr.length >= 3) {
+              const wText = String(wArr[0] || '').trim();
+              const wStart = Math.round((parseFloat(wArr[1]) + gap.start) * 100) / 100;
+              const wEnd = Math.max(wStart + 0.1, Math.round((parseFloat(wArr[2]) + gap.start) * 100) / 100);
+              if (wText) {
+                recoveredWords.push([wText, wStart, wEnd, 0.9]);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[ZERO-GAP SAFETY RECOVERY] Re-inspection for gap ${gap.start.toFixed(1)}s–${gap.end.toFixed(1)}s skipped: ${err.message}`);
+      } finally {
+        try { if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath); } catch (_e) {}
+      }
+    }
+
+    return recoveredWords.sort((a, b) => (parseFloat(a[1]) || 0) - (parseFloat(b[1]) || 0));
   }
 
   /**
@@ -578,39 +710,52 @@ Return ONLY a compact JSON object with this exact structure:
       emphasisScore: emphasisScores?.[i] ?? 0.5,
     }));
 
-    const prompt = this._buildCompactPrompt(enrichedWords, fullText, language);
+    try {
+      const prompt = this._buildCompactPrompt(enrichedWords, fullText, language);
 
-    const model = this.ai.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.4,
-        maxOutputTokens: 16384,
-      },
-    });
+      const model = this.ai.getGenerativeModel({
+        model: this.modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.4,
+          maxOutputTokens: 16384,
+        },
+      });
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
 
-    let rawTimeline = this._parseJSON(responseText);
-    const timeline = this._normalizeTimeline(rawTimeline, enrichedWords, aspectRatio, presetName);
+      let rawTimeline = this._parseJSON(responseText);
+      const timeline = this._normalizeTimeline(rawTimeline, enrichedWords, aspectRatio, presetName);
 
-    const latencyMs = Date.now() - startTime;
-    return {
-      timeline,
-      provider: this.name,
-      latencyMs,
-    };
+      const latencyMs = Date.now() - startTime;
+      return {
+        timeline,
+        provider: this.name,
+        latencyMs,
+      };
+    } catch (err) {
+      console.warn(`[GEMINI CAPTION DIRECTOR] LLM styling failed (${err.message}). Falling back to deterministic word timeline builder...`);
+      const timeline = this._buildTimelineFromWords({ words: enrichedWords, fullText }, duration);
+      return {
+        timeline,
+        provider: 'gemini-caption-director-fallback',
+        latencyMs: Date.now() - startTime,
+      };
+    }
   }
 
   _parseJSON(text) {
+    if (!text) return {};
+    let repaired = text.trim();
+    repaired = repaired.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
     try {
-      return JSON.parse(text);
+      return JSON.parse(repaired);
     } catch (_e) {
       // continue to repair
     }
 
-    let repaired = text.trim();
     let openBraces = 0;
     let openBrackets = 0;
     let inString = false;

@@ -61,10 +61,15 @@ async function processMediaJob(job) {
 
     let transcription = null;
 
+    let sttLanguage = null;
+    if (targetStyle === 'telugu') sttLanguage = 'te';
+    else if (targetStyle === 'hindi') sttLanguage = 'hi';
+    else if (targetStyle === 'english') sttLanguage = 'en';
+
     if (deepgramAvailable) {
-      console.log(`[WORKER] 🚀 Transcribing clean vocals with Deepgram Nova-2 (99.9% Acoustic Sync)...`);
+      console.log(`[WORKER] 🚀 Transcribing clean vocals with Deepgram Nova-3 Multilingual STT (99.9% Acoustic Sync)...`);
       try {
-        transcription = await deepgramProvider.transcribe(sttAudioPath);
+        transcription = await deepgramProvider.transcribe(sttAudioPath, { language: sttLanguage });
       } catch (dgErr) {
         console.warn(`[WORKER WARNING] Deepgram STT failed (${dgErr.message}). Falling back to alternative STT...`);
       }

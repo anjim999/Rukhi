@@ -101,8 +101,8 @@ export async function extractAudio(videoPath, projectId) {
 export async function extractAudioChunk(audioPath, startSec, durationSec, chunkPath) {
   try {
     await runFFmpeg([
-      '-ss', String(startSec),
       '-i', audioPath,
+      '-ss', String(startSec),
       '-t', String(durationSec),
       '-acodec', 'pcm_s16le',
       '-ar', '16000',

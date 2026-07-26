@@ -84,11 +84,8 @@ export function snapWordTimestamps(words) {
     const next = words[idx + 1];
     if (next) {
       const gap = next.start - end;
-      // If gap is large (>0.2s pause), cap the word end so caption doesn't linger into silence
-      if (gap > 0.2) {
-        end = Math.min(end, Math.round((start + 0.35) * 100) / 100);
-      } else if (gap > 0 && gap < 0.08) {
-        // If gap is tiny (<80ms), snap end directly to next start for seamless transition
+      // If gap is tiny (<80ms), snap end directly to next start for seamless transition
+      if (gap > 0 && gap < 0.08) {
         end = Math.round(next.start * 100) / 100;
       }
     }

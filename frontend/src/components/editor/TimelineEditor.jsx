@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Clock, Edit3, Settings2, ChevronDown, ChevronUp, Scissors, GitMerge, Undo2, Redo2, Zap, MoveLeft, MoveRight, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Clock, Edit3, Settings2, ChevronDown, ChevronUp, Scissors, GitMerge, Undo2, Redo2, Zap, MoveLeft, MoveRight, SlidersHorizontal, Sparkles, Plus, Minus } from 'lucide-react';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 import FontPickerModal from './FontPickerModal';
 import CustomFontSelect from './CustomFontSelect';
+import CustomSelect from './CustomSelect';
 
 const EMOJI_PALETTE = ['⚡', '💸', '🚀', '✨', '🤖', '👑', '💥', '❤️', '🎯', '💡', '💎'];
 
@@ -196,6 +197,21 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
         ),
       };
     });
+    setTimeline({ ...timeline, segments: updatedSegments });
+  };
+
+  // Instant 1-Click Silence Snapper
+  const handleSnapSilenceGap = (currentSegId, nextSegId) => {
+    const currentIdx = timeline.segments.findIndex((s) => s.id === currentSegId);
+    const nextIdx = timeline.segments.findIndex((s) => s.id === nextSegId);
+    if (currentIdx === -1 || nextIdx === -1) return;
+
+    const currentEnd = timeline.segments[currentIdx].end;
+    const updatedSegments = [...timeline.segments];
+    updatedSegments[nextIdx] = {
+      ...updatedSegments[nextIdx],
+      start: currentEnd,
+    };
     setTimeline({ ...timeline, segments: updatedSegments });
   };
 
@@ -603,265 +619,347 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
           {timeline.segments.map((segment, segIdx) => {
             const isActive = currentTime >= segment.start && currentTime <= segment.end;
             const isExpanded = expandedSegId === segment.id;
+            const isSelected = selectedSegId === segment.id;
 
             return (
-              <div
-                key={segment.id || segIdx}
-                ref={(el) => {
-                  if (el) itemRefs.current[segment.id] = el;
-                }}
-                onClick={() => {
-                  setCurrentTime(segment.start);
-                  setSelectedSegId(segment.id);
-                }}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                  isActive
-                    ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/10 dark:bg-yellow-400/10 shadow-md shadow-yellow-500/10'
-                    : 'border-slate-200 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-950/40 hover:border-slate-300 dark:hover:border-zinc-700'
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-                  <div className="flex items-center gap-1 font-mono text-[11px] font-semibold text-slate-700 dark:text-zinc-300" onClick={(e) => e.stopPropagation()}>
-                    <Clock className="w-3 h-3 text-yellow-500 dark:text-yellow-400 shrink-0" />
-                    <input
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      value={segment.start}
-                      onChange={(e) => handleTimeChange(segment.id, 'start', e.target.value)}
-                      className="w-14 bg-slate-100 dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700/80 focus:border-yellow-500 dark:focus:border-yellow-400 text-yellow-600 dark:text-yellow-400 font-bold rounded px-1 py-0.5 text-center text-[11px] focus:outline-none"
-                      title="Edit start time in seconds"
-                    />
-                    <span className="text-slate-400 dark:text-zinc-500">→</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      value={segment.end}
-                      onChange={(e) => handleTimeChange(segment.id, 'end', e.target.value)}
-                      className="w-14 bg-slate-100 dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700/80 focus:border-yellow-500 dark:focus:border-yellow-400 text-yellow-600 dark:text-yellow-400 font-bold rounded px-1 py-0.5 text-center text-[11px] focus:outline-none"
-                      title="Edit end time in seconds"
-                    />
-                    <span className="text-slate-400 dark:text-zinc-500 text-[10px]">s</span>
+              <React.Fragment key={segment.id || segIdx}>
+                <div
+                  ref={(el) => {
+                    if (el) itemRefs.current[segment.id] = el;
+                  }}
+                  onClick={() => {
+                    setCurrentTime(segment.start);
+                    setSelectedSegId(segment.id);
+                  }}
+                  className={`p-4 rounded-2xl border transition-all cursor-default shadow-sm space-y-3 ${
+                    isActive
+                      ? 'border-yellow-500/80 dark:border-yellow-400/80 bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-transparent dark:from-yellow-400/10 dark:via-yellow-400/5 dark:to-transparent shadow-lg shadow-yellow-500/10 ring-2 ring-yellow-500/20'
+                      : 'border-slate-200 dark:border-zinc-800/90 bg-white dark:bg-zinc-900/90 hover:border-slate-300 dark:hover:border-zinc-700/90 shadow-sm'
+                  }`}
+                >
+                  {/* 1. Card Top Header: Timestamp Badge & Quick Actions (Locked Single Row) */}
+                  <div className="flex items-center justify-between gap-1 flex-nowrap w-full" onClick={(e) => e.stopPropagation()}>
+                    {/* Prominent Timestamp Badge with Clear Bold Digits */}
+                    <div className="flex items-center gap-1 font-mono text-xs sm:text-sm font-black text-slate-800 dark:text-zinc-100 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-2 py-1 shadow-sm shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-yellow-500 dark:text-yellow-400 shrink-0" />
+                      
+                      {/* Start Time Stepper Control: [-] 22.63 [+] */}
+                      <div className="flex items-center gap-0.5 bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700/80 focus-within:border-yellow-500 rounded-lg p-0.5 shadow-inner shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleTimeChange(segment.id, 'start', Math.max(0, parseFloat(segment.start || 0) - 0.05).toFixed(2))}
+                          className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 hover:bg-yellow-500 hover:text-black dark:hover:bg-yellow-400 dark:hover:text-black border border-slate-200 dark:border-zinc-700/60 transition-all flex items-center justify-center cursor-pointer shrink-0 active:scale-90"
+                          title="Nudge backward -0.05s"
+                        >
+                          <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
 
-                    {/* Quick Nudge Buttons */}
-                    <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-zinc-900 border border-slate-300 dark:border-zinc-800 rounded-lg p-0.5 ml-1">
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          value={segment.start}
+                          onChange={(e) => handleTimeChange(segment.id, 'start', e.target.value)}
+                          className="w-11 sm:w-12 bg-transparent text-yellow-600 dark:text-yellow-400 font-black text-center text-xs sm:text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          title="Edit start time"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => handleTimeChange(segment.id, 'start', (parseFloat(segment.start || 0) + 0.05).toFixed(2))}
+                          className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 hover:bg-yellow-500 hover:text-black dark:hover:bg-yellow-400 dark:hover:text-black border border-slate-200 dark:border-zinc-700/60 transition-all flex items-center justify-center cursor-pointer shrink-0 active:scale-90"
+                          title="Nudge forward +0.05s"
+                        >
+                          <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
+                      </div>
+
+                      <span className="text-slate-400 dark:text-zinc-500 text-xs shrink-0">→</span>
+
+                      {/* End Time Stepper Control: [-] 23.01 [+] */}
+                      <div className="flex items-center gap-0.5 bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700/80 focus-within:border-yellow-500 rounded-lg p-0.5 shadow-inner shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleTimeChange(segment.id, 'end', Math.max(0, parseFloat(segment.end || 0) - 0.05).toFixed(2))}
+                          className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 hover:bg-yellow-500 hover:text-black dark:hover:bg-yellow-400 dark:hover:text-black border border-slate-200 dark:border-zinc-700/60 transition-all flex items-center justify-center cursor-pointer shrink-0 active:scale-90"
+                          title="Nudge backward -0.05s"
+                        >
+                          <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
+
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          value={segment.end}
+                          onChange={(e) => handleTimeChange(segment.id, 'end', e.target.value)}
+                          className="w-11 sm:w-12 bg-transparent text-yellow-600 dark:text-yellow-400 font-black text-center text-xs sm:text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          title="Edit end time"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => handleTimeChange(segment.id, 'end', (parseFloat(segment.end || 0) + 0.05).toFixed(2))}
+                          className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 hover:bg-yellow-500 hover:text-black dark:hover:bg-yellow-400 dark:hover:text-black border border-slate-200 dark:border-zinc-700/60 transition-all flex items-center justify-center cursor-pointer shrink-0 active:scale-90"
+                          title="Nudge forward +0.05s"
+                        >
+                          <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
+                      </div>
+
+                      <span className="text-yellow-500 dark:text-yellow-400 font-sans text-xs font-black shrink-0">s</span>
+                    </div>
+
+                    {/* Formatted Pro Action Toolbar */}
+                    <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-sm shrink-0">
                       <button
                         type="button"
-                        onClick={() => handleNudgeSegment(segment.id, -0.5)}
-                        className="px-1 py-0.5 text-[9px] font-mono font-bold text-slate-600 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition"
-                        title="Nudge backward -0.5s (Shifts downstream captions if Ripple is ON)"
+                        onClick={() => handleSplitSegment(segment.id)}
+                        className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-lg bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:text-yellow-500 dark:hover:text-yellow-400 hover:border-yellow-500/50 border border-slate-200 dark:border-zinc-800 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                        title="Split timeframe"
                       >
-                        -0.5s
+                        <Scissors className="w-3.5 h-3.5 text-yellow-500" />
                       </button>
+
+                      {segIdx < timeline.segments.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMergeNextSegment(segment.id)}
+                          className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-lg bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:text-cyan-500 dark:hover:text-cyan-400 hover:border-cyan-500/50 border border-slate-200 dark:border-zinc-800 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                          title="Merge timeframe"
+                        >
+                          <GitMerge className="w-3.5 h-3.5 text-cyan-400" />
+                        </button>
+                      )}
+
                       <button
-                        type="button"
-                        onClick={() => handleNudgeSegment(segment.id, -0.1)}
-                        className="px-1 py-0.5 text-[9px] font-mono font-bold text-slate-600 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition"
-                        title="Nudge backward -0.1s"
+                        onClick={() => setExpandedSegId(isExpanded ? null : segment.id)}
+                        className={`w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-lg transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 ${
+                          isExpanded
+                            ? 'bg-yellow-500 text-black font-black shadow-md shadow-yellow-500/20'
+                            : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:text-yellow-500 dark:hover:text-yellow-400'
+                        }`}
+                        title="Typography & settings"
                       >
-                        -0.1s
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleNudgeSegment(segment.id, 0.1)}
-                        className="px-1 py-0.5 text-[9px] font-mono font-bold text-slate-600 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition"
-                        title="Nudge forward +0.1s"
-                      >
-                        +0.1s
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleNudgeSegment(segment.id, 0.5)}
-                        className="px-1 py-0.5 text-[9px] font-mono font-bold text-slate-600 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition"
-                        title="Nudge forward +0.5s (Shifts downstream captions if Ripple is ON)"
-                      >
-                        +0.5s
+                        <Settings2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <select
-                      value={segment.styleOverride || ''}
-                      onChange={(e) => handleSegmentPropChange(segment.id, 'styleOverride', e.target.value || null)}
-                      className="bg-slate-100 dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-[10px] text-yellow-600 dark:text-yellow-400 font-bold rounded px-2 py-0.5 outline-none max-w-[130px]"
+                  {/* 2. Expanded Granular Drawer */}
+                  {isExpanded && (
+                    <div
+                      className="p-4 rounded-2xl bg-slate-100/90 dark:bg-zinc-950/95 border border-slate-200 dark:border-zinc-800 space-y-4 text-xs shadow-xl animate-fadeIn"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <option value="">Global Style</option>
-                      {PRESET_OPTIONS.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
+                      {/* Drawer Header */}
+                      <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-2">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-zinc-200 text-xs">
+                          <Sparkles className="w-3.5 h-3.5 text-yellow-500" />
+                          <span>Timeframe Typography & Position Customizer</span>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-md border border-yellow-500/20">
+                          Per-Frame Override
+                        </span>
+                      </div>
 
-                    {/* 15+ Kinetic Animation Dropdown */}
-                    <select
-                      value={segment.animation || 'pop'}
-                      onChange={(e) => handleSegmentPropChange(segment.id, 'animation', e.target.value)}
-                      className="bg-slate-100 dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-[10px] text-slate-700 dark:text-zinc-300 font-bold rounded px-2 py-0.5 outline-none uppercase max-w-[130px]"
-                    >
-                      {ANIMATION_OPTIONS_15.map((anim) => (
-                        <option key={anim.id} value={anim.id}>
-                          {anim.name}
-                        </option>
-                      ))}
-                    </select>
+                      {/* Font Dropdown & Font Studio Button (Side-by-Side) */}
+                      <div className="grid grid-cols-2 gap-3 items-end">
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-bold text-slate-600 dark:text-zinc-400 block">
+                            Font Family (50+ Styles)
+                          </label>
+                          <CustomFontSelect
+                            value={segment.fontStyle?.fontFamily || 'Inter'}
+                            onChange={(font) => handleSegmentPropChange(segment.id, 'fontFamily', font)}
+                            categories={FONT_CATEGORIES}
+                          />
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleSplitSegment(segment.id)}
-                      className="p-1 rounded text-xs font-bold bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-slate-200 dark:hover:bg-zinc-700 transition flex items-center gap-1"
-                      title="Split timeblock into two segments at cursor"
-                    >
-                      <Scissors className="w-3.5 h-3.5" />
-                    </button>
-
-                    {segIdx < timeline.segments.length - 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleMergeNextSegment(segment.id)}
-                        className="p-1 rounded text-xs font-bold bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-200 dark:hover:bg-zinc-700 transition flex items-center gap-1"
-                        title="Merge this segment with the next segment"
-                      >
-                        <GitMerge className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => setExpandedSegId(isExpanded ? null : segment.id)}
-                      className={`p-1 rounded text-xs font-bold transition flex items-center gap-1 ${
-                        isExpanded
-                          ? 'bg-yellow-500 dark:bg-yellow-400 text-black'
-                          : 'bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                      title="Customize 50+ Fonts, Size & Position for this exact timeframe"
-                    >
-                      <Settings2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {isExpanded && (
-                  <div
-                    className="mb-3 p-3 rounded-lg bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 space-y-3 text-xs"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400 block mb-1">
-                          Font (50+ Styles)
-                        </label>
-                        <CustomFontSelect
-                          value={segment.fontStyle?.fontFamily || 'Inter'}
-                          onChange={(font) => handleSegmentPropChange(segment.id, 'fontFamily', font)}
-                          categories={FONT_CATEGORIES}
-                        />
                         <button
                           type="button"
                           onClick={() => setActiveSegmentFontPickerId(segment.id)}
-                          className="mt-1.5 w-full py-1 px-2 rounded bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold text-[10px] hover:bg-yellow-500/20 transition flex items-center justify-center gap-1"
+                          className="w-full py-2.5 px-2 rounded-xl bg-gradient-to-r from-yellow-500/20 via-yellow-500/10 to-amber-500/20 border border-yellow-500/40 text-yellow-600 dark:text-yellow-400 font-extrabold text-[11px] hover:border-yellow-500 hover:bg-yellow-500/30 transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer whitespace-nowrap active:scale-98"
+                          title="Browse 70+ Multilingual Fonts Studio"
                         >
-                          <Sparkles className="w-3 h-3" />
-                          <span>Browse 70+ Fonts Studio</span>
+                          <Sparkles className="w-3.5 h-3.5 text-yellow-500 animate-pulse shrink-0" />
+                          <span className="truncate">Browse 70+ Fonts</span>
                         </button>
                       </div>
 
-                      <div>
-                        <label className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400 block mb-1">
-                          Size ({segment.fontStyle?.fontSize || 52}px)
-                        </label>
+                      {/* Full Width Font Size Card */}
+                      <div className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-2 shadow-xs">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-zinc-300">
+                          <span>Font Size</span>
+                          <span className="font-mono text-yellow-600 dark:text-yellow-400 font-black">
+                            {segment.fontStyle?.fontSize || 52}px
+                          </span>
+                        </div>
                         <input
                           type="range"
                           min="30"
                           max="90"
                           value={segment.fontStyle?.fontSize || 52}
                           onChange={(e) => handleSegmentPropChange(segment.id, 'fontSize', parseInt(e.target.value, 10))}
-                          className="w-full h-1 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded cursor-pointer"
+                          className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-between mb-1">
-                        <span>Vertical Position Y</span>
-                        <span className="font-mono text-yellow-600 dark:text-yellow-400">{segment.position?.y || 75}%</span>
-                      </label>
-                      <input
-                        type="range"
-                        min="20"
-                        max="85"
-                        value={segment.position?.y || 75}
-                        onChange={(e) => handleSegmentPropChange(segment.id, 'positionY', parseInt(e.target.value, 10))}
-                        className="w-full h-1 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded cursor-pointer"
+                      {/* Full Width Position Y Card */}
+                      <div className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-2 shadow-xs">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-zinc-300">
+                          <span>Vertical Position Y</span>
+                          <span className="font-mono text-yellow-600 dark:text-yellow-400 font-black">
+                            {segment.position?.y || 75}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="20"
+                          max="85"
+                          value={segment.position?.y || 75}
+                          onChange={(e) => handleSegmentPropChange(segment.id, 'positionY', parseInt(e.target.value, 10))}
+                          className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Word Pacing Options */}
+                      <div className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-2 shadow-xs">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-zinc-300">
+                          <span>Words Per Line (Timeframe Pacing)</span>
+                          <span className="font-mono text-yellow-600 dark:text-yellow-400 font-black">
+                            {segment.maxWordsPerLine || timeline.globalTheme?.maxWordsPerLine || 3} words
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[1, 2, 3, 4].map((num) => {
+                            const isSelectedOption = (segment.maxWordsPerLine || timeline.globalTheme?.maxWordsPerLine || 3) === num;
+                            return (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => handleSegmentPropChange(segment.id, 'maxWordsPerLine', num)}
+                                className={`py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                                  isSelectedOption
+                                    ? 'border-yellow-500 bg-yellow-500 text-black shadow-md shadow-yellow-500/20 font-black'
+                                    : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
+                                }`}
+                              >
+                                {num === 1 ? '1 Word' : `${num} Words`}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. Clean Continuous Transcript Canvas Area */}
+                  <div
+                    className="p-3 bg-slate-50/80 dark:bg-zinc-950/80 border border-slate-200/80 dark:border-zinc-800/80 rounded-xl flex flex-wrap items-center gap-2 min-h-[52px]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {segment.words.map((w) => {
+                      const isWordActive = isActive && currentTime >= (w.start || segment.start) && currentTime <= (w.end || segment.end);
+                      return (
+                        <div
+                          key={w.id}
+                          className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-default shadow-2xs ${
+                            isWordActive
+                              ? 'bg-yellow-500/15 dark:bg-yellow-400/20 border-2 border-yellow-500/80 dark:border-yellow-400/80 font-black shadow-md shadow-yellow-500/20 ring-2 ring-yellow-500/30 scale-105'
+                              : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 hover:border-yellow-500/80 dark:hover:border-yellow-400/80'
+                          }`}
+                        >
+                          <input
+                            type="color"
+                            value={w.highlightColor || '#FACC15'}
+                            onChange={(e) => handleWordColorChange(segment.id, w.id, e.target.value)}
+                            title="Word color"
+                            className="w-3.5 h-3.5 rounded-full border-none bg-transparent cursor-pointer shrink-0"
+                          />
+
+                          <input
+                            type="text"
+                            value={w.word}
+                            onChange={(e) => handleWordChange(segment.id, w.id, e.target.value)}
+                            style={{ width: `${Math.max(w.word.length * 11 + 6, 38)}px` }}
+                            className={`bg-transparent border-none outline-none text-base font-black leading-relaxed tracking-wide min-w-[38px] max-w-[200px] cursor-text ${
+                              isWordActive ? 'text-yellow-600 dark:text-yellow-300 font-black' : 'text-slate-900 dark:text-white'
+                            }`}
+                          />
+
+                          {/* Hover Emoji Selector */}
+                          <div className="absolute -top-11 left-0 hidden group-hover:flex items-center gap-1 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-700 px-2 py-1 rounded-xl shadow-2xl z-30 transition-all">
+                            {EMOJI_PALETTE.map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => handleEmojiToggle(segment.id, w.id, emoji)}
+                                className="hover:scale-135 transition-transform text-base cursor-pointer"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+
+                          {w.emoji && w.emoji !== '🔥' && <span className="text-base shrink-0 ml-0.5">{w.emoji}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 4. Bottom Controls Bar: Preset Style & Animation */}
+                  <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 dark:border-zinc-800/50" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 dark:text-zinc-500">Style</span>
+                      <CustomSelect
+                        value={segment.styleOverride || ''}
+                        onChange={(val) => handleSegmentPropChange(segment.id, 'styleOverride', val || null)}
+                        options={PRESET_OPTIONS}
+                        placeholder="Global Style"
+                        buttonClassName="text-slate-900 dark:text-white font-bold max-w-[140px] text-xs py-1.5 px-2.5"
                       />
                     </div>
 
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-between mb-1">
-                        <span>Pacing (Words per line for this timeframe)</span>
-                        <span className="font-mono text-yellow-600 dark:text-yellow-400 font-bold">
-                          {segment.maxWordsPerLine || timeline.globalTheme?.maxWordsPerLine || 3} words
-                        </span>
-                      </label>
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {[1, 2, 3, 4].map((num) => (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => handleSegmentPropChange(segment.id, 'maxWordsPerLine', num)}
-                            className={`py-1 rounded text-[10px] font-bold transition border ${
-                              (segment.maxWordsPerLine || timeline.globalTheme?.maxWordsPerLine || 3) === num
-                                ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-                                : 'border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-slate-600 dark:text-zinc-400 hover:border-slate-400'
-                            }`}
-                          >
-                            {num === 1 ? '1 Word' : `${num} Words`}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 dark:text-zinc-500">Anim</span>
+                      <CustomSelect
+                        value={segment.animation || 'pop'}
+                        onChange={(val) => handleSegmentPropChange(segment.id, 'animation', val)}
+                        options={ANIMATION_OPTIONS_15}
+                        placeholder="Animation"
+                        isUppercase
+                        buttonClassName="text-slate-900 dark:text-white font-bold max-w-[140px] text-xs py-1.5 px-2.5"
+                      />
                     </div>
                   </div>
-                )}
-
-                <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  {segment.words.map((w) => (
-                    <div
-                      key={w.id}
-                      className="group relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-900 text-slate-900 dark:text-white text-xs font-semibold hover:border-yellow-500/80 dark:hover:border-yellow-400/80 transition"
-                    >
-                      <input
-                        type="color"
-                        value={w.highlightColor || '#FACC15'}
-                        onChange={(e) => handleWordColorChange(segment.id, w.id, e.target.value)}
-                        title="Set custom color for this exact word"
-                        className="w-3.5 h-3.5 rounded-full border-none bg-transparent cursor-pointer shrink-0"
-                      />
-
-                      <input
-                        type="text"
-                        value={w.word}
-                        onChange={(e) => handleWordChange(segment.id, w.id, e.target.value)}
-                        className="bg-transparent border-none outline-none w-auto max-w-[110px] text-xs font-bold text-slate-900 dark:text-white"
-                      />
-
-                      <div className="absolute -top-10 left-0 hidden group-hover:flex items-center gap-1 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-700 px-2 py-1 rounded-lg shadow-2xl z-30 transition-all">
-                        {EMOJI_PALETTE.map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleEmojiToggle(segment.id, w.id, emoji)}
-                            className="hover:scale-125 transition-transform text-xs"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-
-                      {w.emoji && w.emoji !== '🔥' && <span className="text-xs shrink-0">{w.emoji}</span>}
-                    </div>
-                  ))}
                 </div>
-              </div>
+
+                {/* 5. Silence Gap Indicator & 1-Click Silence Snapper */}
+                {segIdx < timeline.segments.length - 1 && (() => {
+                  const nextSeg = timeline.segments[segIdx + 1];
+                  const gap = (parseFloat(nextSeg.start || 0) - parseFloat(segment.end || 0)).toFixed(2);
+                  if (parseFloat(gap) >= 0.25) {
+                    return (
+                      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-mono my-2 shadow-2xs">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
+                          <span>{gap}s Audio Silence Gap</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSnapSilenceGap(segment.id, nextSeg.id)}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500 text-black font-black text-xs hover:bg-amber-400 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                          title="Snap next timeframe start time to end of this timeframe"
+                        >
+                          ⚡ Snap Silence
+                        </button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </React.Fragment>
             );
           })}
         </div>

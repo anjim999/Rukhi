@@ -79,10 +79,49 @@ export class GeminiCaptionDirector extends LLMProvider {
 
     this.ai = config.geminiApiKey ? new GoogleGenerativeAI(config.geminiApiKey) : null;
     this.modelName = 'gemini-2.5-flash';
+    this.fallbackModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
   }
 
   async isAvailable() {
     return !!this.ai;
+  }
+
+  /**
+   * Robust Gemini API caller with automatic model fallback (2.5-flash -> 2.0-flash -> 1.5-flash -> 1.5-pro)
+   * on 429 Quota Exceeded / Rate Limit errors.
+   */
+  async _generateContentWithFallback(contents, generationConfig = {}) {
+    if (!this.ai) throw new Error('Gemini API key not configured.');
+
+    let lastError = null;
+
+    for (const modelName of this.fallbackModels) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          console.log(`[GEMINI MODEL] Requesting with ${modelName} (attempt ${attempt})...`);
+          const model = this.ai.getGenerativeModel({
+            model: modelName,
+            generationConfig,
+          });
+
+          const result = await model.generateContent(contents);
+          const text = result.response.text();
+          if (text && text.trim().length > 0) {
+            return text;
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(`[GEMINI MODEL WARN] ${modelName} attempt ${attempt} failed: ${err.message}`);
+          if (err.message.includes('429') || err.message.includes('quota') || err.message.includes('rate')) {
+            console.log(`[GEMINI 429 FALLBACK] Quota/Rate limit hit for ${modelName}. Switching to next model...`);
+            await new Promise((r) => setTimeout(r, 1000));
+            break; // Break inner loop to try next model immediately
+          }
+        }
+      }
+    }
+
+    throw lastError || new Error('All Gemini fallback models exhausted.');
   }
 
   async generateCaptionTimelineFromAudio(input) {
@@ -310,31 +349,11 @@ Return ONLY a compact JSON object with this exact structure:
   "hook": "<VIRAL HOOK TITLE WITH EMOJI>"
 }`;
 
-      const model = this.ai.getGenerativeModel({
-        model: this.modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1,
-          maxOutputTokens: 8192,
-        },
+      const responseText = await this._generateContentWithFallback([audioPart, prompt], {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+        maxOutputTokens: 8192,
       });
-
-      let responseText = null;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          const result = await model.generateContent([audioPart, prompt]);
-          responseText = result.response.text();
-          break;
-        } catch (err) {
-          console.warn(`[GEMINI STT ATTEMPT ${attempt}] API request failed: ${err.message}`);
-          if (attempt < 3 && (err.message.includes('429') || err.message.includes('quota') || err.message.includes('rate'))) {
-            console.log(`[GEMINI 429 RETRY] Waiting 3 seconds before retry attempt ${attempt + 1}...`);
-            await new Promise((r) => setTimeout(r, 3000));
-          } else if (attempt === 3) {
-            throw err;
-          }
-        }
-      }
 
       let rawData;
       try {
@@ -815,35 +834,12 @@ Return ONLY a JSON object with this exact structure:
       throw new Error('Gemini API key not configured.');
     }
 
-    let lastError = null;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const model = this.ai.getGenerativeModel({
-          model: this.modelName,
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-            ...generationConfig,
-          },
-        });
-
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        const parsed = this._parseJSON(responseText);
-
-        if (parsed && (parsed.segments || parsed.words || parsed.fullText)) {
-          return parsed;
-        }
-        throw new Error('Gemini response parsed but lacks required JSON fields.');
-      } catch (err) {
-        lastError = err;
-        console.warn(`[GEMINI RETRY] Attempt ${attempt}/${maxRetries} failed: ${err.message}`);
-        if (attempt < maxRetries) {
-          await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
-        }
-      }
-    }
-    throw lastError || new Error(`All ${maxRetries} Gemini call retries failed.`);
+    const responseText = await this._generateContentWithFallback(prompt, {
+      responseMimeType: 'application/json',
+      temperature: 0.1,
+      ...generationConfig,
+    });
+    return this._parseJSON(responseText);
   }
 
   async generateCaptionTimeline(input) {

@@ -25,6 +25,17 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 * 🎨 **Interactive 60FPS Hardware-Synced Canvas Editor**: Built using React & HTML5 Canvas with `requestVideoFrameCallback` rendering for 1:1 stutter-free playback and frame-accurate seeking.
 * 📐 **Aspect-Ratio & Responsive Math**: Supports 9:16 Vertical Reels, 16:9 Widescreen, and 1:1 Square videos with dynamic font scaling and viewport safe-zone calculations.
 * 🎭 **15+ Kinetic Animation Physics Engines**: Pop, Bounce, Zoom In/Out, Slide Up/Left, Shake Rumble, Flip Rotate, and Glow Pulse animations.
+* 📱 **Mobile-First iPhone (iOS Safari) & Android (Chrome) Creator Studio**:
+  - **Sticky Bottom Mobile Dock**: 1-thumb touch navigation dock for instant switching between **Player**, **Granular Timeline**, **Style Presets**, and **Save**.
+  - **44px Touch Standard**: Apple & Android Human Interface touch target sizing for misclick-free mobile editing.
+  - **Tactile Haptic Feedback**: Integrated `navigator.vibrate` vibration cues on scrubbing, tapping presets, and saving.
+* 🌐 **1-Click AI Subtitle Translator (Inside Editor)**:
+  - Instantly translates caption text into **Pure English, Native Telugu (తెలుగు), Native Hindi (हिंदी), Tanglish, or Spanish** in ~2 seconds using Gemini 2.5 Flash while **preserving 100% of word timestamps and speech sync**.
+* 🏷️ **Top Viral Hook Banner Overlay**:
+  - Render permanent attention-grabbing header banners at top safe area (`y: 12%`) with customizable background colors (`#FFE600`, `#EF4444`, `#06B6D4`, `#84CC16`), drop shadows, and high-contrast bold fonts.
+* 🚀 **Multi-Model Fallback Pool & 1GB Upload Support**:
+  - Zero-downtime model switching (`gemini-2.5-flash` ➔ `gemini-2.0-flash` ➔ `gemini-1.5-flash` ➔ `gemini-1.5-pro`) on 429 quota limits.
+  - Supports 4K 60FPS raw video uploads up to **1 GB** with client-side pre-validation.
 * 🎬 **100% WYSIWYG Pixel-Perfect Export & Remux Engine**:
   - **Browser Live Canvas Capture**: Captures 60FPS HTML5 `<canvas>` streams to preserve native Indic text ligatures (Telugu, Hindi, English), active word-by-word karaoke highlight animations, gradients, and custom font styling with 0 broken characters.
   - **Server-Side FFmpeg H.264 Remuxer**: Encodes captured video streams on the backend into broadcast-grade H.264 MP4 files with `+faststart` moov atom metadata for instant compatibility with Instagram Reels, YouTube Shorts, and TikTok.

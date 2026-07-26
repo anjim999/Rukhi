@@ -592,7 +592,7 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
             setVideoError('Failed to load video source.');
           }}
           onEnded={() => setIsPlaying(false)}
-          className="hidden"
+          className="absolute top-0 left-0 opacity-0 pointer-events-none w-1 h-1"
         />
         <canvas
           ref={canvasRef}

@@ -222,16 +222,10 @@ export async function probeVideo(videoPath) {
 
 export async function webOptimizeVideo(inputPath, outputPath) {
   try {
-    console.log(`[FFMPEG] Web-Optimizing video for mobile & Instagram compatibility: ${inputPath}`);
+    console.log(`[FFMPEG] Web-Optimizing video (fast stream copy) for mobile compatibility: ${inputPath}`);
     await runFFmpeg([
       '-i', inputPath,
-      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-      '-c:v', 'libx264',
-      '-preset', 'fast',
-      '-crf', '20',
-      '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac',
-      '-b:a', '128k',
+      '-c', 'copy',
       '-movflags', '+faststart',
       '-y',
       outputPath,
@@ -239,7 +233,7 @@ export async function webOptimizeVideo(inputPath, outputPath) {
     console.log(`[FFMPEG] ✅ Web optimization complete: ${outputPath}`);
     return outputPath;
   } catch (err) {
-    console.warn(`[FFMPEG WARNING] Web optimization failed: ${err.message}`);
+    console.warn(`[FFMPEG WARNING] Fast stream copy optimization fallback: ${err.message}`);
     return inputPath;
   }
 }

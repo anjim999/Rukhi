@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkles, Palette, Type, Move, Wand2, Loader2, CaseUpper, CaseLower, RotateCcw, Lightbulb, Check } from 'lucide-react';
+import { Sparkles, Palette, Type, Move, Wand2, Loader2, CaseUpper, CaseLower, RotateCcw, Lightbulb, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEME_PRESETS } from '../../../../shared/constants/timeline';
+import FontPickerModal from './FontPickerModal';
+import CustomFontSelect from './CustomFontSelect';
 
 const PRESET_OPTIONS = [
   { id: THEME_PRESETS.BOLD_VIRAL, name: 'Bold Yellow Pop', description: 'Yellow active scale pop, heavy black stroke', badge: 'Popular', primaryColor: '#FFFFFF', highlightColor: '#FACC15', fontFamily: 'Inter' },
@@ -31,53 +33,39 @@ const PRESET_OPTIONS = [
   { id: THEME_PRESETS.MINIMAL_CLEAN, name: 'Minimal White', description: 'Clean typography, subtle shadow', badge: 'Minimal', primaryColor: '#F4F4F5', highlightColor: '#E4E4E7', fontFamily: 'Inter' },
 ];
 
-const FONT_FAMILIES_50 = [
-  'Inter',
-  'Montserrat',
-  'Outfit',
-  'Roboto',
-  'Poppins',
-  'Oswald',
-  'Bebas Neue',
-  'Anton',
-  'Pacifico',
-  'Dancing Script',
-  'Caveat',
-  'Great Vibes',
-  'Satisfy',
-  'Lobster',
-  'Permanent Marker',
-  'Playfair Display',
-  'Cinzel',
-  'Abril Fatface',
-  'Bungee',
-  'Rubik Glitch',
-  'Press Start 2P',
-  'Righteous',
-  'Space Grotesk',
-  'Syne',
-  'Fredoka',
-  'Kanit',
-  'Cinzel Decorative',
-  'Marck Script',
-  'Sacramento',
-  'Yellowtail',
-  'Alex Brush',
-  'Parisienne',
-  'Shadows Into Light',
-  'Indie Flower',
-  'Amatic SC',
-  'Chewy',
-  'Luckiest Guy',
-  'Bangers',
-  'Special Elite',
-  'Orbitron',
-  'Shrikhand',
-  'Changa One',
-  'Ultra',
-  'Black Ops One',
-  'Russo One',
-  'Staatliches',
+const FONT_CATEGORIES = [
+  {
+    label: '🇬🇧 English / Universal Sans & Serif',
+    fonts: [
+      'Inter', 'Montserrat', 'Outfit', 'Roboto', 'Poppins', 'Oswald', 'Bebas Neue', 'Anton',
+      'Playfair Display', 'Space Grotesk', 'Syne', 'Kanit', 'Rubik Glitch', 'Cinzel',
+      'Righteous', 'Fredoka', 'Staatliches', 'Russo One', 'Ultra', 'Black Ops One'
+    ],
+  },
+  {
+    label: '✨ English Display & Kinetic Styles',
+    fonts: [
+      'Pacifico', 'Dancing Script', 'Caveat', 'Great Vibes', 'Satisfy', 'Lobster',
+      'Permanent Marker', 'Abril Fatface', 'Bungee', 'Press Start 2P',
+      'Cinzel Decorative', 'Marck Script', 'Sacramento', 'Yellowtail', 'Alex Brush',
+      'Parisienne', 'Shadows Into Light', 'Indie Flower', 'Amatic SC', 'Chewy',
+      'Luckiest Guy', 'Bangers', 'Special Elite', 'Orbitron', 'Shrikhand', 'Changa One'
+    ],
+  },
+  {
+    label: '🇮🇳 Hindi (Devanagari) Fonts',
+    fonts: [
+      'Yatra One', 'Rozha One', 'Hind', 'Teko', 'Mukta', 'Gotu', 'Modak', 'Rajdhani',
+      'Kalam', 'Amita', 'Eczar', 'Karma', 'Martel', 'Ranga', 'Sarala', 'Tillana', 'Vesper Libre'
+    ],
+  },
+  {
+    label: '🇮🇳 Telugu Fonts',
+    fonts: [
+      'Ramabhadra', 'Gidugu', 'NTR', 'Suranna', 'Lakki Reddy', 'Peddana', 'Chathura', 'Ponnala',
+      'Dhurjati', 'Gurajada', 'Mallanna', 'Ravi Prakash', 'Tenali Ramakrishna', 'Sree Krushnadevaraya', 'Timmana'
+    ],
+  },
 ];
 
 const AI_SUGGESTIONS = [
@@ -90,6 +78,10 @@ const AI_SUGGESTIONS = [
 
 export default function PresetSidebar({ timeline, setTimeline }) {
   const [isAiStylizing, setIsAiStylizing] = useState(false);
+  const [isAiDirectorCollapsed, setIsAiDirectorCollapsed] = useState(false);
+  const [isPresetLibraryCollapsed, setIsPresetLibraryCollapsed] = useState(false);
+  const [isTypographyCollapsed, setIsTypographyCollapsed] = useState(false);
+  const [isColorPaletteCollapsed, setIsColorPaletteCollapsed] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [isEmojiApplying, setIsEmojiApplying] = useState(false);
 
@@ -101,6 +93,7 @@ export default function PresetSidebar({ timeline, setTimeline }) {
   }, [timeline]);
 
   const [autoEmojiEnabled, setAutoEmojiEnabled] = useState(true);
+  const [showFontPicker, setShowFontPicker] = useState(false);
 
   const emojiCount = React.useMemo(() => {
     if (!timeline?.segments) return 8;
@@ -316,77 +309,91 @@ export default function PresetSidebar({ timeline, setTimeline }) {
   };
 
   return (
-    <div className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl p-5 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+    <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar transition-colors">
       {/* Generative AI Prompt Reel Remixer with Smart Suggestion Chips */}
-      <form onSubmit={handleAiPromptRemix} className="space-y-3">
-        <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between">
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => setIsAiDirectorCollapsed(!isAiDirectorCollapsed)}
+          className="w-full text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center justify-between group cursor-pointer"
+        >
           <span className="flex items-center gap-1.5">
-            <Wand2 className="w-4 h-4 text-yellow-400" />
+            <Wand2 className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
             <span>Generative AI Reel Director</span>
           </span>
-          <span className="text-[10px] text-yellow-400 font-mono font-normal">Speech Tone Aware</span>
-        </label>
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={customPrompt}
-            onChange={(e) => setCustomPrompt(e.target.value)}
-            placeholder="Describe style or click AI Suggestion below..."
-            className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-yellow-400"
-          />
-          <button
-            type="submit"
-            disabled={isAiStylizing || !customPrompt.trim()}
-            className="px-3.5 py-2 rounded-xl bg-yellow-400 text-black font-extrabold text-xs hover:bg-yellow-300 disabled:opacity-50 transition flex items-center gap-1 shrink-0"
-          >
-            {isAiStylizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
-          </button>
-        </div>
-
-        {/* AI Smart Suggestion Chips */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-            <Lightbulb className="w-3 h-3 text-yellow-400" />
-            <span>AI Speech Suggestions:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-yellow-500 dark:text-yellow-400 font-mono font-normal">Speech Tone Aware</span>
+            {isAiDirectorCollapsed ? (
+              <ChevronDown className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+            ) : (
+              <ChevronUp className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+            )}
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {AI_SUGGESTIONS.map((suggestion) => (
+        </button>
+
+        {!isAiDirectorCollapsed && (
+          <form onSubmit={handleAiPromptRemix} className="space-y-3 pt-1 animate-fadeIn">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="Describe style or click AI Suggestion below..."
+                className="flex-1 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-400"
+              />
               <button
-                key={suggestion}
-                type="button"
-                onClick={() => handleSuggestionClick(suggestion)}
-                className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 hover:text-yellow-300 hover:border-yellow-400/50 hover:bg-yellow-500/10 transition"
+                type="submit"
+                disabled={isAiStylizing || !customPrompt.trim()}
+                className="px-3.5 py-2 rounded-xl bg-yellow-500 dark:bg-yellow-400 text-black font-extrabold text-xs hover:bg-yellow-400 dark:hover:bg-yellow-300 disabled:opacity-50 transition flex items-center gap-1 shrink-0"
               >
-                {suggestion}
+                {isAiStylizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
 
-      </form>
+            {/* AI Smart Suggestion Chips */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+                <Lightbulb className="w-3 h-3 text-yellow-500 dark:text-yellow-400" />
+                <span>AI Speech Suggestions:</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {AI_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:text-yellow-600 dark:hover:text-yellow-300 hover:border-yellow-500/50 hover:bg-yellow-500/10 transition"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
 
       {/* Quick Bulk Format Transformer Toolbar */}
-      <div className="pt-2 border-t border-zinc-800 flex items-center justify-between gap-1 text-[10px] font-bold">
+      <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 flex items-center justify-between gap-1 text-[10px] font-bold">
         <button
           onClick={() => handleBulkCaseTransform('uppercase')}
-          className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition flex items-center gap-1"
+          className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700 transition flex items-center gap-1"
         >
-          <CaseUpper className="w-3.5 h-3.5 text-yellow-400" />
+          <CaseUpper className="w-3.5 h-3.5 text-yellow-500 dark:text-yellow-400" />
           <span>UPPERCASE</span>
         </button>
 
         <button
           onClick={() => handleBulkCaseTransform('lowercase')}
-          className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition flex items-center gap-1"
+          className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700 transition flex items-center gap-1"
         >
-          <CaseLower className="w-3.5 h-3.5 text-cyan-400" />
+          <CaseLower className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
           <span>lowercase</span>
         </button>
 
         <button
           onClick={handleResetOverrides}
-          className="px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-red-400 hover:border-red-500/40 transition flex items-center gap-1"
+          className="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40 transition flex items-center gap-1"
           title="Reset all per-timeframe style overrides to global theme"
         >
           <RotateCcw className="w-3 h-3" />
@@ -394,151 +401,235 @@ export default function PresetSidebar({ timeline, setTimeline }) {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 pb-3 border-b border-zinc-800">
-        <Sparkles className="w-4 h-4 text-yellow-400" />
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-          Preset Library (25+ Styles)
-        </h3>
-      </div>
+      {/* Preset Library Header with Collapse Toggle */}
+      <div className="space-y-3 pt-2">
+        <button
+          type="button"
+          onClick={() => setIsPresetLibraryCollapsed(!isPresetLibraryCollapsed)}
+          className="w-full pb-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between group cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Preset Library (25+ Styles)
+            </h3>
+          </span>
+          {isPresetLibraryCollapsed ? (
+            <ChevronDown className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+          ) : (
+            <ChevronUp className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+          )}
+        </button>
 
-      <div className="grid grid-cols-1 gap-2.5">
-        {PRESET_OPTIONS.map((preset) => {
-          const isActive = currentPreset === preset.id;
-          return (
-            <div
-              key={preset.id}
-              onClick={() => applyPreset(preset)}
-              className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                isActive
-                  ? 'border-yellow-400 bg-yellow-400/10 shadow-lg shadow-yellow-500/10'
-                  : 'border-zinc-800 bg-zinc-950/50 hover:border-zinc-700 hover:bg-zinc-800/40'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  {preset.name}
-                </span>
-                <span
-                  className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+        {!isPresetLibraryCollapsed && (
+          <div className="grid grid-cols-1 gap-2.5 animate-fadeIn">
+            {PRESET_OPTIONS.map((preset) => {
+              const isActive = currentPreset === preset.id;
+              return (
+                <div
+                  key={preset.id}
+                  onClick={() => applyPreset(preset)}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-yellow-400 text-black'
-                      : 'bg-zinc-800 text-zinc-400'
+                      ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/10 dark:bg-yellow-400/10 shadow-lg shadow-yellow-500/10'
+                      : 'border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/50 hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-100/40 dark:hover:bg-zinc-800/40'
                   }`}
                 >
-                  {preset.badge}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      {preset.name}
+                    </span>
+                    <span
+                      className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                        isActive
+                          ? 'bg-yellow-500 dark:bg-yellow-400 text-black'
+                          : 'bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                      }`}
+                    >
+                      {preset.badge}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-snug">
+                    {preset.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Typography Controls Header with Collapse Toggle */}
+      <div className="pt-4 border-t border-slate-200 dark:border-zinc-800 space-y-4">
+        <button
+          type="button"
+          onClick={() => setIsTypographyCollapsed(!isTypographyCollapsed)}
+          className="w-full flex items-center justify-between group cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <Type className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-400" />
+            <h4 className="text-xs font-bold text-slate-700 dark:text-zinc-300 uppercase tracking-wider">
+              Typography Controls (50+ Google Fonts)
+            </h4>
+          </span>
+          {isTypographyCollapsed ? (
+            <ChevronDown className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+          ) : (
+            <ChevronUp className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+          )}
+        </button>
+
+        {!isTypographyCollapsed && (
+          <div className="space-y-4 animate-fadeIn">
+            <div>
+              <label className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 block mb-1.5">
+                Font Family (50+ Styles)
+              </label>
+              <CustomFontSelect
+                value={timeline.globalTheme?.fontFamily || 'Inter'}
+                onChange={(font) => handleGlobalThemeChange('fontFamily', font)}
+                categories={FONT_CATEGORIES}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowFontPicker(true)}
+                className="mt-2 w-full py-2 px-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold text-xs hover:bg-yellow-500/20 transition flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Browse 70+ Fonts Studio (Live Script Previews)</span>
+              </button>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
+                  Subtitle Pacing (Words per line)
+                </label>
+                <span className="text-[11px] font-mono font-bold text-yellow-600 dark:text-yellow-400">
+                  {timeline.globalTheme?.maxWordsPerLine || 3} words
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400 leading-snug">
-                {preset.description}
-              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[1, 2, 3, 4].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => handleGlobalThemeChange('maxWordsPerLine', num)}
+                    className={`py-1.5 rounded-lg text-xs font-bold transition border ${
+                      (timeline.globalTheme?.maxWordsPerLine || 3) === num
+                        ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                        : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
+                    }`}
+                  >
+                    {num === 1 ? '1 Word' : `${num} Words`}
+                  </button>
+                ))}
+              </div>
             </div>
-          );
-        })}
-      </div>
 
-      <div className="pt-4 border-t border-zinc-800 space-y-4">
-        <div className="flex items-center gap-2">
-          <Type className="w-3.5 h-3.5 text-zinc-400" />
-          <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-            Typography Controls (50+ Google Fonts)
-          </h4>
-        </div>
-
-        <div>
-          <label className="text-[11px] font-medium text-zinc-400 block mb-1.5">
-            Font Family (50+ Styles)
-          </label>
-          <select
-            value={timeline.globalTheme?.fontFamily || 'Inter'}
-            onChange={(e) => handleGlobalThemeChange('fontFamily', e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400"
-          >
-            {FONT_FAMILIES_50.map((font) => (
-              <option key={font} value={font} style={{ fontFamily: font }}>
-                {font}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <label className="text-[11px] font-medium text-zinc-400">
-              Font Size ({timeline.globalTheme?.fontSize || 52}px)
-            </label>
-          </div>
-          <input
-            type="range"
-            min="30"
-            max="90"
-            value={timeline.globalTheme?.fontSize || 52}
-            onChange={(e) => handleGlobalThemeChange('fontSize', parseInt(e.target.value, 10))}
-            className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer"
-          />
-        </div>
-
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1">
-              <Move className="w-3 h-3 text-zinc-400" /> Position Y (
-              {timeline.segments?.[0]?.position?.y || 75}%)
-            </label>
-          </div>
-          <input
-            type="range"
-            min="20"
-            max="85"
-            value={timeline.segments?.[0]?.position?.y || 75}
-            onChange={(e) => handlePositionChange(parseInt(e.target.value, 10))}
-            className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer"
-          />
-        </div>
-      </div>
-
-      <div className="pt-4 border-t border-zinc-800 space-y-3">
-        <div className="flex items-center gap-2">
-          <Palette className="w-3.5 h-3.5 text-zinc-400" />
-          <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-            Color Palette
-          </h4>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[11px] font-medium text-zinc-400 block mb-1.5">
-              Highlight Word
-            </label>
-            <div className="flex items-center gap-2">
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
+                  Font Size ({timeline.globalTheme?.fontSize || 52}px)
+                </label>
+              </div>
               <input
-                type="color"
-                value={timeline.globalTheme?.highlightColor || '#FACC15'}
-                onChange={(e) => handleGlobalThemeChange('highlightColor', e.target.value)}
-                className="w-8 h-8 rounded-lg border border-zinc-700 bg-transparent cursor-pointer"
+                type="range"
+                min="30"
+                max="90"
+                value={timeline.globalTheme?.fontSize || 52}
+                onChange={(e) => handleGlobalThemeChange('fontSize', parseInt(e.target.value, 10))}
+                className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer"
               />
-              <span className="text-[11px] font-mono text-zinc-300">
-                {timeline.globalTheme?.highlightColor || '#FACC15'}
-              </span>
             </div>
-          </div>
 
-          <div>
-            <label className="text-[11px] font-medium text-zinc-400 block mb-1.5">
-              Text Color
-            </label>
-            <div className="flex items-center gap-2">
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 flex items-center gap-1">
+                  <Move className="w-3 h-3 text-slate-400 dark:text-zinc-400" /> Position Y (
+                  {timeline.segments?.[0]?.position?.y || 75}%)
+                </label>
+              </div>
               <input
-                type="color"
-                value={timeline.globalTheme?.primaryColor || '#FFFFFF'}
-                onChange={(e) => handleGlobalThemeChange('primaryColor', e.target.value)}
-                className="w-8 h-8 rounded-lg border border-zinc-700 bg-transparent cursor-pointer"
+                type="range"
+                min="20"
+                max="85"
+                value={timeline.segments?.[0]?.position?.y || 75}
+                onChange={(e) => handlePositionChange(parseInt(e.target.value, 10))}
+                className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer"
               />
-              <span className="text-[11px] font-mono text-zinc-300">
-                {timeline.globalTheme?.primaryColor || '#FFFFFF'}
-              </span>
             </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Color Palette Header with Collapse Toggle */}
+      <div className="pt-4 border-t border-slate-200 dark:border-zinc-800 space-y-3">
+        <button
+          type="button"
+          onClick={() => setIsColorPaletteCollapsed(!isColorPaletteCollapsed)}
+          className="w-full flex items-center justify-between group cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <Palette className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-400" />
+            <h4 className="text-xs font-bold text-slate-700 dark:text-zinc-300 uppercase tracking-wider">
+              Color Palette
+            </h4>
+          </span>
+          {isColorPaletteCollapsed ? (
+            <ChevronDown className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+          ) : (
+            <ChevronUp className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
+          )}
+        </button>
+
+        {!isColorPaletteCollapsed && (
+          <div className="grid grid-cols-2 gap-3 animate-fadeIn">
+            <div>
+              <label className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 block mb-1.5">
+                Highlight Word
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={timeline.globalTheme?.highlightColor || '#FACC15'}
+                  onChange={(e) => handleGlobalThemeChange('highlightColor', e.target.value)}
+                  className="w-8 h-8 rounded-lg border border-slate-300 dark:border-zinc-700 bg-transparent cursor-pointer"
+                />
+                <span className="text-[11px] font-mono text-slate-700 dark:text-zinc-300">
+                  {timeline.globalTheme?.highlightColor || '#FACC15'}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 block mb-1.5">
+                Text Color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={timeline.globalTheme?.primaryColor || '#FFFFFF'}
+                  onChange={(e) => handleGlobalThemeChange('primaryColor', e.target.value)}
+                  className="w-8 h-8 rounded-lg border border-slate-300 dark:border-zinc-700 bg-transparent cursor-pointer"
+                />
+                <span className="text-[11px] font-mono text-slate-700 dark:text-zinc-300">
+                  {timeline.globalTheme?.primaryColor || '#FFFFFF'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <FontPickerModal
+        isOpen={showFontPicker}
+        onClose={() => setShowFontPicker(false)}
+        selectedFont={timeline.globalTheme?.fontFamily || 'Inter'}
+        onSelectFont={(font) => handleGlobalThemeChange('fontFamily', font)}
+        title="Global Video Typography Studio"
+      />
     </div>
   );
 }

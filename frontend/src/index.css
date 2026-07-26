@@ -30,6 +30,14 @@
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
   }
+
+  button, [role="button"], input[type="submit"], input[type="button"], select {
+    cursor: pointer;
+  }
+
+  button:disabled, [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 /* Override browser autofill light background */

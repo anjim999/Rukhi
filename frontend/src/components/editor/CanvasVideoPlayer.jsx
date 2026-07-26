@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, Download, Loader2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Download, Loader2, Gauge } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 import { exportProjectMP4, getFullMediaUrl } from '../../services/projectService';
@@ -18,7 +18,7 @@ function getSanitizedFilename(title, fallback = 'reel', ext = 'mp4') {
   return `${clean}.${ext}`;
 }
 
-export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, currentTime, setCurrentTime, projectTitle }) {
+export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTimeline, currentTime, setCurrentTime, projectTitle }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const resolvedVideoUrl = getFullMediaUrl(videoUrl);
@@ -28,10 +28,75 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
   const [isRecording, setIsRecording] = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
   const [videoError, setVideoError] = useState(null);
+  const [aspectRatio, setAspectRatio] = useState('9:16');
+  const [isDraggingCaption, setIsDraggingCaption] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [sfxEnabled, setSfxEnabled] = useState(false);
+  const [isSpeedOpen, setIsSpeedOpen] = useState(false);
+
+  const handleRateChange = (rate) => {
+    setPlaybackRate(rate);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+    }
+  };
+
   const isRecordingRef = useRef(false);
   const lastSegIdRef = useRef(null);
   const segStartTimeRef = useRef(0);
   const lastUiUpdateRef = useRef(0);
+
+  const handleCanvasMouseDown = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const posYPercent = Math.min(85, Math.max(20, Math.round((clickY / rect.height) * 100)));
+
+    if (timeline?.segments && setTimeline) {
+      const activeSeg = timeline.segments.find(
+        (seg) => currentTime >= seg.start - 0.05 && currentTime <= seg.end + 0.05
+      );
+      if (activeSeg) {
+        const updated = {
+          ...timeline,
+          segments: timeline.segments.map((seg) =>
+            seg.id === activeSeg.id ? { ...seg, position: { ...(seg.position || { x: 50, y: 75 }), y: posYPercent } } : seg
+          ),
+        };
+        setTimeline(updated);
+      }
+    }
+    setIsDraggingCaption(true);
+  };
+
+  const handleCanvasMouseMove = (e) => {
+    if (!isDraggingCaption) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const posYPercent = Math.min(85, Math.max(20, Math.round((clickY / rect.height) * 100)));
+
+    if (timeline?.segments && setTimeline) {
+      const activeSeg = timeline.segments.find(
+        (seg) => currentTime >= seg.start - 0.05 && currentTime <= seg.end + 0.05
+      );
+      if (activeSeg) {
+        const updated = {
+          ...timeline,
+          segments: timeline.segments.map((seg) =>
+            seg.id === activeSeg.id ? { ...seg, position: { ...(seg.position || { x: 50, y: 75 }), y: posYPercent } } : seg
+          ),
+        };
+        setTimeline(updated);
+      }
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    setIsDraggingCaption(false);
+  };
 
   // Broadcast-grade 60FPS Hardware-Synced Render Loop (requestVideoFrameCallback)
   useEffect(() => {
@@ -334,7 +399,49 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-black shadow-2xl aspect-[9/16] max-h-[580px] w-auto group">
+      {/* Universal Aspect Ratio Selector Toolbar */}
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs font-bold transition">
+        <button
+          onClick={() => setAspectRatio('9:16')}
+          className={`px-3 py-1 rounded-lg transition ${
+            aspectRatio === '9:16'
+              ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
+              : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          📱 9:16 Reel
+        </button>
+        <button
+          onClick={() => setAspectRatio('16:9')}
+          className={`px-3 py-1 rounded-lg transition ${
+            aspectRatio === '16:9'
+              ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
+              : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          🎬 16:9 Wide
+        </button>
+        <button
+          onClick={() => setAspectRatio('1:1')}
+          className={`px-3 py-1 rounded-lg transition ${
+            aspectRatio === '1:1'
+              ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
+              : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          ⏹️ 1:1 Square
+        </button>
+      </div>
+
+      <div
+        className={`relative rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-800 bg-black shadow-2xl transition-all ${
+          aspectRatio === '16:9'
+            ? 'aspect-[16/9] max-w-[680px] w-full'
+            : aspectRatio === '1:1'
+            ? 'aspect-square max-h-[580px] w-auto'
+            : 'aspect-[9/16] max-h-[680px] w-auto'
+        } group`}
+      >
         <video
           ref={videoRef}
           src={resolvedVideoUrl}
@@ -352,7 +459,16 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
           onEnded={() => setIsPlaying(false)}
           className="hidden"
         />
-        <canvas ref={canvasRef} onClick={togglePlay} className="w-full h-full object-contain cursor-pointer" />
+        <canvas
+          ref={canvasRef}
+          onClick={togglePlay}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          onMouseLeave={handleCanvasMouseUp}
+          className="w-full h-full object-contain cursor-grab active:cursor-grabbing"
+          title="Click to play/pause • Click and drag up/down to reposition subtitles"
+        />
 
         {videoError && (
           <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-center p-4">
@@ -389,27 +505,65 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, curre
         )}
       </div>
 
-      <div className="w-full max-w-sm flex flex-col gap-2 p-3 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-xl">
+      <div className="w-full max-w-md flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl transition-colors">
         <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek} disabled={isRecording}
-          className="w-full h-1.5 bg-zinc-800 accent-yellow-400 rounded-lg cursor-pointer transition-all hover:h-2 disabled:opacity-50 disabled:cursor-not-allowed" />
+          className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer transition-all hover:h-2 disabled:opacity-50 disabled:cursor-not-allowed" />
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <button onClick={togglePlay} disabled={isRecording}
-              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white transition flex items-center gap-1 font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed">
-              {isPlaying ? <Pause className="w-4 h-4 text-yellow-400" /> : <Play className="w-4 h-4 text-yellow-400" />}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-800 dark:text-white border border-slate-200 dark:border-zinc-700/60 transition flex items-center gap-1 font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+              {isPlaying ? <Pause className="w-4 h-4 text-yellow-500 dark:text-yellow-400" /> : <Play className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />}
               <span>{isPlaying ? 'Pause' : 'Play'}</span>
             </button>
             <button onClick={toggleMute} disabled={isRecording}
-              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed">
-              {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-zinc-700/60 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isMuted ? 'Unmute audio' : 'Mute audio'}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-red-500 dark:text-red-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
+
+            {/* Custom Collapsible / Expandable Styled Speed Selector */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsSpeedOpen(!isSpeedOpen)}
+                disabled={isRecording}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-200 font-bold text-xs border border-slate-200 dark:border-zinc-700/60 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                title="Toggle playback speed menu"
+              >
+                <Gauge className="w-3.5 h-3.5 text-yellow-500 dark:text-yellow-400" />
+                <span>{playbackRate}x</span>
+              </button>
+
+              {isSpeedOpen && (
+                <div className="absolute bottom-full mb-2.5 left-0 z-30 p-2 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-2xl flex items-center gap-1 animate-fadeIn">
+                  {[0.25, 0.5, 1, 1.25, 1.5, 1.75, 2].map((rate) => (
+                    <button
+                      key={rate}
+                      type="button"
+                      onClick={() => {
+                        handleRateChange(rate);
+                        setIsSpeedOpen(false);
+                      }}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition border ${
+                        playbackRate === rate
+                          ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 shadow-sm'
+                          : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-mono text-zinc-400 text-[11px] bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
+            <span className="font-mono text-slate-600 dark:text-zinc-400 text-[11px] bg-slate-100 dark:bg-zinc-950 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-zinc-800">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
             <button onClick={exportCaptionedVideo} disabled={isRecording}
-              className="px-3 py-1.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-yellow-500/10">
+              className="px-3 py-1.5 rounded-xl bg-yellow-500 dark:bg-yellow-400 hover:bg-yellow-400 dark:hover:bg-yellow-300 text-black font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-yellow-500/10">
               {isRecording ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
               <span>Export 4K</span>
             </button>
@@ -518,12 +672,16 @@ function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, ti
     return { ...w, text: displayStr, rawWidth, effectiveWidth, isActive, isPast };
   });
 
+  const maxWords = segment.maxWordsPerLine || globalTheme.maxWordsPerLine || 0;
   const lines = [];
   let currentLine = [];
   let currentLineWidth = 0;
 
   classified.forEach((w) => {
-    if (currentLine.length > 0 && currentLineWidth + wordGap + w.effectiveWidth > maxLineWidth) {
+    const exceedsLength = currentLine.length > 0 && currentLineWidth + wordGap + w.effectiveWidth > maxLineWidth;
+    const exceedsMaxWords = maxWords > 0 && currentLine.length >= maxWords;
+
+    if (exceedsLength || exceedsMaxWords) {
       lines.push(currentLine);
       currentLine = [w];
       currentLineWidth = w.effectiveWidth;

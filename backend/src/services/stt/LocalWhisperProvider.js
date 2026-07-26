@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { STTProvider } from './STTProvider.js';
+import { STTProvider, snapWordTimestamps } from './STTProvider.js';
 
 /**
  * Local Whisper STT Provider
@@ -146,10 +146,11 @@ export class LocalWhisperProvider extends STTProvider {
 
     // Calculate total duration from the last word
     const duration = words.length > 0 ? words[words.length - 1].end : 0;
+    const snappedWords = snapWordTimestamps(words);
 
     return {
       fullText: (whisperOutput.text || '').trim(),
-      words,
+      words: snappedWords,
       language: whisperOutput.language || 'en',
       duration,
       provider: this.name,

@@ -25,6 +25,9 @@ Auto Captions AI solves the core problem content creators face: **manually writi
 Auto Captions AI automates this entire pipeline in seconds:
 - **Instant AI Transcription & Script Formatting**: Transcribes raw speech in native Telugu, Hindi, English, Teluglish (Telugu in Roman script), Hinglish, and code-switched audio.
 - **Submagic Kinetic Subtitles**: Dynamically styles words into animated blocks with active-word solid box highlights, neon glow effects, emojis, and sound effects.
+- **Broadcast-Grade Ripple Sync & Nudge Engine**: Auto-shifts downstream captions upon timestamp edits, with quick 1-click nudge controls (`-0.5s`, `-0.1s`, `+0.1s`, `+0.5s`) and global offset delay tool.
+- **70+ Multilingual Typography & Visual Font Studio Modal**: Full Google Fonts suite for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.
+- **Un-Clipped React Portal Dropdowns (`CustomFontSelect.jsx`)**: Floating `rounded-2xl` popovers rendered on `document.body` with built-in font search bar.
 - **Millisecond Audio Synchronization**: Enforces 100% frame-accurate word-level alignment matching actual audio playback.
 - **Multi-Format 60FPS Video Export**: Delivers server-rendered 60FPS MP4 videos with burned-in subtitles, alongside instant 4K WebM client canvas downloads.
 - **AI Social Copywriter**: Generates viral Instagram captions, hashtags, and YouTube Shorts titles directly from the video transcript.

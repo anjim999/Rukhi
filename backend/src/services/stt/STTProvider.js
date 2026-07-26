@@ -65,3 +65,38 @@ export class STTProvider {
     throw new Error(`${this.name}: isAvailable() must be implemented by subclass.`);
   }
 }
+
+/**
+ * Sub-Frame Precision Silence Snapping Algorithm
+ * Tightens word start and end timestamps during speech pauses to eliminate ghost captions
+ * lingering on screen during silence.
+ *
+ * @param {WordTimestamp[]} words
+ * @returns {WordTimestamp[]}
+ */
+export function snapWordTimestamps(words) {
+  if (!Array.isArray(words) || words.length === 0) return words;
+
+  return words.map((curr, idx) => {
+    let start = Math.max(0, Math.round((curr.start || 0) * 100) / 100);
+    let end = Math.max(start + 0.05, Math.round((curr.end || start + 0.2) * 100) / 100);
+
+    const next = words[idx + 1];
+    if (next) {
+      const gap = next.start - end;
+      // If gap is large (>0.2s pause), cap the word end so caption doesn't linger into silence
+      if (gap > 0.2) {
+        end = Math.min(end, Math.round((start + 0.35) * 100) / 100);
+      } else if (gap > 0 && gap < 0.08) {
+        // If gap is tiny (<80ms), snap end directly to next start for seamless transition
+        end = Math.round(next.start * 100) / 100;
+      }
+    }
+
+    return {
+      ...curr,
+      start,
+      end,
+    };
+  });
+}

@@ -19,6 +19,9 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 
 * 🎙️ **Direct Audio Speech-to-Text & Transcribing Director**: Powered by Google Gemini 2.5 Flash, directly processing audio waveforms to handle Telugu, Hinglish, Teluglish, Hindi, English, and code-switched speech.
 * ⚡ **Perfect Video-Audio-Caption Sync Engine**: Built-in `_validateAndRepairTimestamps()` algorithm enforcing monotonic word ordering, millisecond timing precision, overlap repair, and seamless gap filling.
+* 🌊 **Broadcast-Grade Ripple Sync & Nudge Controls**: Automatic downstream timeline shift upon timestamp edits, 1-click nudge controls (`-0.5s`, `-0.1s`, `+0.1s`, `+0.5s`), and global offset correction.
+* 🌐 **70+ Multilingual Typography Suite & Font Studio Modal**: Native Google Fonts for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.
+* ⚛️ **Un-Clipped React Portal Dropdowns (`CustomFontSelect.jsx`)**: Floating `rounded-2xl` popovers rendered on `document.body` with built-in font search bar.
 * 🎨 **Interactive 60FPS Hardware-Synced Canvas Editor**: Built using React & HTML5 Canvas with `requestVideoFrameCallback` rendering for 1:1 stutter-free playback and frame-accurate seeking.
 * 📐 **Aspect-Ratio & Responsive Math**: Supports 9:16 Vertical Reels, 16:9 Widescreen, and 1:1 Square videos with dynamic font scaling and viewport safe-zone calculations.
 * 🎭 **15+ Kinetic Animation Physics Engines**: Pop, Bounce, Zoom In/Out, Slide Up/Left, Shake Rumble, Flip Rotate, and Glow Pulse animations.

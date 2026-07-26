@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { STTProvider } from './STTProvider.js';
+import { STTProvider, snapWordTimestamps } from './STTProvider.js';
 import { config } from '../../config/env.js';
 
 /**
@@ -103,9 +103,11 @@ export class DeepgramProvider extends STTProvider {
 
     console.log(`[DEEPGRAM STT] ✅ Complete in ${latencyMs}ms — ${words.length} words transcribed with 99.9% precision.`);
 
+    const snappedWords = snapWordTimestamps(words);
+
     return {
       fullText,
-      words,
+      words: snappedWords,
       language: detectedLang,
       duration,
       provider: 'deepgram-nova-2',

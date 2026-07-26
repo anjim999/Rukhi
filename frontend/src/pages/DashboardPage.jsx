@@ -270,15 +270,15 @@ export default function DashboardPage({ onSelectProject }) {
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl space-y-6 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400">
               <Trash2 className="w-7 h-7" />
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white">Delete Project?</h3>
-              <p className="text-sm text-zinc-400">
-                Are you sure you want to delete <span className="text-white font-semibold">"{deleteTarget.title}"</span>? This action cannot be undone.
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Delete Project?</h3>
+              <p className="text-sm text-slate-500 dark:text-zinc-400">
+                Are you sure you want to delete <span className="text-slate-900 dark:text-white font-semibold">"{deleteTarget.title}"</span>? This action cannot be undone.
               </p>
             </div>
 
@@ -286,7 +286,7 @@ export default function DashboardPage({ onSelectProject }) {
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="flex-1 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs transition"
+                className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-semibold text-xs transition"
               >
                 Cancel
               </button>
@@ -305,14 +305,14 @@ export default function DashboardPage({ onSelectProject }) {
       {/* Rename Confirmation Modal */}
       {renameTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-2xl space-y-6 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 dark:text-yellow-400">
               <Pencil className="w-7 h-7" />
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-white">Rename Video Project</h3>
-              <p className="text-xs text-zinc-400">Enter a new name for your reel project.</p>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Rename Video Project</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">Enter a new name for your reel project.</p>
             </div>
 
             <input
@@ -325,14 +325,14 @@ export default function DashboardPage({ onSelectProject }) {
               }}
               autoFocus
               placeholder="Enter project name..."
-              className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 rounded-xl px-4 py-3 text-sm text-white font-medium focus:outline-none"
+              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 focus:border-yellow-500 dark:focus:border-yellow-400 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:outline-none"
             />
 
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => setRenameTarget(null)}
                 disabled={renaming}
-                className="flex-1 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs transition"
+                className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-semibold text-xs transition"
               >
                 Cancel
               </button>

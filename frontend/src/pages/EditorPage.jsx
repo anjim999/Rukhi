@@ -13,11 +13,11 @@ import {
 import CanvasVideoPlayer from '../components/editor/CanvasVideoPlayer';
 import PresetSidebar from '../components/editor/PresetSidebar';
 import TimelineEditor from '../components/editor/TimelineEditor';
-import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X, Pause, Play, XCircle, Pencil } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X, Pause, Play, XCircle, Pencil, Undo2, Redo2 } from 'lucide-react';
 
 export default function EditorPage({ projectId, onBack }) {
   const [project, setProject] = useState(null);
-  const [timeline, setTimeline] = useState(null);
+  const [timeline, setTimelineState] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,10 +26,104 @@ export default function EditorPage({ projectId, onBack }) {
   const [cancelling, setCancelling] = useState(false);
   const [pausing, setPausing] = useState(false);
 
+  // Undo / Redo History Stack State
+  const historyRef = React.useRef([]);
+  const historyIndexRef = React.useRef(-1);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const setTimeline = React.useCallback((nextVal) => {
+    setTimelineState((prevTimeline) => {
+      const resolved = typeof nextVal === 'function' ? nextVal(prevTimeline) : nextVal;
+      if (!resolved) return resolved;
+
+      // Push snapshot to history stack
+      const snapshot = JSON.parse(JSON.stringify(resolved));
+      const currIdx = historyIndexRef.current;
+
+      // Only push if snapshot is genuinely different
+      const currentHistorySnap = historyRef.current[currIdx];
+      if (currentHistorySnap && JSON.stringify(currentHistorySnap) === JSON.stringify(snapshot)) {
+        return resolved;
+      }
+
+      const history = historyRef.current.slice(0, currIdx + 1);
+      history.push(snapshot);
+      if (history.length > 50) history.shift();
+
+      historyRef.current = history;
+      historyIndexRef.current = history.length - 1;
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(false);
+
+      return resolved;
+    });
+  }, []);
+
+  const handleUndo = React.useCallback(() => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current -= 1;
+      const prevSnapshot = historyRef.current[historyIndexRef.current];
+      setTimelineState(JSON.parse(JSON.stringify(prevSnapshot)));
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+      toast.success('Undo timeline edit', { id: 'undo-redo-toast', duration: 1500 });
+    }
+  }, []);
+
+  const handleRedo = React.useCallback(() => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current += 1;
+      const nextSnapshot = historyRef.current[historyIndexRef.current];
+      setTimelineState(JSON.parse(JSON.stringify(nextSnapshot)));
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+      toast.success('Redo timeline edit', { id: 'undo-redo-toast', duration: 1500 });
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
+
   // Title edit state
+  const titleInputRef = React.useRef(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [renamingTitle, setRenamingTitle] = useState(false);
+
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      const val = titleInputRef.current.value || '';
+      const lastDotIndex = val.lastIndexOf('.');
+      const targetPos = lastDotIndex > 0 ? lastDotIndex : val.length;
+
+      setTimeout(() => {
+        if (titleInputRef.current) {
+          titleInputRef.current.focus();
+          titleInputRef.current.setSelectionRange(targetPos, targetPos);
+        }
+      }, 50);
+    }
+  }, [isEditingTitle]);
 
   // Social Post Generator Modal state
   const [showSocialModal, setShowSocialModal] = useState(false);
@@ -285,11 +379,11 @@ export default function EditorPage({ projectId, onBack }) {
   return (
     <div className="space-y-6 pb-12">
       {/* Editor Top Navigation Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-zinc-900/80 border border-zinc-800/80 p-4 rounded-2xl backdrop-blur-md">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800/80 p-4 rounded-2xl backdrop-blur-md transition-colors">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white transition"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -297,6 +391,7 @@ export default function EditorPage({ projectId, onBack }) {
             {isEditingTitle ? (
               <div className="flex items-center gap-1.5 mb-1">
                 <input
+                  ref={titleInputRef}
                   type="text"
                   value={titleInput}
                   onChange={(e) => setTitleInput(e.target.value)}
@@ -304,8 +399,7 @@ export default function EditorPage({ projectId, onBack }) {
                     if (e.key === 'Enter') handleSaveTitle();
                     if (e.key === 'Escape') setIsEditingTitle(false);
                   }}
-                  autoFocus
-                  className="bg-zinc-950 border border-yellow-500/50 rounded-lg px-2.5 py-1 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                  className="bg-slate-50 dark:bg-zinc-950 border border-yellow-500/50 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-yellow-400"
                 />
                 <button
                   onClick={handleSaveTitle}
@@ -317,7 +411,7 @@ export default function EditorPage({ projectId, onBack }) {
                 </button>
                 <button
                   onClick={() => setIsEditingTitle(false)}
-                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition"
+                  className="p-1 rounded-lg bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition"
                   title="Cancel"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -332,27 +426,47 @@ export default function EditorPage({ projectId, onBack }) {
                 }}
                 title="Click to edit project title"
               >
-                <h1 className="text-base font-bold text-white leading-none group-hover:text-yellow-400 transition">
+                <h1 className="text-base font-bold text-slate-900 dark:text-white leading-none group-hover:text-yellow-500 dark:group-hover:text-yellow-400 transition">
                   {project?.title || 'Untitled Video Project'}
                 </h1>
-                <button className="text-zinc-500 group-hover:text-yellow-400 opacity-70 group-hover:opacity-100 transition">
+                <button className="text-slate-400 dark:text-zinc-500 group-hover:text-yellow-500 dark:group-hover:text-yellow-400 opacity-70 group-hover:opacity-100 transition">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
               Kinetic Subtitle Studio • {timeline?.segments?.length || 0} Timeblocks
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-2.5 ml-auto">
+          {/* Undo / Redo Buttons */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl border border-slate-200 dark:border-zinc-700/80">
+            <button
+              onClick={handleUndo}
+              disabled={!canUndo}
+              className="p-1.5 rounded-lg text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
+              title="Undo timeline edit (Ctrl+Z)"
+            >
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={!canRedo}
+              className="p-1.5 rounded-lg text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
+              title="Redo timeline edit (Ctrl+Y or Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* AI Post Generator Button */}
           <button
             onClick={handleOpenSocialModal}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-purple-500/20"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:from-purple-500 hover:to-rose-400 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
           >
-            <Share2 className="w-3.5 h-3.5" />
+            <Share2 className="w-4 h-4" />
             <span>AI Post Generator (IG & YT)</span>
           </button>
 
@@ -360,18 +474,18 @@ export default function EditorPage({ projectId, onBack }) {
           <button
             onClick={handleSaveTimeline}
             disabled={saving}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer shadow-sm ${
               saveSuccess
-                ? 'bg-emerald-500 text-white'
-                : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                : 'bg-yellow-500 hover:bg-yellow-400 text-black shadow-yellow-500/20'
             }`}
           >
             {saving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-black" />
             ) : saveSuccess ? (
-              <Check className="w-3.5 h-3.5 text-white" />
+              <Check className="w-4 h-4 text-white" />
             ) : (
-              <Save className="w-3.5 h-3.5 text-yellow-400" />
+              <Save className="w-4 h-4 text-black" />
             )}
             <span>{saving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Progress'}</span>
           </button>
@@ -381,16 +495,17 @@ export default function EditorPage({ projectId, onBack }) {
       {/* 3-Column Studio Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Preset & Style Sidebar */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-4">
           <PresetSidebar timeline={timeline} setTimeline={setTimeline} />
         </div>
 
         {/* Middle Column: 60fps Canvas Video Player */}
-        <div className="lg:col-span-5 flex justify-center">
+        <div className="lg:col-span-4 flex justify-center">
           <CanvasVideoPlayer
             projectId={projectId}
             videoUrl={videoFullUrl}
             timeline={timeline}
+            setTimeline={setTimeline}
             currentTime={currentTime}
             setCurrentTime={setCurrentTime}
             projectTitle={project?.title}
@@ -404,6 +519,10 @@ export default function EditorPage({ projectId, onBack }) {
             setTimeline={setTimeline}
             currentTime={currentTime}
             setCurrentTime={setCurrentTime}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         </div>
       </div>
@@ -411,49 +530,49 @@ export default function EditorPage({ projectId, onBack }) {
       {/* AI Instagram & YouTube Post Generator Modal */}
       {showSocialModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar relative shadow-2xl">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl w-full max-w-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar relative shadow-2xl">
             <button
               onClick={() => setShowSocialModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition"
+              className="absolute top-4 right-4 p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-yellow-400" />
-              <h3 className="text-lg font-bold text-white">AI Post-Ready Content Pack</h3>
+              <Sparkles className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">AI Post-Ready Content Pack</h3>
             </div>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
               Zero-hallucination captions, titles, and viral #hashtags generated directly from your video transcript.
             </p>
 
             {socialLoading ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-yellow-400" />
-                <p className="text-xs text-zinc-300 font-semibold">Analyzing transcript & generating viral #hashtags...</p>
+                <Loader2 className="w-8 h-8 animate-spin text-yellow-500 dark:text-yellow-400" />
+                <p className="text-xs text-slate-700 dark:text-zinc-300 font-semibold">Analyzing transcript & generating viral #hashtags...</p>
               </div>
             ) : socialData ? (
               <div className="space-y-5">
                 {/* Instagram Reels Pack */}
-                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-pink-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-pink-500 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1.5">
                       📸 Instagram Reels Pack
                     </span>
                     <button
                       onClick={handleCopyIg}
-                      className="px-3 py-1.5 rounded-lg bg-pink-500/20 border border-pink-500/40 text-pink-300 hover:bg-pink-500/30 text-xs font-bold transition flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-lg bg-pink-500/10 border border-pink-500/30 text-pink-600 dark:text-pink-300 hover:bg-pink-500/20 text-xs font-bold transition flex items-center gap-1.5"
                     >
                       {copiedIg ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copiedIg ? 'Copied!' : 'Copy IG Pack'}</span>
                     </button>
                   </div>
-                  <p className="text-xs text-zinc-200 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs text-slate-800 dark:text-zinc-200 leading-relaxed whitespace-pre-wrap">
                     {socialData.instagram?.caption}
                   </p>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {socialData.instagram?.hashtags?.map((tag) => (
-                      <span key={tag} className="text-[11px] font-mono text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
+                      <span key={tag} className="text-[11px] font-mono text-pink-600 dark:text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
                         {tag}
                       </span>
                     ))}
@@ -461,30 +580,30 @@ export default function EditorPage({ projectId, onBack }) {
                 </div>
 
                 {/* YouTube Shorts Pack */}
-                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-red-500 dark:text-red-400 uppercase tracking-wider flex items-center gap-1.5">
                       🎬 YouTube Shorts Pack
                     </span>
                     <button
                       onClick={handleCopyYt}
-                      className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 text-xs font-bold transition flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 hover:bg-red-500/20 text-xs font-bold transition flex items-center gap-1.5"
                     >
                       {copiedYt ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copiedYt ? 'Copied!' : 'Copy YT Pack'}</span>
                     </button>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Viral Title</span>
-                    <p className="text-xs font-bold text-white">{socialData.youtubeShorts?.title}</p>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase block mb-1">Viral Title</span>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{socialData.youtubeShorts?.title}</p>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Description</span>
-                    <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">{socialData.youtubeShorts?.description}</p>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase block mb-1">Description</span>
+                    <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">{socialData.youtubeShorts?.description}</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {socialData.youtubeShorts?.hashtags?.map((tag) => (
-                      <span key={tag} className="text-[11px] font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                      <span key={tag} className="text-[11px] font-mono text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
                         {tag}
                       </span>
                     ))}

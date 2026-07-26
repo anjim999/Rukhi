@@ -3,8 +3,8 @@ import axios from 'axios';
 /**
  * Global Axios Client Configuration
  */
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
-const baseURL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const baseURL = rawBaseUrl ? (rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl) : '/api';
 
 const axiosClient = axios.create({
   baseURL,

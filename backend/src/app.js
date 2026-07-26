@@ -15,34 +15,14 @@ import authRoutes from './routes/auth.routes.js';
 
 const app = express();
 
-// Middleware Stack
+// Middleware Stack — Reflect request origin automatically for 100% CORS preflight & cross-origin header pass
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, or curl)
-    if (!origin) return callback(null, true);
-
-    const allowed = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://127.0.0.1:5173',
-      'https://rocky-captions.vercel.app',
-      ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map((s) => s.trim()) : []),
-    ];
-
-    try {
-      const hostname = new URL(origin).hostname;
-      if (allowed.includes(origin) || hostname.endsWith('.vercel.app')) {
-        return callback(null, true);
-      }
-    } catch (_e) {
-      // Ignore URL parsing errors
-    }
-
-    // Dynamic fallback to reflect origin and prevent CORS block
-    return callback(null, true);
-  },
+  origin: true,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'x-user-id'],
 }));
+app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

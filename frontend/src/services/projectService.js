@@ -9,8 +9,8 @@ export function getFullMediaUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
     return url;
   }
-  const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'https://rocky-captions.onrender.com/api';
-  const serverRoot = rawApiBase.replace(/\/api\/?$/, '');
+  const rawApiBase = import.meta.env.VITE_API_BASE_URL;
+  const serverRoot = rawApiBase ? rawApiBase.replace(/\/api\/?$/, '') : '';
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
   return `${serverRoot}${cleanPath}`;
 }

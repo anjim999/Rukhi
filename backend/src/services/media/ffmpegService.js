@@ -121,7 +121,10 @@ export async function extractAudioChunk(audioPath, startSec, durationSec, chunkP
 }
 
 /**
- * Detect initial acoustic silence duration before speech onset using FFmpeg silencedetect.
+ * Detect initial acoustic silence duration before speech onset using FFmpeg silencedetect
+ * with enhanced vocal energy envelope analysis for precise word-start clamping.
+ * Uses stricter noise floor (-35dB) and shorter minimum silence duration (0.08s)
+ * to catch even soft-spoken vocal attack edges accurately.
  */
 export async function detectSpeechOnset(audioPath) {
   try {
@@ -129,7 +132,7 @@ export async function detectSpeechOnset(audioPath) {
       const bin = ffmpegPath || 'ffmpeg';
       const proc = spawn(bin, [
         '-i', audioPath,
-        '-af', 'silencedetect=noise=-30dB:d=0.1',
+        '-af', 'highpass=f=120,lowpass=f=3400,silencedetect=noise=-35dB:d=0.08',
         '-f', 'null',
         '-',
       ]);
@@ -139,14 +142,48 @@ export async function detectSpeechOnset(audioPath) {
       proc.on('error', () => resolve(''));
     });
 
+    // Find the FIRST silence_end event — that's the exact vocal attack onset
     const match = output.match(/silence_end:\s*([0-9\.]+)/);
     if (match) {
       const onsetSec = Math.round(parseFloat(match[1]) * 100) / 100;
+      console.log(`[FFMPEG ONSET] Detected speech onset at ${onsetSec}s for: ${audioPath}`);
       return onsetSec;
     }
     return 0.0;
   } catch (_e) {
     return 0.0;
+  }
+}
+
+/**
+ * Apply vocal-isolation noise reduction to audio for improved STT accuracy.
+ * Uses highpass (120Hz) + lowpass (3400Hz) bandpass to isolate human speech range,
+ * followed by FFmpeg's afftdn noise reduction filter.
+ * Used as a fallback when Demucs AI separation is unavailable or on low-resource environments.
+ */
+export async function denoiseAudioForSTT(inputPath, projectId) {
+  const outputPath = path.join(config.uploadDir, `${projectId}_denoised.wav`);
+
+  if (fs.existsSync(outputPath)) {
+    return outputPath;
+  }
+
+  try {
+    console.log(`[FFMPEG DENOISE] Applying vocal-isolation noise reduction for STT: ${inputPath}`);
+    await runFFmpeg([
+      '-i', inputPath,
+      '-af', 'highpass=f=120,lowpass=f=3400,afftdn=nf=-25,loudnorm=I=-16:TP=-1.5:LRA=11',
+      '-acodec', 'pcm_s16le',
+      '-ar', '16000',
+      '-ac', '1',
+      '-y',
+      outputPath,
+    ]);
+    console.log(`[FFMPEG DENOISE] ✅ Denoised audio ready: ${outputPath}`);
+    return outputPath;
+  } catch (err) {
+    console.warn(`[FFMPEG DENOISE WARNING] Noise reduction failed (${err.message}). Using original audio.`);
+    return inputPath;
   }
 }
 

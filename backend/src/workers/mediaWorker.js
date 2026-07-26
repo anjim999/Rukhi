@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import { redisConnection, QUEUE_NAMES } from '../services/queue/queueService.js';
-import { extractAudio, probeVideo, generateWaveformPeaks, webOptimizeVideo } from '../services/media/ffmpegService.js';
+import { extractAudio, probeVideo, generateWaveformPeaks, webOptimizeVideo, detectSpeechOnset, denoiseAudioForSTT } from '../services/media/ffmpegService.js';
 import { separateVocals, cleanupDemucsOutput } from '../services/media/demucsService.js';
 import { DeepgramProvider } from '../services/stt/DeepgramProvider.js';
 import { LocalWhisperProvider } from '../services/stt/LocalWhisperProvider.js';
@@ -81,8 +81,15 @@ async function processMediaJob(job) {
     // Demucs AI Vocal Separation — isolate human voice from background music
     await job.updateProgress(20);
     console.log(`[WORKER] 🎤 Running Demucs AI Vocal Separation (BGM removal)...`);
-    const cleanVocalPath = await separateVocals(rawAudioPath, projectId);
-    const sttAudioPath = cleanVocalPath; // Use clean vocals for STT
+    let cleanVocalPath = await separateVocals(rawAudioPath, projectId);
+    if (!cleanVocalPath || cleanVocalPath === rawAudioPath) {
+      console.log(`[WORKER] Demucs fallback: Applying highpass/lowpass vocal isolation for STT...`);
+      cleanVocalPath = await denoiseAudioForSTT(rawAudioPath, projectId);
+    }
+    const sttAudioPath = cleanVocalPath;
+
+    // Detect exact physical speech acoustic onset for word-start alignment
+    const acousticOnsetSec = await detectSpeechOnset(sttAudioPath);
 
     if (await isProjectCancelled(projectId)) {
       console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after Demucs. Terminating.`);
@@ -143,6 +150,16 @@ async function processMediaJob(job) {
       await job.updateProgress(60);
       await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.ANALYZING);
       await job.updateProgress(70);
+
+      // Acoustic Onset Alignment: Ensure first word starts cleanly at speech onset edge
+      if (acousticOnsetSec > 0 && transcription.words.length > 0) {
+        const firstWord = transcription.words[0];
+        if (firstWord.start < acousticOnsetSec) {
+          console.log(`[WORKER SYNC] Clamping initial word "${firstWord.word}" start from ${firstWord.start}s to acoustic onset ${acousticOnsetSec}s`);
+          firstWord.start = acousticOnsetSec;
+          if (firstWord.end <= firstWord.start) firstWord.end = firstWord.start + 0.2;
+        }
+      }
 
       console.log(`[WORKER] Directing captions with Gemini 2.5 Flash from ${transcription.words.length} precise STT words...`);
       const result = await captionDirector.generateCaptionTimeline({

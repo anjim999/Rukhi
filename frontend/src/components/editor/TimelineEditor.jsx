@@ -504,6 +504,24 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
     setTimeline({ ...timeline, segments: newSegments });
   };
 
+  const handleAutoFixGaps = () => {
+    if (!timeline || !timeline.segments) return;
+    const repairedSegments = timeline.segments.map((seg) => {
+      const words = seg.words || [];
+      const repairedWords = words.map((w, idx) => {
+        if (idx === 0) return w;
+        const prev = words[idx - 1];
+        const gap = w.start - prev.end;
+        if (gap > 0 && gap <= 0.45) {
+          return { ...w, start: prev.end };
+        }
+        return w;
+      });
+      return { ...seg, words: repairedWords };
+    });
+    setTimeline({ ...timeline, segments: repairedSegments });
+  };
+
   return (
     <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 max-h-[85vh] flex flex-col transition-colors">
       <div className="w-full pb-3 border-b border-slate-200 dark:border-zinc-800 flex flex-col gap-2.5">
@@ -561,6 +579,20 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
               >
                 <Zap className={`w-3.5 h-3.5 ${rippleEnabled ? 'text-yellow-500 animate-pulse' : 'text-slate-400'}`} />
                 <span>Ripple Sync {rippleEnabled ? 'ON' : 'OFF'}</span>
+              </button>
+
+              {/* 1-Click Auto-Fix Gaps Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAutoFixGaps();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 transition shadow-sm shadow-emerald-500/10 cursor-pointer"
+                title="1-Click Auto-Fix Gaps: Eliminates mid-sentence micro gaps so captions flow seamlessly with 0 flicker"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-current text-emerald-500" />
+                <span>Auto-Fix Gaps</span>
               </button>
 
               {/* Global Offset Tool Button */}

@@ -28,7 +28,7 @@ export class DeepgramProvider extends STTProvider {
    * Helper to perform low-level HTTP call to Deepgram API.
    * @private
    */
-  async _callDeepgramAPI(fileBuffer, modelName, language, detectLanguage = false) {
+  async _callDeepgramAPI(fileBuffer, modelName, language, detectLanguage = false, keywords = []) {
     const queryParams = new URLSearchParams({
       model: modelName,
       smart_format: 'true',
@@ -37,6 +37,10 @@ export class DeepgramProvider extends STTProvider {
       diarize: 'true',
       filler_words: 'true',
     });
+
+    const defaultKeywords = ['reels:2', 'shorts:2', 'viral:2', 'bhayya:2', 'bro:2', 'telugu:2', 'hinglish:2', 'tanglish:2', 'instagram:2', 'ayyo:2', 'kudaa:2'];
+    const allKeywords = [...defaultKeywords, ...(keywords || [])];
+    allKeywords.forEach((kw) => queryParams.append('keywords', kw));
 
     if (language) {
       queryParams.set('language', language);

@@ -642,9 +642,9 @@ Return ONLY a JSON object with this exact structure:
           }
         }
 
-        // Fill Small Gaps (<= 0.25s) so captions flow seamlessly without jarring visual dropouts
+        // Fill Small Gaps (<= 0.45s) so captions flow seamlessly without jarring visual dropouts
         const gap = current.start - prev.end;
-        if (gap > 0 && gap <= 0.25) {
+        if (gap > 0 && gap <= 0.45) {
           prev.end = current.start;
         }
       }

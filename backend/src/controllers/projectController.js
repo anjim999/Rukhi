@@ -186,13 +186,36 @@ export async function getSocialPostPack(req, res, next) {
  */
 export async function exportProjectVideo(req, res, next) {
   try {
+    const { quality } = req.body || {};
     const { renderProjectVideoMP4 } = await import('../services/media/exportService.js');
-    const result = await renderProjectVideoMP4(req.params.id);
+    const result = await renderProjectVideoMP4(req.params.id, quality);
 
     res.json({
       success: true,
       data: result,
-      message: '60FPS H.264 MP4 video rendered successfully.',
+      message: 'Ultra-HD MP4 video rendered successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/projects/remux
+ * Convert recorded canvas stream to Instagram Reels Ready MP4 (+faststart moov duration header).
+ */
+export async function remuxRecordedVideo(req, res, next) {
+  try {
+    if (!req.file) {
+      throw new AppError('No video file uploaded for remuxing.', 400);
+    }
+    const { remuxRecordedBlobToInstaMP4 } = await import('../services/media/exportService.js');
+    const result = await remuxRecordedBlobToInstaMP4(req.file.path, req.body.title || 'reel');
+
+    res.json({
+      success: true,
+      data: result,
+      message: 'Video packaged into Instagram-ready MP4 with +faststart headers.',
     });
   } catch (err) {
     next(err);

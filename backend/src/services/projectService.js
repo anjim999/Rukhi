@@ -4,6 +4,7 @@ import { query } from '../db/pool.js';
 import { addMediaProcessingJob } from './queue/queueService.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { PROJECT_STATUSES } from '../../../shared/constants/timeline.js';
+import { config } from '../config/env.js';
 
 export async function createProject({ userId, title, videoPath, targetStyle = 'auto' }) {
   const id = uuidv4();
@@ -13,10 +14,10 @@ export async function createProject({ userId, title, videoPath, targetStyle = 'a
   const videoUrl = `/uploads/${filename}`;
 
   const result = await query(
-    `INSERT INTO projects (id, user_id, title, video_url, status)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, user_id, title, video_url, status, created_at`,
-    [id, userId, title, videoUrl, PROJECT_STATUSES.PENDING]
+    `INSERT INTO projects (id, user_id, title, video_url, status, target_style)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, user_id, title, video_url, status, target_style, created_at`,
+    [id, userId, title, videoUrl, PROJECT_STATUSES.PENDING, targetStyle]
   );
 
   const project = result.rows[0];
@@ -34,7 +35,7 @@ export async function createProject({ userId, title, videoPath, targetStyle = 'a
 
 export async function getProjectById(projectId) {
   const result = await query(
-    `SELECT id, user_id, title, video_url, audio_url, duration, status, error_message, created_at
+    `SELECT id, user_id, title, video_url, audio_url, duration, status, target_style, error_message, created_at
      FROM projects WHERE id = $1`,
     [projectId]
   );
@@ -51,7 +52,7 @@ export async function getProjectsByUser(userId, page = 1, limit = 20) {
 
   const [dataResult, countResult] = await Promise.all([
     query(
-      `SELECT id, title, video_url, duration, status, error_message, created_at
+      `SELECT id, title, video_url, duration, status, target_style, error_message, created_at
        FROM projects
        WHERE user_id = $1
        ORDER BY created_at DESC
@@ -169,9 +170,25 @@ export async function pauseProject(projectId) {
 }
 
 export async function resumeProject(projectId) {
-  await updateProjectStatus(projectId, PROJECT_STATUSES.TRANSCRIBING);
-  console.log(`[PROJECT] Resumed generation for project ${projectId}`);
-  return { id: projectId, status: PROJECT_STATUSES.TRANSCRIBING };
+  const project = await getProjectById(projectId);
+  let relativePath = project.video_url.replace(/\\/g, '/');
+  const uploadsIdx = relativePath.indexOf('uploads/');
+  if (uploadsIdx !== -1) {
+    relativePath = relativePath.substring(uploadsIdx);
+  }
+  const filename = path.basename(relativePath);
+  const inputVideoPath = path.join(config.uploadDir, filename);
+
+  await updateProjectStatus(projectId, PROJECT_STATUSES.PENDING, { errorMessage: null });
+  await addMediaProcessingJob({
+    projectId: project.id,
+    videoPath: inputVideoPath,
+    userId: project.user_id,
+    targetStyle: project.target_style || 'auto',
+  });
+
+  console.log(`[PROJECT] Resumed generation for project ${projectId} and queued for processing.`);
+  return { id: projectId, status: PROJECT_STATUSES.PENDING };
 }
 
 export async function updateProjectTitle(projectId, title) {

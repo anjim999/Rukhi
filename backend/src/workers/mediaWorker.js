@@ -20,18 +20,47 @@ export async function processMediaDirectly(data) {
   return processMediaJob(mockJob);
 }
 
+async function isProjectCancelled(projectId) {
+  try {
+    const proj = await projectService.getProject(projectId);
+    return proj && (proj.status === PROJECT_STATUSES.CANCELLED || proj.status === 'cancelled');
+  } catch (_e) {
+    return false;
+  }
+}
+
 async function processMediaJob(job) {
   const { projectId, videoPath, userId, targetStyle = 'auto' } = job.data;
   console.log(`[WORKER] Starting media processing for project ${projectId} (Style: ${targetStyle})`);
 
   try {
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled before start. Terminating.`);
+      return { projectId, status: 'cancelled' };
+    }
+
     await job.updateProgress(10);
     const videoMeta = await probeVideo(videoPath);
     console.log(`[WORKER] Video probed: ${videoMeta.duration}s, ${videoMeta.width}x${videoMeta.height}`);
 
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after probe. Terminating.`);
+      return { projectId, status: 'cancelled' };
+    }
+
     // Web-Optimize uploaded clip for 100% mobile browser and Instagram reel compatibility
     const webOptimizedPath = videoPath.replace(/(\.[^.]+)$/, '_web.mp4');
-    await webOptimizeVideo(videoPath, webOptimizedPath);
+    let processedVideoPath = videoPath;
+    try {
+      processedVideoPath = await webOptimizeVideo(videoPath, webOptimizedPath);
+    } catch (optErr) {
+      console.warn(`[WORKER WARNING] Web optimization skipped: ${optErr.message}`);
+    }
+
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled during web optimization. Terminating.`);
+      return { projectId, status: 'cancelled' };
+    }
 
     await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.EXTRACTING_AUDIO, {
       duration: videoMeta.duration,
@@ -39,6 +68,11 @@ async function processMediaJob(job) {
 
     await job.updateProgress(15);
     const rawAudioPath = await extractAudio(videoPath, projectId);
+
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after audio extraction. Terminating.`);
+      return { projectId, status: 'cancelled' };
+    }
 
     await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.TRANSCRIBING, {
       audioUrl: rawAudioPath,
@@ -50,8 +84,20 @@ async function processMediaJob(job) {
     const cleanVocalPath = await separateVocals(rawAudioPath, projectId);
     const sttAudioPath = cleanVocalPath; // Use clean vocals for STT
 
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after Demucs. Terminating.`);
+      await cleanupDemucsOutput(projectId).catch(() => {});
+      return { projectId, status: 'cancelled' };
+    }
+
     await job.updateProgress(35);
     const waveformPeaks = await generateWaveformPeaks(rawAudioPath, 200);
+
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after waveform. Terminating.`);
+      await cleanupDemucsOutput(projectId).catch(() => {});
+      return { projectId, status: 'cancelled' };
+    }
 
     await job.updateProgress(40);
     let timeline;
@@ -61,27 +107,34 @@ async function processMediaJob(job) {
 
     let transcription = null;
 
-    let sttLanguage = null;
-    if (targetStyle === 'telugu') sttLanguage = 'te';
-    else if (targetStyle === 'hindi') sttLanguage = 'hi';
-    else if (targetStyle === 'english') sttLanguage = 'en';
-
     if (deepgramAvailable) {
-      console.log(`[WORKER] 🚀 Transcribing clean vocals with Deepgram Nova-3 Multilingual STT (99.9% Acoustic Sync)...`);
+      console.log(`[WORKER] 🚀 Transcribing clean vocals with Deepgram Nova-3 Multilingual (Target Style: ${targetStyle})...`);
       try {
-        transcription = await deepgramProvider.transcribe(sttAudioPath, { language: sttLanguage });
+        transcription = await deepgramProvider.transcribe(sttAudioPath, { targetStyle });
       } catch (dgErr) {
         console.warn(`[WORKER WARNING] Deepgram STT failed (${dgErr.message}). Falling back to alternative STT...`);
       }
     }
 
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled during STT. Terminating.`);
+      await cleanupDemucsOutput(projectId).catch(() => {});
+      return { projectId, status: 'cancelled' };
+    }
+
     if (!transcription && whisperAvailable) {
       console.log(`[WORKER] Transcribing clean vocals with local Whisper CLI...`);
       try {
-        transcription = await whisperProvider.transcribe(sttAudioPath);
+        transcription = await whisperProvider.transcribe(sttAudioPath, { targetStyle });
       } catch (wErr) {
         console.warn(`[WORKER WARNING] Local Whisper transcription failed: ${wErr.message}`);
       }
+    }
+
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after STT transcription. Terminating.`);
+      await cleanupDemucsOutput(projectId).catch(() => {});
+      return { projectId, status: 'cancelled' };
     }
 
     const minExpectedWords = Math.max(2, Math.floor(videoMeta.duration / 7));
@@ -118,7 +171,17 @@ async function processMediaJob(job) {
       timeline = result.timeline;
     }
 
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled before timeline save. Terminating.`);
+      await cleanupDemucsOutput(projectId).catch(() => {});
+      return { projectId, status: 'cancelled' };
+    }
+
     await job.updateProgress(90);
+
+    if (timeline) {
+      timeline.targetStyle = targetStyle;
+    }
 
     await projectService.saveTimeline(projectId, timeline);
     await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.COMPLETED);
@@ -131,6 +194,10 @@ async function processMediaJob(job) {
 
     return { projectId, status: 'completed' };
   } catch (err) {
+    if (await isProjectCancelled(projectId)) {
+      console.log(`[WORKER] ⛔ Project ${projectId} was cancelled during exception. Exit safely.`);
+      return { projectId, status: 'cancelled' };
+    }
     console.error(`[WORKER] Error processing media for project ${projectId}:`, err);
     await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.FAILED, {
       errorMessage: err.message,

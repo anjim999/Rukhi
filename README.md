@@ -25,9 +25,11 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 * 🎨 **Interactive 60FPS Hardware-Synced Canvas Editor**: Built using React & HTML5 Canvas with `requestVideoFrameCallback` rendering for 1:1 stutter-free playback and frame-accurate seeking.
 * 📐 **Aspect-Ratio & Responsive Math**: Supports 9:16 Vertical Reels, 16:9 Widescreen, and 1:1 Square videos with dynamic font scaling and viewport safe-zone calculations.
 * 🎭 **15+ Kinetic Animation Physics Engines**: Pop, Bounce, Zoom In/Out, Slide Up/Left, Shake Rumble, Flip Rotate, and Glow Pulse animations.
-* 🎬 **Dual Export Engine**:
-  - **Server-Side FFmpeg 60FPS H.264 Render Engine**: High-speed, lossless MP4 video rendering with burned-in subtitles.
-  - **Client-Side 4K WebM/VP9 Fallback**: Instant 25 Mbps Ultra-HD client-side canvas stream recording.
+* 🎬 **100% WYSIWYG Pixel-Perfect Export & Remux Engine**:
+  - **Browser Live Canvas Capture**: Captures 60FPS HTML5 `<canvas>` streams to preserve native Indic text ligatures (Telugu, Hindi, English), active word-by-word karaoke highlight animations, gradients, and custom font styling with 0 broken characters.
+  - **Server-Side FFmpeg H.264 Remuxer**: Encodes captured video streams on the backend into broadcast-grade H.264 MP4 files with `+faststart` moov atom metadata for instant compatibility with Instagram Reels, YouTube Shorts, and TikTok.
+  - **Strict Server-Delivered MP4 Downloads**: Eliminates raw unformatted browser blob downloads, guaranteeing every exported file is a server-processed H.264 MP4 file.
+* ⚡ **Instant Network Cancellation & Single-Pass Progress**: Built-in `AbortController` integration across all HTTP requests and timers, paired with a deterministic single-pass progress pipeline (`0% ➔ 100%`).
 * 🚀 **Async Processing Architecture**: BullMQ and Redis queues offload media probing, audio extraction, and AI processing to background worker threads.
 * 📱 **Zero-Hallucination Social Media Post Generator**: Generates Instagram captions, viral hashtags, and YouTube Shorts titles/descriptions tailored to the video content.
 

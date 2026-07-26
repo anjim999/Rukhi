@@ -27,7 +27,10 @@ function runFFmpeg(args) {
       if (code === 0) {
         resolve(stdout);
       } else {
-        reject(new Error(`FFmpeg exited with code ${code}: ${stderr.substring(0, 500)}`));
+        console.error(`[FFMPEG ERROR STDOUT]:\n${stdout}`);
+        console.error(`[FFMPEG ERROR STDERR]:\n${stderr}`);
+        const errTail = stderr.length > 800 ? stderr.slice(-800) : stderr;
+        reject(new Error(`FFmpeg exited with code ${code}: ${errTail}`));
       }
     });
 
@@ -101,9 +104,9 @@ export async function extractAudio(videoPath, projectId) {
 export async function extractAudioChunk(audioPath, startSec, durationSec, chunkPath) {
   try {
     await runFFmpeg([
-      '-i', audioPath,
       '-ss', String(startSec),
       '-t', String(durationSec),
+      '-i', audioPath,
       '-acodec', 'pcm_s16le',
       '-ar', '16000',
       '-ac', '1',
@@ -185,9 +188,8 @@ export async function webOptimizeVideo(inputPath, outputPath) {
     console.log(`[FFMPEG] Web-Optimizing video for mobile & Instagram compatibility: ${inputPath}`);
     await runFFmpeg([
       '-i', inputPath,
+      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
       '-c:v', 'libx264',
-      '-profile:v', 'baseline',
-      '-level', '3.0',
       '-preset', 'fast',
       '-crf', '20',
       '-pix_fmt', 'yuv420p',

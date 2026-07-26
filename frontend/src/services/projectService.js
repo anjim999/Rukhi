@@ -95,8 +95,25 @@ export async function generateSocialPack(projectId) {
  * Render broadcast-grade 60FPS H.264 MP4 video via server-side FFmpeg.
  * @param {string} projectId
  */
-export async function exportProjectMP4(projectId) {
-  return axiosClient.post(`/projects/${projectId}/export`);
+export async function exportProjectMP4(projectId, quality = '1080p', options = {}) {
+  return axiosClient.post(`/projects/${projectId}/export`, { quality }, options);
+}
+
+/**
+ * Remux a recorded canvas blob into an Instagram-ready MP4 with +faststart moov duration header.
+ * @param {Blob} blob
+ * @param {string} title
+ */
+export async function remuxRecordedBlob(blob, title) {
+  const formData = new FormData();
+  formData.append('video', blob, 'recording.webm');
+  if (title) formData.append('title', title);
+
+  return axiosClient.post('/projects/remux', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 /**

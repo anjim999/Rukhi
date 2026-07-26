@@ -25,6 +25,7 @@ export default function EditorPage({ projectId, onBack }) {
   const [error, setError] = useState(null);
   const [cancelling, setCancelling] = useState(false);
   const [pausing, setPausing] = useState(false);
+  const [initialFetch, setInitialFetch] = useState(true);
 
   // Undo / Redo History Stack State
   const historyRef = React.useRef([]);
@@ -160,6 +161,7 @@ export default function EditorPage({ projectId, onBack }) {
         const projRes = await getProject(projectId);
         if (projRes.success) {
           setProject(projRes.data);
+          setInitialFetch(false);
 
           if (projRes.data.status === 'completed') {
             const timeRes = await getProjectTimeline(projectId);
@@ -279,7 +281,27 @@ export default function EditorPage({ projectId, onBack }) {
   };
 
   if (loading) {
+    // Show a neutral loader during initial fetch to avoid flickering
+    // the "Generating" screen for already-cancelled/failed/completed projects
+    if (initialFetch) {
+      return (
+        <div className="min-h-[75vh] flex flex-col items-center justify-center gap-4 text-center px-4">
+          <Loader2 className="w-8 h-8 animate-spin text-yellow-400" />
+          <p className="text-sm text-zinc-400 font-medium">Loading project...</p>
+        </div>
+      );
+    }
+
     const isPaused = project?.status === 'paused';
+    const targetStyleMap = {
+      english: { label: '🇬🇧 Pure English', desc: 'Auto-Translated' },
+      telugu: { label: '🇮🇳 Pure Telugu', desc: 'తెలుగు Native Script' },
+      hindi: { label: '🇮🇳 Pure Hindi', desc: 'हिंदी Native Script' },
+      tel_eng: { label: '⚡ Tel + Eng', desc: 'Bilingual Tanglish' },
+      chatting: { label: '💬 Chat Script', desc: 'em chestunnav raa' },
+      auto: { label: '🌐 As Spoken', desc: 'Auto Script' },
+    };
+    const activeStyle = targetStyleMap[timeline?.targetStyle || project?.targetStyle || project?.target_style] || targetStyleMap['auto'];
 
     return (
       <div className="min-h-[75vh] flex flex-col items-center justify-center gap-6 text-center px-4">
@@ -288,18 +310,20 @@ export default function EditorPage({ projectId, onBack }) {
         </div>
         <div>
           <h2 className="text-xl font-bold text-white mb-1">
-            {isPaused ? 'Generation Paused' : 'Generating AI Captions...'}
+            {isPaused ? 'Generation Paused' : `Generating AI Captions (${activeStyle.label})...`}
           </h2>
-          <p className="text-sm text-zinc-400 max-w-sm">
+          <p className="text-sm text-zinc-400 max-w-md">
             {isPaused
               ? 'Processing is paused. Click Resume to continue generating subtitles.'
-              : 'Transcribing speech audio with Gemini 2.5 Flash and generating kinetic reel subtitles.'}
+              : `Transcribing speech audio and generating kinetic reel subtitles in ${activeStyle.label} style.`}
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-yellow-400/80 bg-yellow-500/10 px-3 py-1.5 rounded-full border border-yellow-500/20">
           <span className={`w-2 h-2 rounded-full ${isPaused ? 'bg-amber-400' : 'bg-yellow-400 animate-pulse'}`} />
-          Status: {project?.status || 'transcribing'}
+          <span>Status: {project?.status || 'transcribing'}</span>
+          <span className="opacity-40">•</span>
+          <span className="font-bold text-yellow-400">{activeStyle.label}</span>
         </div>
 
         {/* Cancel, Pause & Resume Buttons */}
@@ -332,25 +356,49 @@ export default function EditorPage({ projectId, onBack }) {
     );
   }
 
+  const handleRestartGeneration = async () => {
+    setError(null);
+    setLoading(true);
+    toast.loading('Restarting AI caption generation...', { id: 'restart-toast' });
+    try {
+      await resumeProject(projectId);
+      toast.success('Generation restarted freshly!', { id: 'restart-toast' });
+    } catch (err) {
+      toast.error(`Failed to restart: ${err.message}`, { id: 'restart-toast' });
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   if (error) {
+    const isCancelled = project?.status === 'cancelled' || error.toLowerCase().includes('cancelled');
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-center px-4 max-w-md mx-auto">
-        <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
-          <AlertTriangle className="w-8 h-8" />
+        <div className={`w-16 h-16 rounded-2xl ${isCancelled ? 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400' : 'bg-red-500/10 border-red-500/20 text-red-400'} border flex items-center justify-center`}>
+          {isCancelled ? <XCircle className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
         </div>
         <div>
-          <h3 className="text-lg font-bold text-white mb-2">Processing Error</h3>
-          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-red-400 leading-relaxed text-left break-words">
+          <h3 className="text-lg font-bold text-white mb-2">{isCancelled ? 'Generation Cancelled' : 'Processing Error'}</h3>
+          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300 leading-relaxed text-left break-words">
             {error}
           </div>
         </div>
-        <button
-          onClick={onBack}
-          className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Projects</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Projects</span>
+          </button>
+          <button
+            onClick={handleRestartGeneration}
+            className="px-4 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-yellow-500/20"
+          >
+            <Play className="w-4 h-4 fill-black" />
+            <span>Regenerate Fresh</span>
+          </button>
+        </div>
       </div>
     );
   }

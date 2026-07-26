@@ -10,6 +10,7 @@ import {
   deleteProject,
   getSocialPostPack,
   exportProjectVideo,
+  remuxRecordedVideo,
   downloadExportedVideo,
   cancelProject,
   pauseProject,
@@ -22,6 +23,7 @@ const router = Router();
 router.use(optionalAuth);
 
 router.post('/upload', uploadVideo.single('video'), uploadAndCreateProject);
+router.post('/remux', uploadVideo.single('video'), remuxRecordedVideo);
 router.get('/', listProjects);
 router.get('/:id', getProject);
 router.get('/:id/timeline', getProjectTimeline);

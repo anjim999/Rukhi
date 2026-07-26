@@ -22,7 +22,9 @@ function runFFmpeg(args) {
       if (code === 0) {
         resolve(true);
       } else {
-        reject(new Error(`FFmpeg 60fps Export failed (code ${code}): ${stderr.substring(0, 500)}`));
+        console.error(`[FFMPEG EXPORT ERROR STDOUT]:\n${stderr}`);
+        const errTail = stderr.length > 800 ? stderr.slice(-800) : stderr;
+        reject(new Error(`FFmpeg 60fps Export failed (code ${code}): ${errTail}`));
       }
     });
 
@@ -48,12 +50,17 @@ function convertTimelineToSRT(timeline) {
   }
 
   for (const seg of timeline.segments) {
-    if (!seg.words || seg.words.length === 0) continue;
-    const startTime = formatTime(seg.start);
-    const endTime = formatTime(seg.end);
-    const text = seg.words.map((w) => w.word.toUpperCase()).join(' ');
+    const text = (seg.words && seg.words.length > 0)
+      ? seg.words.map((w) => w.word).join(' ')
+      : (seg.text || '');
+    if (!text || !text.trim()) continue;
 
-    srtContent += `${counter}\n${startTime} --> ${endTime}\n${text}\n\n`;
+    const startSec = Math.max(0, seg.start || 0);
+    const endSec = Math.max(startSec + 0.5, seg.end || (startSec + 1));
+    const startTime = formatTime(startSec);
+    const endTime = formatTime(endSec);
+
+    srtContent += `${counter}\n${startTime} --> ${endTime}\n${text.trim()}\n\n`;
     counter++;
   }
 
@@ -69,7 +76,7 @@ function getSanitizedFilename(title) {
   return `${clean}.mp4`;
 }
 
-export async function renderProjectVideoMP4(projectId) {
+export async function renderProjectVideoMP4(projectId, quality = '1080p') {
   // Fetch project details
   const projRes = await query(`SELECT * FROM projects WHERE id = $1`, [projectId]);
   if (projRes.rows.length === 0) {
@@ -104,28 +111,42 @@ export async function renderProjectVideoMP4(projectId) {
   fs.writeFileSync(srtFilePath, srtData, 'utf-8');
 
   // Output MP4 file
-  const outputFileName = `export_${projectId}_60fps.mp4`;
+  const outputFileName = `export_${projectId}_${quality}.mp4`;
   const outputFilePath = path.join(config.outputDir, outputFileName);
   const userDownloadName = getSanitizedFilename(project.title);
 
   // Escaped SRT path for FFmpeg subtitles filter
   const escapedSrtPath = srtFilePath.replace(/\\/g, '/').replace(/:/g, '\\:');
-  const forceStyle = "FontName=Arial,FontSize=22,PrimaryColour=&H0005FACC,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=45,Alignment=2,Bold=1";
+  const targetFont = (timeline.globalTheme?.fontFamily || 'Montserrat').replace(/[^\w\s]/g, '');
 
-  console.log(`[FFMPEG INSTAGRAM REEL EXPORT] Burning subtitles into Ultra-HD MP4 video for project ${projectId} (${userDownloadName})...`);
+  const qualitySpecs = {
+    '480p': { scale: 'scale=-2:854', font: 18, maxrate: '5M', bufsize: '10M' },
+    '720p': { scale: 'scale=-2:1280', font: 22, maxrate: '10M', bufsize: '20M' },
+    '1080p': { scale: 'scale=-2:1920', font: 26, maxrate: '20M', bufsize: '40M' },
+    '2K': { scale: 'scale=-2:2560', font: 36, maxrate: '35M', bufsize: '70M' },
+    '4K': { scale: 'scale=-2:3840', font: 52, maxrate: '60M', bufsize: '120M' },
+  };
+  const spec = qualitySpecs[quality] || qualitySpecs['1080p'];
+  
+  // Multiply resolution base font size by user's custom font size setting in editor (default 52)
+  const userChosenFontSize = timeline.globalTheme?.fontSize || 52;
+  const userScaleRatio = userChosenFontSize / 52;
+  const finalFontSize = Math.max(12, Math.round(spec.font * userScaleRatio));
+
+  const forceStyle = `FontName=${targetFont},FontSize=${finalFontSize},PrimaryColour=&H0005FACC,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=45,Alignment=2,Bold=1`;
+
+  console.log(`[FFMPEG EXPORT ${quality}] Burning subtitles into Ultra-HD ${quality} video for project ${projectId} (${userDownloadName})...`);
 
   await runFFmpeg([
     '-i', inputVideoPath,
-    '-vf', `subtitles='${escapedSrtPath}':force_style='${forceStyle}'`,
+    '-vf', `scale=trunc(iw/2)*2:trunc(ih/2)*2,subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
     '-r', '30',
     '-c:v', 'libx264',
-    '-profile:v', 'baseline',
-    '-level', '3.1',
     '-preset', 'superfast',
     '-threads', '0',
     '-crf', '18',
-    '-maxrate', '15M',
-    '-bufsize', '30M',
+    '-maxrate', spec.maxrate,
+    '-bufsize', spec.bufsize,
     '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
     '-b:a', '192k',
@@ -136,7 +157,38 @@ export async function renderProjectVideoMP4(projectId) {
     outputFilePath,
   ]);
 
-  console.log(`[FFMPEG 60FPS EXPORT] ✅ Render complete: ${outputFilePath}`);
+  console.log(`[FFMPEG EXPORT ${quality}] ✅ Render complete: ${outputFilePath}`);
+
+  const outputUrl = `/outputs/${outputFileName}`;
+  return {
+    outputUrl,
+    filename: userDownloadName,
+  };
+}
+
+export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 'reel') {
+  const outputFileName = `insta_ready_${Date.now()}.mp4`;
+  const outputFilePath = path.join(config.outputDir, outputFileName);
+  const userDownloadName = getSanitizedFilename(userTitle);
+
+  console.log(`[FFMPEG INSTA REMUX] Packaging recorded stream for Instagram Reels (+faststart): ${inputFilePath}`);
+
+  await runFFmpeg([
+    '-i', inputFilePath,
+    '-c:v', 'libx264',
+    '-preset', 'superfast',
+    '-crf', '18',
+    '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-ar', '44100',
+    '-ac', '2',
+    '-movflags', '+faststart',
+    '-y',
+    outputFilePath,
+  ]);
+
+  console.log(`[FFMPEG INSTA REMUX] ✅ Packaging complete: ${outputFilePath}`);
 
   const outputUrl = `/outputs/${outputFileName}`;
   return {

@@ -355,6 +355,7 @@ export default function DashboardPage({ onSelectProject }) {
 function StatusBadge({ status }) {
   const isCompleted = status === 'completed';
   const isFailed = status === 'failed';
+  const isCancelled = status === 'cancelled';
 
   return (
     <span
@@ -363,6 +364,8 @@ function StatusBadge({ status }) {
           ? 'bg-green-500/10 text-green-400 border border-green-500/20'
           : isFailed
           ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+          : isCancelled
+          ? 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
           : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse'
       }`}
     >

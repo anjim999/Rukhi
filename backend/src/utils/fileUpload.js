@@ -48,10 +48,17 @@ const storage = multer.diskStorage({
  * File filter — reject unsupported MIME types early.
  */
 function fileFilter(_req, file, cb) {
-  if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+  const mime = (file.mimetype || '').toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (
+    mime.startsWith('video/') ||
+    mime === 'application/octet-stream' ||
+    ALLOWED_MIME_TYPES.some((t) => mime.includes(t)) ||
+    ['.mp4', '.webm', '.mov', '.avi', '.mkv'].includes(ext)
+  ) {
     cb(null, true);
   } else {
-    cb(new AppError(`Unsupported file type: ${file.mimetype}. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`, 400));
+    cb(new AppError(`Unsupported file type: ${file.mimetype}.`, 400));
   }
 }
 

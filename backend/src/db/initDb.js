@@ -44,6 +44,7 @@ export async function initDb() {
     // Ensure error_message column exists on projects if created earlier
     try {
       await query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS error_message TEXT;`);
+      await query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_style VARCHAR(50) DEFAULT 'auto';`);
     } catch (_e) {}
 
     await query(`

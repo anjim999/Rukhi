@@ -24,6 +24,51 @@ function fileToGenerativePart(filePath, mimeType = 'audio/wav') {
   };
 }
 
+export function getStyleInstruction(targetStyle) {
+  if (targetStyle === 'english') {
+    return `STRICT PURE ENGLISH MANDATE:
+- TRANSLATE ALL spoken non-English / Telugu / Hindi / Tanglish speech into high-converting, punchy PURE ENGLISH words in standard English script.
+- DO NOT output any Telugu or Hindi words in Romanized script when 'english' targetStyle is requested.
+- Example: If speaker says "em chestunnav raa", translate to "what are you doing bro".
+- Preserve exact audio timing for each word segment.`;
+  }
+
+  if (targetStyle === 'telugu') {
+    return `STRICT PURE TELUGU MANDATE:
+- Transcribe and translate ALL spoken speech into PURE NATIVE TELUGU SCRIPT (తెలుగు లిపి).
+- Example: If speaker says "em chestunnav raa", write "ఏం చేస్తున్నావ్ రా".
+- Preserve exact audio timing for each word segment.`;
+  }
+
+  if (targetStyle === 'hindi') {
+    return `STRICT PURE HINDI MANDATE:
+- Transcribe and translate ALL spoken speech into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी లిపి).
+- Example: If speaker says "kya kar rahe ho bro", write "क्या कर रहे हो भाई".
+- Preserve exact audio timing for each word segment.`;
+  }
+
+  if (targetStyle === 'tel_eng') {
+    return `STRICT TELUGU + ENGLISH BILINGUAL CODE-MIXED MANDATE (TANGLISH):
+- Every single word MUST follow strict word-level language separation.
+- Spoken English words MUST retain standard English spelling (e.g. "friends", "video", "fail", "college", "job", "project").
+- Spoken Telugu words MUST be transcribed phonetically in Romanized script (e.g. "naa", "vachaaru", "lo", "aynaa", "kudaa").
+- Example 1: Speaker says "naa friends" -> "naa" (Telugu in Roman script) + "friends" (English word in standard spelling).
+- Example 2: Speaker says "friendship lo fail aynaa" -> "friendship" (English) + "lo" (Telugu) + "fail" (English) + "aynaa" (Telugu).
+- DO NOT translate spoken English words into Telugu, and DO NOT translate spoken Telugu words into English. Transcribe each word in its exact spoken identity!`;
+  }
+
+  if (targetStyle === 'chatting') {
+    return `STRICT CHATTING / MESSAGING SCRIPT MANDATE (CASUAL ROMANIZED SCRIPT):
+- Transcribe/convert all spoken non-English regional speech (Telugu, Hindi, Tanglish, Hinglish, etc.) into pure casual chatting language using ONLY the English alphabet (WhatsApp / Instagram chat style).
+- Standard casual phrasing examples: "em chestunnav raa", "chesam", "chusam", "ekkadiki velthunnav", "aakariki", "kudaa", "fail ayyavu kada", "kya kar rahe ho bro".
+- STRICT RULE: DO NOT output native Telugu script (తెలుగు) or native Hindi script (हिंदी) under any circumstances!
+- STRICT RULE: DO NOT TRANSLATE regional words into English words (e.g. NEVER turn "em chestunnav" into "what are you doing"). Write pure phonetic spoken words in the English alphabet!`;
+  }
+
+  return `STRICT VERBATIM CODE-SWITCHING SCRIPT:
+- Transcribe exactly what the speaker says in their original spoken words and language.`;
+}
+
 export class GeminiCaptionDirector extends LLMProvider {
   constructor() {
     super('gemini-caption-director');
@@ -70,19 +115,7 @@ export class GeminiCaptionDirector extends LLMProvider {
     const startTime = Date.now();
     console.log(`[GEMINI AUDIO STT] Transcribing audio (Duration: ${duration}s, Style: ${targetStyle}) with Gemini 2.5 Flash: ${audioPath}`);
 
-    let styleInstruction = 'STRICT TRANSCRIPTION MANDATE: Transcribe EXACTLY what is spoken in original language & code-switching (e.g. Teluglish/Hinglish in English alphabet, e.g. "friendship lo fail aynaa"). DO NOT translate spoken Telugu/Hindi words into English!';
-    if (targetStyle === 'chatting' || targetStyle === 'auto') {
-      styleInstruction = `STRICT VERBATIM CODE-SWITCHING SCRIPT (NO TRANSLATION TO ENGLISH):
-- Transcribe EXACTLY what the speaker says in their original spoken words and language.
-- For code-switched / mixed language speech (e.g. Telugu + English = Teluglish, Hindi + English = Hinglish), transcribe Telugu/Hindi words in Romanized English script (e.g., "cheppaledaa", "elaa unnaaru", "lo", "naa", "aynaa") and keep English words in English (e.g., "friendship", "failed").
-- STRICT MANDATE: DO NOT TRANSLATE non-English words into pure English! (e.g. If speaker says "friendship lo fail aynaa", write "friendship lo fail aynaa". DO NOT translate it to "failed in friendship").`;
-    } else if (targetStyle === 'english') {
-      styleInstruction = 'TRANSLATE all spoken speech (Telugu, Hindi, or mixed) into high-converting, punchy PURE ENGLISH words while matching playback timing.';
-    } else if (targetStyle === 'telugu') {
-      styleInstruction = 'Transcribe spoken speech into PURE NATIVE TELUGU SCRIPT (తెలుగు) with exact word-level timing.';
-    } else if (targetStyle === 'hindi') {
-      styleInstruction = 'Transcribe spoken speech into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी) with exact word-level timing.';
-    }
+    const styleInstruction = getStyleInstruction(targetStyle);
 
 
     let allWords = [];
@@ -339,6 +372,81 @@ Return ONLY a compact JSON object with this exact structure:
     };
   }
 
+
+
+  /**
+   * Transforms raw STT words into target language script (Pure English translation, Pure Telugu, Pure Hindi, Tanglish, or Chatting script).
+   */
+  async transformSTTWordsToTargetStyle({ words, fullText, duration = 15, targetStyle = 'auto' }) {
+    if (!this.ai || !Array.isArray(words) || words.length === 0) {
+      const timeline = this._buildTimelineFromWords({ words, fullText }, duration);
+      if (timeline) timeline.targetStyle = targetStyle;
+      return { timeline, fullText, language: 'en' };
+    }
+
+    if (targetStyle === 'auto') {
+      const timeline = this._buildTimelineFromWords({ words, fullText }, duration);
+      if (timeline) timeline.targetStyle = targetStyle;
+      return { timeline, fullText, language: 'en' };
+    }
+
+    const styleInstruction = getStyleInstruction(targetStyle);
+    console.log(`[GEMINI STT TRANSFORMER] Transforming ${words.length} STT words to target style '${targetStyle}'...`);
+
+    const wordListStr = JSON.stringify(
+      words.map((w) => [w.word, parseFloat((w.start || 0).toFixed(2)), parseFloat((w.end || 0).toFixed(2))])
+    );
+
+    const prompt = `You are a Master Reel Caption Language & Translation Director.
+I have a list of transcribed words with exact start and end timestamps (in seconds):
+${wordListStr}
+
+Full Spoken Text Context: "${fullText}"
+
+TARGET SCRIPT & LANGUAGE STYLE MANDATE:
+${styleInstruction}
+
+INSTRUCTIONS:
+1. Transform/Translate the word list into the requested target script (${targetStyle}).
+2. Maintain word-level alignment with the original speech timing so total duration (${duration}s) matches perfectly.
+3. If targetStyle is 'english', replace non-English/Telugu/Hindi words with their PURE ENGLISH translation equivalents.
+4. If targetStyle is 'telugu', convert all words into PURE NATIVE TELUGU SCRIPT (తెలుగు).
+5. If targetStyle is 'hindi', convert all words into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी).
+6. If targetStyle is 'chatting', write pure spoken Telugu words in casual Romanized chat script (e.g. "em chestunnav raa", "chesam", "chusam"). DO NOT translate into English words!
+7. If targetStyle is 'tel_eng', produce strict word-level code-mixed Tanglish: Telugu words in Roman script ("naa"), English words in standard English ("friends"). Example: "naa friends".
+
+Return ONLY a JSON object:
+{
+  "fullText": "<transformed text in target language>",
+  "language": "en|te|hi",
+  "words": [
+    ["Word1", start_sec, end_sec, emphasis_score_0_to_1],
+    ["Word2", start_sec, end_sec, emphasis_score_0_to_1]
+  ],
+  "hook": "<VIRAL HOOK TITLE WITH EMOJI>"
+}`;
+
+    try {
+      const rawData = await this._callGeminiWithRetry(prompt, { temperature: 0.1 }, 3);
+      const timeline = this._buildTimelineFromWords(rawData, duration);
+      if (timeline) {
+        timeline.targetStyle = targetStyle;
+      }
+      return {
+        timeline,
+        fullText: rawData.fullText || fullText,
+        language: rawData.language || 'en',
+      };
+    } catch (err) {
+      console.warn(`[GEMINI STT TRANSFORMER ERROR] Transformation failed: ${err.message}. Using raw STT words fallback.`);
+      const timeline = this._buildTimelineFromWords({ words, fullText }, duration);
+      if (timeline) {
+        timeline.targetStyle = targetStyle;
+      }
+      return { timeline, fullText, language: 'en' };
+    }
+  }
+
   /**
    * Scans transcribed words for any unexplained gap > 3.5s and re-inspects
    * that specific audio segment with high vocal sensitivity to recover missing captions.
@@ -517,21 +625,26 @@ Return ONLY a JSON object with this exact structure:
           continue;
         }
 
-        // Fix Overlaps: if current start is before previous end
+        // Fix Overlaps smoothly without cascading collapse
         if (current.start < prev.end) {
-          prev.end = current.start;
-          if (prev.end <= prev.start) {
-            prev.end = Math.round((prev.start + 0.1) * 100) / 100;
-            current.start = prev.end;
-            if (current.end <= current.start) {
-              current.end = Math.round((current.start + 0.25) * 100) / 100;
+          const overlap = prev.end - current.start;
+          if (overlap > 0.05) {
+            const mid = Math.round(((prev.end + current.start) / 2) * 100) / 100;
+            if (mid > prev.start + 0.15) {
+              prev.end = mid;
+              current.start = mid;
+            } else {
+              current.start = Math.round((prev.end) * 100) / 100;
             }
+          }
+          if (current.end <= current.start) {
+            current.end = Math.round((current.start + 0.25) * 100) / 100;
           }
         }
 
-        // Fill Small Gaps (<= 0.3s) so captions flow seamlessly without jarring visual dropouts
+        // Fill Small Gaps (<= 0.25s) so captions flow seamlessly without jarring visual dropouts
         const gap = current.start - prev.end;
-        if (gap > 0 && gap <= 0.3) {
+        if (gap > 0 && gap <= 0.25) {
           prev.end = current.start;
         }
       }
@@ -654,8 +767,8 @@ Return ONLY a JSON object with this exact structure:
         start: segStart,
         end: segEnd,
         displayMode: chunk.length === 1 ? 'single_word' : `chunk_${chunk.length}`,
-        animation: animTypesList[segIndex % animTypesList.length],
-        styleOverride: stylePresetsList[segIndex % stylePresetsList.length],
+        animation: null, // Inherits global theme animation; only set if user manually overrides per-segment
+        styleOverride: null, // Inherits global theme style; only set if user manually overrides per-segment
         position: { x: 50, y: 75 },
         fontStyle: {
           fontFamily: 'Inter',
@@ -691,10 +804,46 @@ Return ONLY a JSON object with this exact structure:
       globalTheme: {
         fontFamily: 'Inter',
         primaryColor: '#FFFFFF',
-        highlightColor: '#FACC15',
-        presetName: 'bold_viral',
+        highlightColor: '#F97316',
+        presetName: THEME_PRESETS.VIRAL_SCRIPT_HYBRID,
       },
     };
+  }
+
+  async _callGeminiWithRetry(prompt, generationConfig = {}, maxRetries = 3) {
+    if (!this.ai) {
+      throw new Error('Gemini API key not configured.');
+    }
+
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const model = this.ai.getGenerativeModel({
+          model: this.modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+            ...generationConfig,
+          },
+        });
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        const parsed = this._parseJSON(responseText);
+
+        if (parsed && (parsed.segments || parsed.words || parsed.fullText)) {
+          return parsed;
+        }
+        throw new Error('Gemini response parsed but lacks required JSON fields.');
+      } catch (err) {
+        lastError = err;
+        console.warn(`[GEMINI RETRY] Attempt ${attempt}/${maxRetries} failed: ${err.message}`);
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
+        }
+      }
+    }
+    throw lastError || new Error(`All ${maxRetries} Gemini call retries failed.`);
   }
 
   async generateCaptionTimeline(input) {
@@ -703,7 +852,7 @@ Return ONLY a JSON object with this exact structure:
     }
 
     const startTime = Date.now();
-    const { words, fullText, language, duration, emphasisScores, aspectRatio, presetName } = input;
+    const { words, fullText, language, duration, emphasisScores, aspectRatio, presetName, targetStyle = 'auto' } = input || {};
 
     const enrichedWords = words.map((w, i) => ({
       ...w,
@@ -711,22 +860,13 @@ Return ONLY a JSON object with this exact structure:
     }));
 
     try {
-      const prompt = this._buildCompactPrompt(enrichedWords, fullText, language);
+      const prompt = this._buildCompactPrompt(enrichedWords, fullText, language, targetStyle);
+      const rawTimeline = await this._callGeminiWithRetry(prompt, { maxOutputTokens: 16384 }, 3);
 
-      const model = this.ai.getGenerativeModel({
-        model: this.modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.4,
-          maxOutputTokens: 16384,
-        },
-      });
-
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
-
-      let rawTimeline = this._parseJSON(responseText);
       const timeline = this._normalizeTimeline(rawTimeline, enrichedWords, aspectRatio, presetName);
+      if (timeline) {
+        timeline.targetStyle = targetStyle;
+      }
 
       const latencyMs = Date.now() - startTime;
       return {
@@ -735,27 +875,41 @@ Return ONLY a JSON object with this exact structure:
         latencyMs,
       };
     } catch (err) {
-      console.warn(`[GEMINI CAPTION DIRECTOR] LLM styling failed (${err.message}). Falling back to deterministic word timeline builder...`);
-      const timeline = this._buildTimelineFromWords({ words: enrichedWords, fullText }, duration);
-      return {
-        timeline,
-        provider: 'gemini-caption-director-fallback',
-        latencyMs: Date.now() - startTime,
-      };
+      console.warn(`[GEMINI CAPTION DIRECTOR] LLM styling failed (${err.message}). Falling back to STT word transformer...`);
+      return this.transformSTTWordsToTargetStyle({ words: enrichedWords, fullText, duration, targetStyle });
     }
   }
 
   _parseJSON(text) {
     if (!text) return {};
-    let repaired = text.trim();
-    repaired = repaired.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    let repaired = String(text).trim();
 
+    // 1. Strip markdown code block wrappers if any (handles prefixed text before ```json)
+    const codeBlockMatch = repaired.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (codeBlockMatch && codeBlockMatch[1]) {
+      repaired = codeBlockMatch[1].trim();
+    } else {
+      repaired = repaired.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    }
+
+    // 2. Extract substring between first '{' and last '}'
+    const firstBrace = repaired.indexOf('{');
+    const lastBrace = repaired.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      repaired = repaired.substring(firstBrace, lastBrace + 1);
+    }
+
+    // 3. Strip single-line JS style comments if present
+    repaired = repaired.replace(/^\s*\/\/.*$/gm, '');
+
+    // 4. Attempt standard JSON.parse
     try {
       return JSON.parse(repaired);
     } catch (_e) {
-      // continue to repair
+      // Continue to auto-repair
     }
 
+    // 5. Advanced bracket/quote repair for truncated responses
     let openBraces = 0;
     let openBrackets = 0;
     let inString = false;
@@ -782,24 +936,42 @@ Return ONLY a JSON object with this exact structure:
     try {
       return JSON.parse(repaired);
     } catch (e2) {
-      throw new Error('Gemini returned invalid JSON.');
+      throw new Error(`Gemini returned invalid JSON: ${e2.message}`);
     }
   }
 
-  _buildCompactPrompt(enrichedWords, fullText, language) {
+  _buildCompactPrompt(enrichedWords, fullText, language, targetStyle = 'auto') {
+    const styleInstruction = getStyleInstruction(targetStyle);
+
     const wordsCompact = enrichedWords.map((w, i) =>
       `[${i},"${w.word}",${w.start},${w.end},${w.emphasisScore}]`
     ).join(',');
 
-    return `You are a Caption Director for viral reels. Convert word timestamps into kinetic caption segments.
+    return `You are an expert Speech Transcriber, Language Director, and Viral Reel Caption Director.
+Your task is to take the provided word timestamps and build kinetic caption segments matching the requested TARGET SCRIPT & LANGUAGE STYLE MANDATE.
 
-RULES: Group 1-3 words per segment. High emphasis(>=0.7)=single word,UPPERCASE,pop/bounce animation. Medium(0.4-0.7)=chunk of 2. Low(<0.4)=chunk of 2-3,no animation. Add emoji to max 3 important words. Add sfx to max 2 moments.
+TARGET SCRIPT & LANGUAGE STYLE MANDATE:
+${styleInstruction}
 
-WORD DATA [index,"word",start,end,emphasis]: [${wordsCompact}]
-TEXT: "${fullText}"
-LANG: ${language}
+CRITICAL SCRIPT TRANSFORMATION RULES:
+1. If targetStyle is 'chatting': Transcribe/convert ALL spoken words into pure casual Telugu/Hindi CHATTING script using ONLY the English Alphabet (WhatsApp/Instagram chat style, e.g. "em chestunnav raa", "chesam", "chusam", "aakariki", "kudaa", "fail ayyavu kada"). DO NOT output native Telugu script (తెలుగు) or native Devanagari script (हिंदी) under any circumstances! DO NOT translate Telugu words into English words (e.g. NEVER convert "em chestunnav" to "what are you doing").
+2. If targetStyle is 'tel_eng': Transcribe/convert words into strict word-level code-mixed Tanglish. Spoken Telugu words MUST be in Romanized script ("naa", "lo", "kudaa", "aynaa"), and spoken English words MUST keep standard English spelling ("friends", "video", "fail", "college"). Example: "naa friends".
+3. If targetStyle is 'english': Translate all non-English spoken words into high-converting, punchy PURE ENGLISH words.
+4. If targetStyle is 'telugu': Convert all words into PURE NATIVE TELUGU SCRIPT (తెలుగు లిపి).
+5. If targetStyle is 'hindi': Convert all words into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी లిపి).
 
-Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|chunk_3","animation":"pop|bounce|slide|glow|none","words":[{"word":"W","start":N,"end":N,"emphasisScore":N,"isHighlighted":bool,"highlightColor":"#hex|null","emoji":"emoji|null","sfx":"pop|whoosh|none","caseFormat":"uppercase|lowercase|original"}]}],"stickyHook":{"text":"hook with emoji","position":"top"}}`;
+CAPTION TIMELINE RULES:
+- Group 1-3 words per segment. High emphasis (>=0.7) = single word, UPPERCASE, pop/bounce animation. Medium (0.4-0.7) = chunk of 2. Low (<0.4) = chunk of 2-3, no animation.
+- Add relevant emoji to max 3 important words (e.g. 😔, 🔥, ⚡, 💰, 🎯).
+- Add sfx to max 2 moments ("pop", "whoosh", "none").
+- Ensure word timestamps [start, end] correspond accurately to the order and timing of the input words.
+
+INPUT WORD DATA [index,"word",start,end,emphasis]: [${wordsCompact}]
+FULL SPOKEN TEXT: "${fullText}"
+LANGUAGE: ${language}
+TARGET STYLE: ${targetStyle}
+
+Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|chunk_3","animation":"pop|bounce|slide|glow|none","words":[{"word":"<Transformed word in target style script>","start":N,"end":N,"emphasisScore":N,"isHighlighted":bool,"highlightColor":"#hex|null","emoji":"emoji|null","sfx":"pop|whoosh|none","caseFormat":"uppercase|lowercase|original"}]}],"stickyHook":{"text":"hook with emoji","position":"top"}}`;
   }
 
   _normalizeTimeline(raw, enrichedWords = [], aspectRatio, presetName) {
@@ -811,15 +983,15 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
         let exactEnd = w.end || 0;
         let exactConfidence = w.confidence || 0.9;
 
-        // If we have precise STT enrichedWords (e.g. from Deepgram Nova-2), lock timestamps to STT truth
+        // If we have precise STT enrichedWords (e.g. from Deepgram Nova-3), lock timestamps to STT truth
         if (Array.isArray(enrichedWords) && enrichedWords.length > 0) {
-          const cleanWText = (w.word || '').trim().toLowerCase().replace(/[^\w]/g, '');
+          const cleanWText = (w.word || '').trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
           let matched = null;
 
           // Look ahead up to 5 words to find exact matching word in enrichedWords
           for (let p = wordPointer; p < Math.min(enrichedWords.length, wordPointer + 5); p++) {
-            const ewText = (enrichedWords[p].word || '').trim().toLowerCase().replace(/[^\w]/g, '');
-            if (cleanWText === ewText || cleanWText.includes(ewText) || ewText.includes(cleanWText)) {
+            const ewText = (enrichedWords[p].word || '').trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+            if (cleanWText && ewText && (cleanWText === ewText || cleanWText.includes(ewText) || ewText.includes(cleanWText))) {
               matched = enrichedWords[p];
               wordPointer = p + 1;
               break;
@@ -827,8 +999,14 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
           }
 
           if (!matched && wordPointer < enrichedWords.length) {
-            matched = enrichedWords[wordPointer];
-            wordPointer++;
+            // If w.start is already a valid timestamp provided by LLM, prefer w.start/w.end
+            if (typeof w.start === 'number' && w.start > 0 && typeof w.end === 'number' && w.end > w.start) {
+              exactStart = w.start;
+              exactEnd = w.end;
+            } else {
+              matched = enrichedWords[wordPointer];
+              wordPointer++;
+            }
           }
 
           if (matched) {
@@ -842,7 +1020,7 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
         exactEnd = Math.max(exactStart + 0.05, Math.round(exactEnd * 100) / 100);
 
         let wordText = w.word || '';
-        const cleanLower = wordText.trim().toLowerCase().replace(/[^\w]/g, '');
+        const cleanLower = wordText.trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
         const emojiMap = {
           fire: '🔥', hot: '🔥', burn: '🔥', fast: '⚡', speed: '⚡', quick: '⚡',
           money: '💰', cash: '💰', dollar: '💰', rich: '💰', win: '🏆', winner: '🏆',
@@ -896,9 +1074,9 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
         displayMode: Object.values(DISPLAY_MODES).includes(seg.displayMode)
           ? seg.displayMode
           : DISPLAY_MODES.CHUNK_2,
-        animation: Object.values(ANIMATION_TYPES).includes(seg.animation)
+        animation: (seg.animation && Object.values(ANIMATION_TYPES).includes(seg.animation))
           ? seg.animation
-          : ANIMATION_TYPES.NONE,
+          : null, // Inherit global theme animation
         position: { x: 50, y: 75 },
         fontStyle: {
           fontFamily: 'Inter',
@@ -921,15 +1099,25 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
       const current = segments[i];
       const next = segments[i + 1];
       if (current.end > next.start) {
-        current.end = next.start;
-        if (current.end <= current.start) {
-          current.end = Math.round((current.start + 0.1) * 100) / 100;
+        const mid = Math.round(((current.end + next.start) / 2) * 100) / 100;
+        if (mid > current.start + 0.15) {
+          current.end = mid;
+          next.start = mid;
+        } else {
+          current.end = Math.max(current.start + 0.15, next.start);
         }
       } else {
         const gap = next.start - current.end;
-        if (gap > 0 && gap <= 0.35) {
+        if (gap > 0 && gap <= 0.65) {
           current.end = next.start;
         }
+      }
+
+      if (current.words.length > 0) {
+        current.words[current.words.length - 1].end = current.end;
+      }
+      if (next.words.length > 0) {
+        next.words[0].start = next.start;
       }
     }
 

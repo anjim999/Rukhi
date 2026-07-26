@@ -49,10 +49,20 @@ export default function VideoDropzone({ onProjectCreated }) {
   const handleUpload = async () => {
     if (!file) return;
 
+    const targetStyleLabels = {
+      english: '🇬🇧 Pure English',
+      telugu: '🇮🇳 Pure Telugu',
+      hindi: '🇮🇳 Pure Hindi',
+      tel_eng: '⚡ Tel + Eng',
+      chatting: '💬 Chat Script',
+      auto: '🌐 As Spoken',
+    };
+    const styleLabel = targetStyleLabels[targetStyle];
+
     setUploading(true);
     setProgress(0);
     setError(null);
-    toast.loading('Uploading video & initializing AI engine...', { id: 'upload-toast' });
+    toast.loading(`Uploading video & initializing AI engine (${styleLabel})...`, { id: 'upload-toast' });
 
     try {
       const response = await uploadVideo(file, file.name, targetStyle, (percent) => {
@@ -60,7 +70,7 @@ export default function VideoDropzone({ onProjectCreated }) {
       });
 
       if (response.success && onProjectCreated) {
-        toast.success('🎉 Video uploaded! Processing started.', { id: 'upload-toast' });
+        toast.success(`🎉 Video uploaded! Processing in ${styleLabel} style.`, { id: 'upload-toast' });
         onProjectCreated(response.data);
       }
     } catch (err) {
@@ -135,11 +145,12 @@ export default function VideoDropzone({ onProjectCreated }) {
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
-                  { id: 'auto', label: '🌐 As Spoken', desc: 'Auto / Code-Switched' },
-                  { id: 'chatting', label: '💬 Chatting Script', desc: 'Teluglish / Hinglish' },
                   { id: 'english', label: '🇬🇧 Pure English', desc: 'Auto-Translated' },
-                  { id: 'telugu', label: '🇮🇳 Pure Telugu', desc: 'తెలుగు Script' },
-                  { id: 'hindi', label: '🇮🇳 Pure Hindi', desc: 'हिंदी Script' },
+                  { id: 'telugu', label: '🇮🇳 Pure Telugu', desc: 'తెలుగు Native Script' },
+                  { id: 'hindi', label: '🇮🇳 Pure Hindi', desc: 'हिंदी Native Script' },
+                  { id: 'tel_eng', label: '⚡ Tel + Eng', desc: 'Bilingual Tanglish' },
+                  { id: 'chatting', label: '💬 Chat Script', desc: 'em chestunnav raa' },
+                  { id: 'auto', label: '🌐 As Spoken', desc: 'Auto Detected' },
                 ].map((style) => (
                   <button
                     key={style.id}

@@ -75,7 +75,7 @@ export async function registerUser({ name, email, password }) {
             <li>🌍 <strong>Multi-Lingual:</strong> English, Telugu, Hindi, and Teluglish support.</li>
           </ul>
           <div style="text-align: center; margin-top: 35px;">
-            <a href="https://rocky-captions.vercel.app/" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">Create Your First Reel</a>
+            <a href="${(process.env.FRONTEND_URL || '').split(',')[0].trim()}" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">Create Your First Reel</a>
           </div>
         </div>
         <p style="text-align: center; color: #71717a; font-size: 13px; margin-top: 30px;">
@@ -207,7 +207,7 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
               You successfully joined using Google. You now have access to the ultimate AI-powered captioning engine.
             </p>
             <div style="text-align: center; margin-top: 35px;">
-              <a href="https://rocky-captions.vercel.app/" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase;">Launch Studio</a>
+              <a href="${(process.env.FRONTEND_URL || '').split(',')[0].trim()}" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase;">Launch Studio</a>
             </div>
           </div>
         </div>
@@ -251,7 +251,8 @@ export async function forgotPassword(email) {
     [resetToken, expiry.toISOString(), user.id]
   );
 
-  const resetUrl = `https://rocky-captions.vercel.app/reset-password?token=${resetToken}`;
+  const appFrontendUrl = (process.env.FRONTEND_URL || '').split(',')[0].trim();
+  const resetUrl = `${appFrontendUrl}/reset-password?token=${resetToken}`;
   const html = `
     <div style="font-family: sans-serif; padding: 20px; background: #09090b; color: #fff; border-radius: 12px;">
       <h2 style="color: #facc15;">Auto Captions — Password Reset Request</h2>

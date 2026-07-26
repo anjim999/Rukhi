@@ -8,9 +8,9 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const config = {
-  port: process.env.PORT || 5000,
+  port: parseInt(process.env.PORT || '5000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  dbUrl: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.POSTGRES_URL || 'postgres://postgres:postgres@localhost:5432/auto_captions_db',
+  dbUrl: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.POSTGRES_URL,
   redis: {
     url: process.env.REDIS_URL || null,
     host: process.env.REDIS_HOST || '127.0.0.1',
@@ -18,12 +18,12 @@ export const config = {
   },
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
-  jwtSecret: process.env.JWT_SECRET || 'super-secret-key-autocaptions-dev',
+  jwtSecret: process.env.JWT_SECRET || '',
   smtp: {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
-    user: process.env.SMTP_USER || 'anjaneyulumandagiri@gmail.com',
-    pass: process.env.SMTP_PASS || 'zwrg acwn kdxv srue',
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
   },
   uploadDir: path.resolve(__dirname, '../../uploads'),
   outputDir: path.resolve(__dirname, '../../outputs'),

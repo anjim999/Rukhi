@@ -562,7 +562,7 @@ Return ONLY a JSON object with this exact structure:
       } catch (err) {
         console.warn(`[ZERO-GAP SAFETY RECOVERY] Re-inspection for gap ${gap.start.toFixed(1)}s–${gap.end.toFixed(1)}s skipped: ${err.message}`);
       } finally {
-        try { if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath); } catch (_e) {}
+        try { if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath); } catch (_e) { }
       }
     }
 
@@ -1087,8 +1087,8 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
         words: segWords,
       };
     })
-    .filter(Boolean)
-    .sort((a, b) => a.start - b.start);
+      .filter(Boolean)
+      .sort((a, b) => a.start - b.start);
 
     // Fix continuity and prevent backward end timestamps between adjacent segments
     for (let i = 0; i < segments.length - 1; i++) {

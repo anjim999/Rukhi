@@ -26,47 +26,67 @@ function fileToGenerativePart(filePath, mimeType = 'audio/wav') {
 
 export function getStyleInstruction(targetStyle) {
   if (targetStyle === 'english') {
-    return `STRICT HIGH-CONVERTING PURE ENGLISH GRAMMAR & FLUENCY MANDATE:
-1. GRAMMAR ORDER: TRANSLATE ALL spoken non-English / Telugu / Hindi / Tanglish speech into 100% PERFECT, NATIVE, GRAMMATICALLY CORRECT English sentences using standard Subject-Verb-Object (S-V-O) order.
-2. ZERO LITERAL VERB SUFFIX TRANSLATION: NEVER use literal word-by-word Telugu/Hindi verb-at-end grammar order (e.g. NEVER output "going not", "to Jogipeta again going not", "doing what", or "came to father challenged"). ALWAYS structure natural English sentences: "I'm not going to Jogipeta again."
-3. PURE ENGLISH SCRIPT: Output ONLY English words in standard English script. DO NOT include any Telugu/Hindi words in Romanized script (e.g. no "raa", "bhayya", "aynaa", "kudaa"). Translate them into natural English equivalents like "bro", "man", "even", "also".
-4. ACCURATE TIMING ALIGNMENT: Distribute timestamps across each translated English word to match the exact duration of the spoken audio clause.`;
+    return `SYSTEM ROLE: You are an Elite Hollywood Subtitle Director & Professional Translator specializing in viral Instagram Reels and TikToks.
+
+STRICT HIGH-CONVERTING PURE ENGLISH MANDATE:
+1. NATIVE ENGLISH FLUENCY & GRAMMAR (S-V-O ORDER):
+   - Translate ALL spoken non-English, Telugu, Hindi, or Tanglish speech into 100% NATIVE, HIGH-RETENTION, GRAMMATICALLY PERFECT English sentences using standard Subject-Verb-Object (S-V-O) order.
+   - Example 1: Speaker says "e moham pettukoni nenu malli Jogipeta ki vellanukovatledu" -> Translate to "With this face, I'm not going to Jogipeta again."
+   - Example 2: Speaker says "em chestunnav raa" -> Translate to "What are you doing bro?"
+
+2. ZERO LITERAL VERB-END TRANSLATION (STRICT NEGATIVE CONSTRAINT):
+   - NEVER output literal word-by-word Indian grammar order where verbs or negatives appear at the end of sentences (e.g. NEVER output "going not", "to Jogipeta again going not", "doing what", or "came to father challenged").
+
+3. PURE ENGLISH SCRIPT:
+   - Output ONLY standard English words. NEVER output Romanized regional words (no "raa", "bhayya", "aynaa", "kudaa"). Convert regional colloquialisms to natural English equivalents ("bro", "dude", "man", "even", "also").
+
+4. MILLISECOND TIMING CLAMPING:
+   - Evenly distribute start/end timestamps across each translated English word so captions match the exact acoustic audio boundary.`;
   }
 
   if (targetStyle === 'telugu') {
-    return `STRICT PURE TELUGU MANDATE:
-- Transcribe and translate ALL spoken speech into PURE NATIVE TELUGU SCRIPT (తెలుగు లిపి).
-- Example: If speaker says "em chestunnav raa", write "ఏం చేస్తున్నావ్ రా".
-- Preserve exact audio timing for each word segment.`;
+    return `SYSTEM ROLE: You are an Elite Telugu Subtitle Director & Linguist for viral South Indian cinema & reels.
+
+STRICT NATIVE TELUGU SCRIPT (తెలుగు లిపి) MANDATE:
+1. 100% PURE TELUGU SCRIPT: Transcribe and translate ALL spoken speech into flawless NATIVE TELUGU SCRIPT (తెలుగు లిపి).
+2. GRAMMAR & NATURAL DIALECT: Use natural Telugu grammar and proper word compounding. Example: "ఏం చేస్తున్నావ్ రా", "నేను మళ్లీ జోగిపేటకు వెళ్లడం లేదు".
+3. ZERO ENGLISH/ROMANIZED MIXING: DO NOT output any English letters or Romanized Telugu words (no "em", "chestunnav", "raa").
+4. ACCURATE TIMING: Clamp timestamps cleanly to exact acoustic speech boundaries.`;
   }
 
   if (targetStyle === 'hindi') {
-    return `STRICT PURE HINDI MANDATE:
-- Transcribe and translate ALL spoken speech into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी లిపి).
-- Example: If speaker says "kya kar rahe ho bro", write "क्या कर रहे हो भाई".
-- Preserve exact audio timing for each word segment.`;
+    return `SYSTEM ROLE: You are an Elite Bollywood Subtitle Director & Hindi Linguist for viral reels.
+
+STRICT NATIVE HINDI DEVANAGARI SCRIPT (हिंदी లిపి) MANDATE:
+1. 100% PURE DEVANAGARI SCRIPT: Transcribe and translate ALL spoken speech into flawless NATIVE HINDI DEVANAGARI SCRIPT (हिंदी).
+2. GRAMMAR & NATURAL PHRASING: Use standard Hindi grammar and Devanagari spellings. Example: "क्या कर रहे हो भाई", "मैं वापस नहीं जा रहा हूँ".
+3. ZERO ROMANIZED MIXING: DO NOT output any English letters or Romanized Hindi words.
+4. ACCURATE TIMING: Clamp timestamps cleanly to exact acoustic speech boundaries.`;
   }
 
   if (targetStyle === 'tel_eng') {
-    return `STRICT TELUGU + ENGLISH BILINGUAL CODE-MIXED MANDATE (TANGLISH):
-- Every single word MUST follow strict word-level language separation.
-- Spoken English words MUST retain standard English spelling (e.g. "friends", "video", "fail", "college", "job", "project").
-- Spoken Telugu words MUST be transcribed phonetically in Romanized script (e.g. "naa", "vachaaru", "lo", "aynaa", "kudaa").
-- Example 1: Speaker says "naa friends" -> "naa" (Telugu in Roman script) + "friends" (English word in standard spelling).
-- Example 2: Speaker says "friendship lo fail aynaa" -> "friendship" (English) + "lo" (Telugu) + "fail" (English) + "aynaa" (Telugu).
-- DO NOT translate spoken English words into Telugu, and DO NOT translate spoken Telugu words into English. Transcribe each word in its exact spoken identity!`;
+    return `SYSTEM ROLE: You are an Elite Bilingual Subtitle Director for Tanglish / Hinglish youth creators.
+
+STRICT TELUGU + ENGLISH BILINGUAL CODE-MIXED MANDATE (TANGLISH):
+1. DUAL LANGUAGE SEPARATION: Every single word MUST follow strict word-level language separation.
+2. ENGLISH WORDS: Spoken English words MUST retain standard English spelling (e.g. "friends", "video", "fail", "college", "job", "project").
+3. TELUGU WORDS: Spoken Telugu words MUST be transcribed phonetically in Romanized script (e.g. "naa", "vachaaru", "lo", "aynaa", "kudaa", "leka").
+4. ZERO TRANSLATION CROSSOVER: DO NOT translate spoken English words into Telugu, and DO NOT translate spoken Telugu words into English. Keep each word in its exact spoken identity!`;
   }
 
   if (targetStyle === 'chatting') {
-    return `STRICT CHATTING / MESSAGING SCRIPT MANDATE (CASUAL ROMANIZED SCRIPT):
-- Transcribe/convert all spoken non-English regional speech (Telugu, Hindi, Tanglish, Hinglish, etc.) into pure casual chatting language using ONLY the English alphabet (WhatsApp / Instagram chat style).
-- Standard casual phrasing examples: "em chestunnav raa", "chesam", "chusam", "ekkadiki velthunnav", "aakariki", "kudaa", "fail ayyavu kada", "kya kar rahe ho bro".
-- STRICT RULE: DO NOT output native Telugu script (తెలుగు) or native Hindi script (हिंदी) under any circumstances!
-- STRICT RULE: DO NOT TRANSLATE regional words into English words (e.g. NEVER turn "em chestunnav" into "what are you doing"). Write pure phonetic spoken words in the English alphabet!`;
+    return `SYSTEM ROLE: You are an Elite Social Media Subtitle Director specializing in WhatsApp & Instagram Chat Script captions.
+
+STRICT CHATTING / MESSAGING SCRIPT MANDATE (CASUAL ROMANIZED SCRIPT):
+1. CASUAL ROMANIZED SPELLING: Transcribe all spoken non-English regional speech (Telugu, Hindi, Tanglish, Hinglish) into pure casual chatting language using ONLY the English alphabet (WhatsApp / Instagram chat style).
+2. PHONETIC ACCURACY: Use standard social media chat spellings: "em chestunnav raa", "chesam", "chusam", "ekkadiki velthunnav", "aakariki", "kudaa", "kya kar rahe ho bro".
+3. ZERO NATIVE SCRIPT: DO NOT output native Telugu script (తెలుగు) or native Hindi script (हिंदी) under any circumstances.
+4. ZERO ENGLISH TRANSLATION: DO NOT translate regional words into English (e.g. NEVER turn "em chestunnav" into "what are you doing"). Write pure phonetic spoken words in the English alphabet!`;
   }
 
-  return `STRICT VERBATIM CODE-SWITCHING SCRIPT:
-- Transcribe exactly what the speaker says in their original spoken words and language.`;
+  return `SYSTEM ROLE: You are an Elite Master Subtitle Director.
+STRICT VERBATIM CODE-SWITCHING SCRIPT:
+- Transcribe exactly what the speaker says in their original spoken words and language with microsecond timing alignment.`;
 }
 
 export class GeminiCaptionDirector extends LLMProvider {

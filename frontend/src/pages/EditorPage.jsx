@@ -26,6 +26,7 @@ export default function EditorPage({ projectId, onBack }) {
   const [cancelling, setCancelling] = useState(false);
   const [pausing, setPausing] = useState(false);
   const [initialFetch, setInitialFetch] = useState(true);
+  const [mobileTab, setMobileTab] = useState('player'); // 'player' | 'editor' | 'presets'
 
   // Undo / Redo History Stack State
   const historyRef = React.useRef([]);
@@ -543,12 +544,12 @@ export default function EditorPage({ projectId, onBack }) {
       {/* 3-Column Studio Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Preset & Style Sidebar */}
-        <div className="lg:col-span-4">
+        <div className={`lg:col-span-4 ${mobileTab === 'presets' ? 'block' : 'hidden lg:block'}`}>
           <PresetSidebar timeline={timeline} setTimeline={setTimeline} />
         </div>
 
         {/* Middle Column: 60fps Canvas Video Player */}
-        <div className="lg:col-span-4 flex justify-center">
+        <div className={`lg:col-span-4 flex justify-center ${mobileTab === 'player' ? 'block' : 'hidden lg:block'}`}>
           <CanvasVideoPlayer
             projectId={projectId}
             videoUrl={videoFullUrl}
@@ -561,7 +562,7 @@ export default function EditorPage({ projectId, onBack }) {
         </div>
 
         {/* Right Column: Time-Frame Granular Editor */}
-        <div className="lg:col-span-4">
+        <div className={`lg:col-span-4 ${mobileTab === 'editor' ? 'block' : 'hidden lg:block'}`}>
           <TimelineEditor
             timeline={timeline}
             setTimeline={setTimeline}
@@ -573,6 +574,70 @@ export default function EditorPage({ projectId, onBack }) {
             canRedo={canRedo}
           />
         </div>
+      </div>
+
+      {/* Sticky Bottom Mobile Quick Dock (Visible on Mobile & Tablets < 1024px) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-slate-200 dark:border-zinc-800 p-2 z-40 flex items-center justify-around shadow-2xl">
+        <button
+          type="button"
+          onClick={() => {
+            setMobileTab('player');
+            if (navigator.vibrate) navigator.vibrate(15);
+          }}
+          className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition text-xs font-bold cursor-pointer ${
+            mobileTab === 'player'
+              ? 'text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20 shadow-sm'
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Play className="w-4 h-4 fill-current" />
+          <span>Player</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setMobileTab('editor');
+            if (navigator.vibrate) navigator.vibrate(15);
+          }}
+          className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition text-xs font-bold cursor-pointer ${
+            mobileTab === 'editor'
+              ? 'text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20 shadow-sm'
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Pencil className="w-4 h-4" />
+          <span>Timeline</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setMobileTab('presets');
+            if (navigator.vibrate) navigator.vibrate(15);
+          }}
+          className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition text-xs font-bold cursor-pointer ${
+            mobileTab === 'presets'
+              ? 'text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20 shadow-sm'
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Styles</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            handleSaveTimeline();
+            if (navigator.vibrate) navigator.vibrate(25);
+          }}
+          disabled={saving}
+          className="flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl text-xs font-bold bg-yellow-500 text-black shadow-md active:scale-95 transition cursor-pointer"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Save className="w-4 h-4 text-black" />}
+          <span>{saving ? 'Saving' : 'Save'}</span>
+        </button>
       </div>
 
       {/* AI Instagram & YouTube Post Generator Modal */}

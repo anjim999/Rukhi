@@ -242,33 +242,25 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   }, [timeline, setCurrentTime]);
 
   const togglePlay = (e) => {
-    if (e && e.preventDefault && e.type === 'touchend') {
-      e.preventDefault();
-    }
     const video = videoRef.current;
     if (!video || !videoUrl || isRecording) return;
 
-    if (isPlaying) {
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(15);
+    }
+
+    if (video.paused) {
+      video.play().then(() => setIsPlaying(true)).catch((err) => {
+        console.warn('[MOBILE PLAYBACK] Unmuted playback blocked, retrying with muted fallback:', err);
+        video.muted = true;
+        setIsMuted(true);
+        video.play().then(() => setIsPlaying(true)).catch((err2) => {
+          console.error('[MOBILE PLAYBACK ERROR]', err2);
+        });
+      });
+    } else {
       video.pause();
       setIsPlaying(false);
-    } else {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsPlaying(true))
-          .catch((err) => {
-            console.warn('[MOBILE PLAYBACK] Unmuted playback blocked, retrying with muted fallback:', err);
-            video.muted = true;
-            setIsMuted(true);
-            video
-              .play()
-              .then(() => setIsPlaying(true))
-              .catch((err2) => {
-                console.error('[MOBILE PLAYBACK ERROR]', err2);
-                toast.error('Tap play button to start video playback', { id: 'mobile-play-toast' });
-              });
-          });
-      }
     }
   };
 

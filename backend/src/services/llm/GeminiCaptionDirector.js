@@ -26,11 +26,11 @@ function fileToGenerativePart(filePath, mimeType = 'audio/wav') {
 
 export function getStyleInstruction(targetStyle) {
   if (targetStyle === 'english') {
-    return `STRICT PURE ENGLISH MANDATE:
-- TRANSLATE ALL spoken non-English / Telugu / Hindi / Tanglish speech into high-converting, punchy PURE ENGLISH words in standard English script.
-- DO NOT output any Telugu or Hindi words in Romanized script when 'english' targetStyle is requested.
-- Example: If speaker says "em chestunnav raa", translate to "what are you doing bro".
-- Preserve exact audio timing for each word segment.`;
+    return `STRICT HIGH-CONVERTING PURE ENGLISH GRAMMAR & FLUENCY MANDATE:
+1. GRAMMAR ORDER: TRANSLATE ALL spoken non-English / Telugu / Hindi / Tanglish speech into 100% PERFECT, NATIVE, GRAMMATICALLY CORRECT English sentences using standard Subject-Verb-Object (S-V-O) order.
+2. ZERO LITERAL VERB SUFFIX TRANSLATION: NEVER use literal word-by-word Telugu/Hindi verb-at-end grammar order (e.g. NEVER output "going not", "to Jogipeta again going not", "doing what", or "came to father challenged"). ALWAYS structure natural English sentences: "I'm not going to Jogipeta again."
+3. PURE ENGLISH SCRIPT: Output ONLY English words in standard English script. DO NOT include any Telugu/Hindi words in Romanized script (e.g. no "raa", "bhayya", "aynaa", "kudaa"). Translate them into natural English equivalents like "bro", "man", "even", "also".
+4. ACCURATE TIMING ALIGNMENT: Distribute timestamps across each translated English word to match the exact duration of the spoken audio clause.`;
   }
 
   if (targetStyle === 'telugu') {

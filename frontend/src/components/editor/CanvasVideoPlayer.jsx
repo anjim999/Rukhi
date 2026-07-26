@@ -198,6 +198,10 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
           setCurrentTime(time);
         }
 
+        if (timeline?.topBanner?.enabled) {
+          renderTopHookBanner(ctx, timeline.topBanner, width, height);
+        }
+
         if (timeline?.segments) {
           const activeSegment = timeline.segments.find(
             (seg) => time >= (seg.start - 0.05) && time <= (seg.end + 0.05)
@@ -806,8 +810,54 @@ const GLOW_PRESETS = {
   [THEME_PRESETS.GOLD_LUXURY]: '#EAB308',
   [THEME_PRESETS.BOLLYWOOD_GOLD]: '#EAB308',
   [THEME_PRESETS.CYBER_PUNK_2077]: '#FACC15',
-  [THEME_PRESETS.DARK_VADER]: '#DC2626',
 };
+
+function renderTopHookBanner(ctx, topBanner, canvasW, canvasH) {
+  if (!topBanner || !topBanner.enabled || !topBanner.text || !topBanner.text.trim()) return;
+
+  const text = topBanner.text.trim().toUpperCase();
+  const fontSize = Math.max(18, Math.round(canvasW * 0.045));
+  const fontFamily = topBanner.fontFamily || 'Montserrat';
+  const bgColor = topBanner.backgroundColor || '#FFE600';
+  const textColor = topBanner.textColor || '#000000';
+
+  ctx.save();
+  ctx.font = `900 ${fontSize}px '${fontFamily}', 'Noto Sans Telugu', 'Inter', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const metrics = ctx.measureText(text);
+  const textW = metrics.width || (fontSize * text.length * 0.6);
+  const padX = fontSize * 0.6;
+  const padY = fontSize * 0.35;
+  const rectW = textW + padX * 2;
+  const rectH = fontSize + padY * 2;
+
+  const centerX = canvasW / 2;
+  const centerY = canvasH * 0.12;
+
+  const rectX = centerX - rectW / 2;
+  const rectY = centerY - rectH / 2;
+  const radius = Math.min(16, rectH / 2);
+
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 4;
+
+  ctx.fillStyle = bgColor;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(rectX, rectY, rectW, rectH, radius);
+  } else {
+    ctx.rect(rectX, rectY, rectW, rectH);
+  }
+  ctx.fill();
+
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = textColor;
+  ctx.fillText(text, centerX, centerY);
+  ctx.restore();
+}
 
 function renderSubmagicCaptions(ctx, segment, time, canvasW, canvasH, segAge, timeline) {
   const words = segment.words || [];

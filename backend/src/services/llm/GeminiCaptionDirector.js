@@ -1182,4 +1182,76 @@ Return ONLY a JSON object with this exact structure:
     const result = await model.generateContent(prompt);
     return this._parseJSON(result.response.text());
   }
+
+  /**
+   * Translate timeline words into target language while preserving 100% of word timestamps and sync boundaries.
+   */
+  async translateTimelineText(timeline, targetStyle = 'english') {
+    if (!this.ai) {
+      throw new Error('Gemini API key not configured.');
+    }
+
+    if (!timeline || !Array.isArray(timeline.segments)) {
+      return timeline;
+    }
+
+    // Extract word items for translation payload
+    const wordPayload = [];
+    timeline.segments.forEach((seg) => {
+      (seg.words || []).forEach((w) => {
+        wordPayload.push({ id: w.id, text: w.word });
+      });
+    });
+
+    if (wordPayload.length === 0) return timeline;
+
+    const styleInstruction = getStyleInstruction(targetStyle);
+
+    const prompt = `You are an expert multi-lingual subtitle translator.
+Target Style Instruction:
+${styleInstruction}
+
+Translate the list of words provided below into the target style.
+CRITICAL MANDATE:
+1. Maintain the EXACT same array length and output format.
+2. Return a JSON array of objects with "id" and "translatedText".
+3. Do NOT merge, skip, or reorder word items.
+
+WORDS TO TRANSLATE:
+${JSON.stringify(wordPayload)}`;
+
+    const model = this.ai.getGenerativeModel({
+      model: this.modelName,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      },
+    });
+
+    const result = await model.generateContent(prompt);
+    const parsed = this._parseJSON(result.response.text());
+
+    if (!Array.isArray(parsed)) return timeline;
+
+    const translationMap = new Map();
+    parsed.forEach((item) => {
+      if (item && item.id && item.translatedText) {
+        translationMap.set(item.id, item.translatedText);
+      }
+    });
+
+    // Deep copy timeline and replace word texts while keeping start & end timestamps 100% untouched
+    const newSegments = timeline.segments.map((seg) => ({
+      ...seg,
+      words: (seg.words || []).map((w) => ({
+        ...w,
+        word: translationMap.get(w.id) || w.word,
+      })),
+    }));
+
+    return {
+      ...timeline,
+      segments: newSegments,
+    };
+  }
 }

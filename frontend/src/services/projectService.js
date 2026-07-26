@@ -84,6 +84,16 @@ export async function updateProjectTimeline(projectId, timeline) {
 }
 
 /**
+ * Translate caption timeline into target language while preserving timestamps.
+ * @param {string} projectId
+ * @param {string} targetStyle
+ * @param {Object} [timeline]
+ */
+export async function translateProjectTimeline(projectId, targetStyle = 'english', timeline = null) {
+  return axiosClient.post(`/projects/${projectId}/translate`, { targetStyle, timeline });
+}
+
+/**
  * Generate AI Instagram & YouTube post-ready title, caption, and #hashtags.
  * @param {string} projectId
  */

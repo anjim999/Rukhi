@@ -235,6 +235,32 @@ export async function cancelProject(req, res, next) {
   }
 }
 
+export async function translateProjectTimeline(req, res, next) {
+  try {
+    const { targetStyle = 'english', timeline } = req.body;
+    const project = await projectService.getProject(req.params.id);
+    const sourceTimeline = timeline || project.timeline;
+
+    if (!sourceTimeline) {
+      throw new AppError('No caption timeline found for translation.', 400);
+    }
+
+    const { GeminiCaptionDirector } = await import('../services/llm/GeminiCaptionDirector.js');
+    const director = new GeminiCaptionDirector();
+    const translatedTimeline = await director.translateTimelineText(sourceTimeline, targetStyle);
+
+    await projectService.updateProjectTimeline(req.params.id, translatedTimeline);
+
+    res.json({
+      success: true,
+      data: { timeline: translatedTimeline },
+      message: `Captions translated to ${targetStyle} successfully.`,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function pauseProject(req, res, next) {
   try {
     const result = await projectService.pauseProject(req.params.id);

@@ -44,10 +44,10 @@ function MainApp() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-300 overflow-x-hidden w-full max-w-full">
       <Header onOpenTour={() => setTourOpen(true)} />
 
-      <main className="flex-1 pb-12">
+      <main className="flex-1 pb-16 sm:pb-12 w-full max-w-full overflow-x-hidden">
         <Routes>
           <Route path="/" element={<DashboardRouteWrapper />} />
           <Route path="/dashboard" element={<DashboardRouteWrapper />} />

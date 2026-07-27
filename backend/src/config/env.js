@@ -17,8 +17,9 @@ export const config = {
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
   geminiApiKey: process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-flash-latest',
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
-  jwtSecret: process.env.JWT_SECRET || '',
+  jwtSecret: process.env.JWT_SECRET || process.env.JWT_SECREATE || 'auto_captions_super_secret_key_2026',
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT || '587', 10),

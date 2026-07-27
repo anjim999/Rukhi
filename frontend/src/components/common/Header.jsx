@@ -49,8 +49,8 @@ export default function Header({ activeProject, onOpenTour }) {
   };
 
   return (
-    <header className="border-b border-slate-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-50 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="border-b border-slate-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-50 transition-colors duration-300 w-full max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between w-full">
         <Link 
           to="/dashboard"
           onClick={() => setMobileMenuOpen(false)}
@@ -190,60 +190,64 @@ export default function Header({ activeProject, onOpenTour }) {
         <div className="flex md:hidden items-center gap-2">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300"
+            aria-label="Toggle Theme"
+            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 active:scale-95 transition"
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4" />}
+            {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5" />}
           </button>
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300"
+            aria-label="Open Menu"
+            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 active:scale-95 transition"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3 shadow-xl">
+        <div className="md:hidden border-b border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-4 space-y-3 shadow-2xl animate-fadeIn">
           <button
             onClick={() => {
               navigate('/dashboard');
               setMobileMenuOpen(false);
             }}
-            className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white font-semibold text-sm"
+            className="w-full flex items-center justify-between p-3.5 min-h-[48px] rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-sm active:scale-[0.99] transition"
           >
-            <span className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-yellow-500" />
+            <span className="flex items-center gap-2.5">
+              <FolderOpen className="w-5 h-5 text-yellow-500" />
               All Projects & Studio
             </span>
           </button>
 
           {user ? (
-            <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 flex items-center justify-between">
-              <div>
-                <p className="font-bold text-xs text-slate-900 dark:text-white">{user.name}</p>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400">{user.email}</p>
+            <div className="pt-3 border-t border-slate-200 dark:border-zinc-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-extrabold text-sm text-slate-900 dark:text-white">{user.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">{user.email}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
+                  className="px-4 py-2 min-h-[40px] text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-500/20 rounded-xl active:scale-95 transition"
+                >
+                  Sign Out
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  logout();
-                }}
-                className="px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg"
-              >
-                Sign Out
-              </button>
             </div>
           ) : (
-            <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 flex items-center gap-2">
+            <div className="pt-3 border-t border-slate-200 dark:border-zinc-800 flex items-center gap-3">
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   openAuthModal('login');
                 }}
-                className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 text-xs font-bold text-slate-800 dark:text-zinc-200 text-center"
+                className="flex-1 py-3 min-h-[44px] rounded-2xl border border-slate-200 dark:border-zinc-700 text-xs font-bold text-slate-800 dark:text-zinc-200 text-center active:scale-95 transition"
               >
                 Sign In
               </button>
@@ -252,7 +256,7 @@ export default function Header({ activeProject, onOpenTour }) {
                   setMobileMenuOpen(false);
                   openAuthModal('register');
                 }}
-                className="flex-1 py-2 rounded-xl bg-yellow-500 text-black text-xs font-extrabold text-center"
+                className="flex-1 py-3 min-h-[44px] rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black text-xs font-extrabold text-center shadow-lg shadow-yellow-500/20 active:scale-95 transition"
               >
                 Get Started
               </button>

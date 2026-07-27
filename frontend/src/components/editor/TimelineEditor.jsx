@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { Clock, Edit3, Settings2, ChevronDown, ChevronUp, Scissors, GitMerge, Undo2, Redo2, Zap, MoveLeft, MoveRight, SlidersHorizontal, Sparkles, Plus, Minus, Languages, Tag, Loader2 } from 'lucide-react';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 import { translateProjectTimeline } from '../../services/projectService';
@@ -124,7 +125,7 @@ const PRESET_OPTIONS = [
   { id: THEME_PRESETS.MINIMAL_CLEAN, name: 'Minimal White' },
 ];
 
-export default function TimelineEditor({ timeline, setTimeline, currentTime, setCurrentTime, onUndo, onRedo, canUndo, canRedo }) {
+export default function TimelineEditor({ projectId, timeline, setTimeline, currentTime, setCurrentTime, onUndo, onRedo, canUndo, canRedo }) {
   const [selectedSegId, setSelectedSegId] = useState(null);
   const [expandedSegId, setExpandedSegId] = useState(null);
   const [isStudioCollapsed, setIsStudioCollapsed] = useState(false);
@@ -143,13 +144,19 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
     if (!timeline || !timeline.segments || isTranslating) return;
     setIsTranslating(true);
     setShowTranslateMenu(false);
+    toast.loading(`Translating captions to ${targetStyle}...`, { id: 'translate-toast' });
     try {
-      const res = await translateProjectTimeline(timeline.projectId || 'temp', targetStyle, timeline);
+      const activeId = projectId || timeline.projectId || 'temp';
+      const res = await translateProjectTimeline(activeId, targetStyle, timeline);
       if (res && res.data && res.data.timeline) {
         setTimeline(res.data.timeline);
+        toast.success(`Captions translated to ${targetStyle} with 100% audio sync!`, { id: 'translate-toast' });
+      } else {
+        toast.error('Translation response empty.', { id: 'translate-toast' });
       }
     } catch (err) {
       console.error('[TRANSLATE ERROR]', err);
+      toast.error(`Translation failed: ${err.message}`, { id: 'translate-toast' });
     } finally {
       setIsTranslating(false);
     }
@@ -538,24 +545,41 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
 
   const handleAutoFixGaps = () => {
     if (!timeline || !timeline.segments) return;
-    const repairedSegments = timeline.segments.map((seg) => {
+    let fixedCount = 0;
+    const repairedSegments = timeline.segments.map((seg, sIdx) => {
       const words = seg.words || [];
       const repairedWords = words.map((w, idx) => {
         if (idx === 0) return w;
         const prev = words[idx - 1];
         const gap = w.start - prev.end;
         if (gap > 0 && gap <= 0.45) {
+          fixedCount++;
           return { ...w, start: prev.end };
         }
         return w;
       });
-      return { ...seg, words: repairedWords };
+
+      const nextSeg = timeline.segments[sIdx + 1];
+      let segEnd = seg.end;
+      if (nextSeg && (nextSeg.start - seg.end > 0) && (nextSeg.start - seg.end <= 0.65)) {
+        segEnd = nextSeg.start;
+        fixedCount++;
+      }
+
+      return { ...seg, end: segEnd, words: repairedWords };
     });
+
     setTimeline({ ...timeline, segments: repairedSegments });
+    toast.success(
+      fixedCount > 0
+        ? `Auto-fixed ${fixedCount} micro gaps between captions!`
+        : 'All caption gaps are already 100% seamless!',
+      { id: 'autofix-toast' }
+    );
   };
 
   return (
-    <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 max-h-[85vh] flex flex-col transition-colors">
+    <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 sm:p-5 space-y-4 max-h-[85vh] flex flex-col transition-colors overflow-x-hidden">
       <div className="w-full pb-3 border-b border-slate-200 dark:border-zinc-800 flex flex-col gap-2.5">
         {/* Row 1: Header Title & Collapse Toggle */}
         <div className="flex items-center justify-between gap-2">
@@ -589,8 +613,8 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
 
         {/* Row 2: Tool Action Controls (Spacious & Clean) */}
         {!isStudioCollapsed && (
-          <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap w-full">
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
               {/* Ripple Sync Button */}
               <button
                 type="button"
@@ -663,7 +687,7 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                 </button>
 
                 {showTranslateMenu && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                  <div className="absolute left-0 mt-2 w-52 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden py-1">
                     <button
                       type="button"
                       onClick={() => handleTranslate('english')}
@@ -690,14 +714,35 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                       onClick={() => handleTranslate('tel_eng')}
                       className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
                     >
-                      <span>🇲🇽</span> Tanglish (Telugu + Eng)
+                      <span>⚡</span> Tanglish (Telugu + Eng)
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleTranslate('spanish')}
+                      onClick={() => handleTranslate('chatting')}
                       className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
                     >
-                      <span>🇪🇸</span> Spanish
+                      <span>💬</span> Spoken Chat (Roman)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTranslate('genz')}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>🔥</span> Gen-Z Viral Slang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTranslate('dramatic')}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>🎬</span> Dramatic Cinema
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTranslate('punchy')}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>⚡</span> Short & Punchy (High CTR)
                     </button>
                   </div>
                 )}
@@ -848,8 +893,8 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                       : 'border-slate-200 dark:border-zinc-800/90 bg-white dark:bg-zinc-900/90 hover:border-slate-300 dark:hover:border-zinc-700/90 shadow-sm'
                   }`}
                 >
-                  {/* 1. Card Top Header: Timestamp Badge & Quick Actions (Locked Single Row) */}
-                  <div className="flex items-center justify-between gap-1 flex-nowrap w-full" onClick={(e) => e.stopPropagation()}>
+                  {/* 1. Card Top Header: Timestamp Badge & Quick Actions */}
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 w-full" onClick={(e) => e.stopPropagation()}>
                     {/* Prominent Timestamp Badge with Clear Bold Digits */}
                     <div className="flex items-center gap-1 font-mono text-xs sm:text-sm font-black text-slate-800 dark:text-zinc-100 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-2 py-1 shadow-sm shrink-0">
                       <Clock className="w-3.5 h-3.5 text-yellow-500 dark:text-yellow-400 shrink-0" />
@@ -1067,7 +1112,7 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
 
                   {/* 3. Clean Continuous Transcript Canvas Area */}
                   <div
-                    className="p-3 bg-slate-50/80 dark:bg-zinc-950/80 border border-slate-200/80 dark:border-zinc-800/80 rounded-xl flex flex-wrap items-center gap-2 min-h-[52px]"
+                    className="p-3 bg-slate-50/80 dark:bg-zinc-950/80 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl flex flex-wrap items-center gap-2.5 min-h-[56px]"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {segment.words.map((w) => {
@@ -1075,7 +1120,7 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                       return (
                         <div
                           key={w.id}
-                          className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-default shadow-2xs ${
+                          className={`group relative flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-xl transition-all cursor-default shadow-2xs ${
                             isWordActive
                               ? 'bg-yellow-500/15 dark:bg-yellow-400/20 border-2 border-yellow-500/80 dark:border-yellow-400/80 font-black shadow-md shadow-yellow-500/20 ring-2 ring-yellow-500/30 scale-105'
                               : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 hover:border-yellow-500/80 dark:hover:border-yellow-400/80'
@@ -1085,28 +1130,28 @@ export default function TimelineEditor({ timeline, setTimeline, currentTime, set
                             type="color"
                             value={w.highlightColor || '#FACC15'}
                             onChange={(e) => handleWordColorChange(segment.id, w.id, e.target.value)}
-                            title="Word color"
-                            className="w-3.5 h-3.5 rounded-full border-none bg-transparent cursor-pointer shrink-0"
+                            title="Word highlight color"
+                            className="w-4 h-4 rounded-full border-none bg-transparent cursor-pointer shrink-0"
                           />
 
                           <input
                             type="text"
                             value={w.word}
                             onChange={(e) => handleWordChange(segment.id, w.id, e.target.value)}
-                            style={{ width: `${Math.max(w.word.length * 11 + 6, 38)}px` }}
-                            className={`bg-transparent border-none outline-none text-base font-black leading-relaxed tracking-wide min-w-[38px] max-w-[200px] cursor-text ${
+                            style={{ width: `${Math.max(w.word.length * 11 + 8, 42)}px` }}
+                            className={`bg-transparent border-none outline-none text-base font-black leading-relaxed tracking-wide min-w-[42px] max-w-[220px] cursor-text ${
                               isWordActive ? 'text-yellow-600 dark:text-yellow-300 font-black' : 'text-slate-900 dark:text-white'
                             }`}
                           />
 
-                          {/* Hover Emoji Selector */}
-                          <div className="absolute -top-11 left-0 hidden group-hover:flex items-center gap-1 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-700 px-2 py-1 rounded-xl shadow-2xl z-30 transition-all">
+                          {/* Hover/Touch Emoji Selector */}
+                          <div className="absolute -top-12 left-0 hidden group-hover:flex items-center gap-1.5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-700 px-2.5 py-1.5 rounded-2xl shadow-2xl z-30 transition-all">
                             {EMOJI_PALETTE.map((emoji) => (
                               <button
                                 key={emoji}
                                 type="button"
                                 onClick={() => handleEmojiToggle(segment.id, w.id, emoji)}
-                                className="hover:scale-135 transition-transform text-base cursor-pointer"
+                                className="hover:scale-135 transition-transform text-lg cursor-pointer p-0.5"
                               >
                                 {emoji}
                               </button>

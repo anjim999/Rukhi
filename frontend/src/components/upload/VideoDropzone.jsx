@@ -145,7 +145,7 @@ export default function VideoDropzone({ onProjectCreated }) {
             </div>
 
             {/* Target Caption Language & Script Style Selector */}
-            <div className="w-full max-w-md space-y-2 text-left bg-slate-50 dark:bg-zinc-950/80 p-3.5 rounded-xl border border-slate-200 dark:border-zinc-800">
+            <div className="w-full max-w-md space-y-2 text-left bg-slate-50 dark:bg-zinc-950/80 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-zinc-800">
               <label className="text-xs font-bold text-slate-800 dark:text-zinc-300 flex items-center justify-between">
                 <span>Caption Script & Language Style</span>
                 <span className="text-[10px] text-yellow-500 font-normal">AI Powered</span>
@@ -163,9 +163,9 @@ export default function VideoDropzone({ onProjectCreated }) {
                     key={style.id}
                     type="button"
                     onClick={() => setTargetStyle(style.id)}
-                    className={`p-2 rounded-lg border text-left transition flex flex-col justify-between ${
+                    className={`p-2.5 min-h-[48px] rounded-xl border text-left transition flex flex-col justify-between active:scale-[0.98] ${
                       targetStyle === style.id
-                        ? 'border-yellow-500 bg-yellow-500/10 text-slate-900 dark:text-white font-bold'
+                        ? 'border-yellow-500 bg-yellow-500/10 text-slate-900 dark:text-white font-bold shadow-sm'
                         : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
                     }`}
                   >

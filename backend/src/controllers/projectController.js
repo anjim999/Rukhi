@@ -237,9 +237,13 @@ export async function cancelProject(req, res, next) {
 
 export async function translateProjectTimeline(req, res, next) {
   try {
-    const { targetStyle = 'english', timeline } = req.body;
-    const project = await projectService.getProject(req.params.id);
-    const sourceTimeline = timeline || project.timeline;
+    const { targetStyle = 'english', timeline } = req.body || {};
+    let sourceTimeline = timeline;
+
+    if (!sourceTimeline && req.params.id && req.params.id !== 'temp') {
+      const project = await projectService.getProjectById(req.params.id);
+      sourceTimeline = project ? (project.timeline || await projectService.getTimeline(req.params.id)) : null;
+    }
 
     if (!sourceTimeline) {
       throw new AppError('No caption timeline found for translation.', 400);
@@ -249,12 +253,18 @@ export async function translateProjectTimeline(req, res, next) {
     const director = new GeminiCaptionDirector();
     const translatedTimeline = await director.translateTimelineText(sourceTimeline, targetStyle);
 
-    await projectService.updateProjectTimeline(req.params.id, translatedTimeline);
+    if (req.params.id && req.params.id !== 'temp') {
+      try {
+        await projectService.updateProjectTimeline(req.params.id, translatedTimeline);
+      } catch (_saveErr) {
+        // Ignore save error if temp ID, return translated timeline payload
+      }
+    }
 
     res.json({
       success: true,
       data: { timeline: translatedTimeline },
-      message: `Captions translated to ${targetStyle} successfully.`,
+      message: `Captions translated to ${targetStyle} style successfully.`,
     });
   } catch (err) {
     next(err);

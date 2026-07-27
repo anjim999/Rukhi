@@ -84,6 +84,30 @@ STRICT CHATTING / MESSAGING SCRIPT MANDATE (CASUAL ROMANIZED SCRIPT):
 4. ZERO ENGLISH TRANSLATION: DO NOT translate regional words into English (e.g. NEVER turn "em chestunnav" into "what are you doing"). Write pure phonetic spoken words in the English alphabet!`;
   }
 
+  if (targetStyle === 'genz') {
+    return `SYSTEM ROLE: You are a Viral Gen-Z Creator & TikTok/Reels Subtitle Strategist.
+STRICT GEN-Z VIRAL SLANG MANDATE:
+1. Translate spoken dialogue into high-retention Gen-Z creator slang ("no cap", "fr fr", "bro cooked", "real talk", "main character energy", "bet", "slay", "valid").
+2. Keep the core meaning intact while turning plain sentences into viral, high-CTR reel hook captions.
+3. Clamp timestamps evenly to exact speech boundaries.`;
+  }
+
+  if (targetStyle === 'dramatic') {
+    return `SYSTEM ROLE: You are an Oscar-Winning Cinematic Dialogue Translator & Trailer Editor.
+STRICT DRAMATIC CINEMATIC MANDATE:
+1. Translate dialogue into intense, powerful, dramatic movie trailer subtitles with high emotional weight.
+2. Use strong impact verbs and intense vocabulary to maximize suspense and audience retention.
+3. Clamp timestamps evenly to exact speech boundaries.`;
+  }
+
+  if (targetStyle === 'punchy') {
+    return `SYSTEM ROLE: You are a High-CTR Rapid Subtitle Specialist for MrBeast & Alex Hormozi style reels.
+STRICT ULTRA-SHORT PUNCHY CUTS MANDATE:
+1. Translate and condense phrases into ultra-short, 1 to 3 word punchy power cuts.
+2. Eliminate all filler words ("uh", "um", "you know", "like") to create lightning-fast dynamic subtitle momentum.
+3. Clamp timestamps evenly to exact speech boundaries.`;
+  }
+
   return `SYSTEM ROLE: You are an Elite Master Subtitle Director.
 STRICT VERBATIM CODE-SWITCHING SCRIPT:
 - Transcribe exactly what the speaker says in their original spoken words and language with microsecond timing alignment.`;
@@ -98,8 +122,9 @@ export class GeminiCaptionDirector extends LLMProvider {
     }
 
     this.ai = config.geminiApiKey ? new GoogleGenerativeAI(config.geminiApiKey) : null;
-    this.modelName = 'gemini-2.5-flash';
-    this.fallbackModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const baseModel = config.geminiModel || 'gemini-flash-latest';
+    this.modelName = baseModel;
+    this.fallbackModels = Array.from(new Set([baseModel, 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash']));
   }
 
   async isAvailable() {
@@ -1077,6 +1102,16 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
 
       if (segWords.length === 0) return null;
 
+      // Micro-Pause Auto-Clamping within segment words to eliminate intra-segment flicker
+      for (let wIdx = 0; wIdx < segWords.length - 1; wIdx++) {
+        const currW = segWords[wIdx];
+        const nextW = segWords[wIdx + 1];
+        const wGap = nextW.start - currW.end;
+        if (wGap > 0 && wGap <= 0.35) {
+          currW.end = nextW.start;
+        }
+      }
+
       const segStart = segWords[0].start;
       let segEnd = segWords[segWords.length - 1].end;
       if (segEnd <= segStart) {
@@ -1207,67 +1242,158 @@ Return ONLY a JSON object with this exact structure:
       throw new Error('Gemini API key not configured.');
     }
 
-    if (!timeline || !Array.isArray(timeline.segments)) {
+    if (!timeline || !Array.isArray(timeline.segments) || timeline.segments.length === 0) {
       return timeline;
     }
 
-    // Extract word items for translation payload
-    const wordPayload = [];
-    timeline.segments.forEach((seg) => {
-      (seg.words || []).forEach((w) => {
-        wordPayload.push({ id: w.id, text: w.word });
-      });
-    });
-
-    if (wordPayload.length === 0) return timeline;
-
     const styleInstruction = getStyleInstruction(targetStyle);
 
-    const prompt = `You are an expert multi-lingual subtitle translator.
-Target Style Instruction:
-${styleInstruction}
+    // Build short-ID map and sentence-context payload for 100% deterministic model matching
+    const shortIdToOrigIdMap = new Map();
+    const origIdToShortIdMap = new Map();
 
-Translate the list of words provided below into the target style.
-CRITICAL MANDATE:
-1. Maintain the EXACT same array length and output format.
-2. Return a JSON array of objects with "id" and "translatedText".
-3. Do NOT merge, skip, or reorder word items.
-
-WORDS TO TRANSLATE:
-${JSON.stringify(wordPayload)}`;
-
-    const model = this.ai.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      },
-    });
-
-    const result = await model.generateContent(prompt);
-    const parsed = this._parseJSON(result.response.text());
-
-    if (!Array.isArray(parsed)) return timeline;
-
-    const translationMap = new Map();
-    parsed.forEach((item) => {
-      if (item && item.id && item.translatedText) {
-        translationMap.set(item.id, item.translatedText);
-      }
-    });
-
-    // Deep copy timeline and replace word texts while keeping start & end timestamps 100% untouched
-    const newSegments = timeline.segments.map((seg) => ({
-      ...seg,
-      words: (seg.words || []).map((w) => ({
-        ...w,
-        word: translationMap.get(w.id) || w.word,
-      })),
+    const segmentPayload = timeline.segments.map((seg, sIdx) => ({
+      index: sIdx,
+      fullText: (seg.words || []).map((w) => w.word).join(' '),
+      words: (seg.words || []).map((w, wIdx) => {
+        const shortId = `w_${sIdx}_${wIdx}`;
+        shortIdToOrigIdMap.set(shortId, String(w.id));
+        if (w.id) origIdToShortIdMap.set(String(w.id), shortId);
+        return { id: shortId, text: w.word };
+      }),
     }));
 
-    return {
-      ...timeline,
-      segments: newSegments,
-    };
+    console.log(`[TRANSLATE BACKEND START] Translating ${timeline.segments.length} segments to targetStyle="${targetStyle}"...`);
+
+    const prompt = `You are a World-Class Subtitle & Speech Translator for Instagram Reels and YouTube Shorts.
+TARGET STYLE & LANGUAGE INSTRUCTION:
+${styleInstruction}
+
+Translate the subtitle timeblock segments below into the target language/style.
+
+CRITICAL MANDATE:
+1. Translate EVERY single segment into the target language with 100% native grammar and 0 dropped segments.
+2. If targetStyle is 'english', translate into clear, fluent English.
+3. If targetStyle is 'telugu', translate into PURE NATIVE TELUGU SCRIPT (తెలుగు).
+4. If targetStyle is 'hindi', translate into PURE NATIVE DEVANAGARI HINDI SCRIPT (हिंदी).
+5. If targetStyle is 'chatting', write casual spoken Telugu in Roman script (e.g. "em chestunnav raa", "chusam").
+6. If targetStyle is 'tel_eng', produce code-mixed Tanglish ("naa friends", "chala good").
+7. Return ONLY a JSON object containing a "translatedSegments" array. For EVERY segment, provide "index", "fullText", and "words" array matching exact word IDs:
+{
+  "translatedSegments": [
+    {
+      "index": 0,
+      "fullText": " Translated full segment phrase ",
+      "words": [
+        { "id": "w_0_0", "translatedText": "Translated1" },
+        { "id": "w_0_1", "translatedText": "Translated2" }
+      ]
+    }
+  ]
+}
+
+SEGMENTS PAYLOAD:
+${JSON.stringify(segmentPayload)}`;
+
+    try {
+      const rawText = await this._generateContentWithFallback(prompt, {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+        maxOutputTokens: 4096,
+      });
+      const parsed = this._parseJSON(rawText);
+
+      // Build multi-tier lookup maps
+      const translationMap = new Map();
+      const segmentTextMap = new Map();
+      const segmentWordListMap = new Map();
+
+      const extractItems = (item) => {
+        if (!item) return;
+        if (Array.isArray(item)) {
+          item.forEach(extractItems);
+        } else if (typeof item === 'object') {
+          if (item.id && (item.translatedText || item.text || item.translation)) {
+            translationMap.set(String(item.id), String(item.translatedText || item.text || item.translation).trim());
+          }
+          if (typeof item.index === 'number') {
+            if (item.fullText || item.translatedText || item.text) {
+              segmentTextMap.set(item.index, String(item.fullText || item.translatedText || item.text).trim());
+            }
+            if (Array.isArray(item.words) && item.words.length > 0) {
+              const wArr = item.words
+                .map((wObj) => (wObj && (wObj.translatedText || wObj.text || wObj.word) ? String(wObj.translatedText || wObj.text || wObj.word).trim() : null))
+                .filter(Boolean);
+              if (wArr.length > 0) segmentWordListMap.set(item.index, wArr);
+            }
+          }
+          if (Array.isArray(item.words)) extractItems(item.words);
+          if (Array.isArray(item.segments)) extractItems(item.segments);
+          if (Array.isArray(item.translatedSegments)) extractItems(item.translatedSegments);
+          if (Array.isArray(item.translations)) extractItems(item.translations);
+        }
+      };
+      extractItems(parsed);
+
+      console.log(`[TRANSLATE BACKEND PARSED] Processed ${translationMap.size} translated word IDs & ${segmentTextMap.size} segment texts.`);
+
+      // Deep copy timeline and replace word texts with 4-tier zero-word-drop guarantee
+      const newSegments = timeline.segments.map((seg, sIdx) => {
+        const segWords = seg.words || [];
+
+        const translatedWords = segWords.map((w, wIdx) => {
+          const shortId = `w_${sIdx}_${wIdx}`;
+          const origId = String(w.id || '');
+
+          // Tier 1: Match by short ID (e.g. w_0_0)
+          let match = translationMap.get(shortId);
+
+          // Tier 2: Match by original ID
+          if (!match && origId) {
+            match = translationMap.get(origId);
+          }
+
+          // Tier 3: Match by positional index in segment word list
+          if (!match && segmentWordListMap.has(sIdx)) {
+            const list = segmentWordListMap.get(sIdx);
+            if (list && list[wIdx]) match = list[wIdx];
+          }
+
+          // Tier 4: Match by splitting segment fullText
+          if (!match && segmentTextMap.has(sIdx)) {
+            const fullText = segmentTextMap.get(sIdx);
+            if (fullText) {
+              const tokens = fullText.split(/\s+/).filter(Boolean);
+              if (tokens[wIdx]) match = tokens[wIdx];
+            }
+          }
+
+          return {
+            ...w,
+            word: match || w.word,
+          };
+        });
+
+        const origStr = segWords.map((w) => w.word).join(' ');
+        const transStr = translatedWords.map((w) => w.word).join(' ');
+        console.log(`[TRANSLATE BACKEND SEGMENT ${sIdx}] "${origStr}" -> "${transStr}"`);
+
+        return {
+          ...seg,
+          words: translatedWords,
+        };
+      });
+
+      console.log(`[TRANSLATE BACKEND SUCCESS] Timeline translated to "${targetStyle}" successfully!`);
+
+      return {
+        ...timeline,
+        targetStyle,
+        segments: newSegments,
+      };
+    } catch (err) {
+      console.error(`[TRANSLATE BACKEND ERROR] Failed to translate timeline: ${err.message}`, err);
+      return timeline;
+    }
   }
 }

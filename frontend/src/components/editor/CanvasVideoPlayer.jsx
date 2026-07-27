@@ -18,7 +18,7 @@ function getSanitizedFilename(title, fallback = 'reel', ext = 'mp4') {
   return `${clean}.${ext}`;
 }
 
-export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTimeline, currentTime, setCurrentTime, projectTitle }) {
+export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTimeline, currentTime, setCurrentTime, projectTitle, aspectRatio = '9:16', setAspectRatio }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const resolvedVideoUrl = getFullMediaUrl(videoUrl);
@@ -28,7 +28,6 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   const [isRecording, setIsRecording] = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
   const [videoError, setVideoError] = useState(null);
-  const [aspectRatio, setAspectRatio] = useState('9:16');
   const [isDraggingCaption, setIsDraggingCaption] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [sfxEnabled, setSfxEnabled] = useState(false);
@@ -521,57 +520,14 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      {/* Universal Aspect Ratio Selector Toolbar & Active Script Badge */}
-      <div className="flex flex-wrap items-center justify-center gap-2 p-1 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs font-bold transition">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setAspectRatio('9:16')}
-            className={`px-3 py-1 rounded-lg transition ${
-              aspectRatio === '9:16'
-                ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            📱 9:16 Reel
-          </button>
-          <button
-            onClick={() => setAspectRatio('16:9')}
-            className={`px-3 py-1 rounded-lg transition ${
-              aspectRatio === '16:9'
-                ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            🎬 16:9 Wide
-          </button>
-          <button
-            onClick={() => setAspectRatio('1:1')}
-            className={`px-3 py-1 rounded-lg transition ${
-              aspectRatio === '1:1'
-                ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            ⏹️ 1:1 Square
-          </button>
-        </div>
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-zinc-700 hidden sm:block" />
-
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold text-xs">
-          <span className="opacity-75">Script Mode:</span>
-          <span>{activeStyleInfo.label}</span>
-        </div>
-      </div>
-
       <div
         className={`relative rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-800 bg-black shadow-2xl transition-all ${
           aspectRatio === '16:9'
             ? 'aspect-[16/9] max-w-[680px] w-full'
             : aspectRatio === '1:1'
-            ? 'aspect-square max-h-[580px] w-auto'
-            : 'aspect-[9/16] max-h-[680px] w-auto'
-        } group`}
+            ? 'aspect-square max-h-[45vh] sm:max-h-[580px] w-auto'
+            : 'aspect-[9/16] max-h-[48vh] sm:max-h-[680px] w-auto'
+        } group mx-auto`}
       >
         <video
           ref={videoRef}
@@ -622,8 +578,8 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
             onTouchEnd={togglePlay}
             className="absolute inset-0 bg-black/30 flex items-center justify-center cursor-pointer backdrop-blur-[2px] transition-all hover:bg-black/20"
           >
-            <div className="w-16 h-16 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-xl shadow-yellow-500/20 scale-100 hover:scale-110 transition-transform">
-              <Play className="w-8 h-8 fill-black ml-1" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-xl shadow-yellow-500/20 scale-100 active:scale-95 sm:hover:scale-110 transition-transform">
+              <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-black ml-1" />
             </div>
           </div>
         )}
@@ -635,7 +591,7 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
             <p className="text-xs text-yellow-400 font-mono mb-3">{recordProgress}% completed ({exportQuality} Ultra-HD Engine)</p>
             <button
               onClick={handleCancelExport}
-              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition"
+              className="px-4 py-2 min-h-[40px] rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition"
             >
               Cancel / Close Overlay
             </button>
@@ -643,18 +599,18 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
         )}
       </div>
 
-      <div className="w-full max-w-md flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl transition-colors">
+      <div className="w-full max-w-md flex flex-col gap-2.5 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl transition-colors mx-auto">
         <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek} disabled={isRecording}
-          className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer transition-all hover:h-2 disabled:opacity-50 disabled:cursor-not-allowed" />
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
+          className="w-full h-2.5 sm:h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button onClick={togglePlay} disabled={isRecording}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-800 dark:text-white border border-slate-200 dark:border-zinc-700/60 transition flex items-center gap-1 font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+              className="p-2 sm:p-2 min-h-[38px] min-w-[38px] rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-800 dark:text-white border border-slate-200 dark:border-zinc-700/60 transition flex items-center justify-center gap-1 font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
               {isPlaying ? <Pause className="w-4 h-4 text-yellow-500 dark:text-yellow-400" /> : <Play className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />}
-              <span>{isPlaying ? 'Pause' : 'Play'}</span>
+              <span className="hidden xs:inline">{isPlaying ? 'Pause' : 'Play'}</span>
             </button>
             <button onClick={toggleMute} disabled={isRecording}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-zinc-700/60 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 sm:p-2 min-h-[38px] min-w-[38px] rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-zinc-700/60 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               title={isMuted ? 'Unmute audio' : 'Mute audio'}
             >
               {isMuted ? <VolumeX className="w-4 h-4 text-red-500 dark:text-red-400" /> : <Volume2 className="w-4 h-4" />}

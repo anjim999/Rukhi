@@ -377,7 +377,7 @@ export default function PresetSidebar({ timeline, setTimeline }) {
   };
 
   return (
-    <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar transition-colors">
+    <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 sm:p-5 space-y-6 max-h-[85vh] overflow-y-auto overflow-x-hidden custom-scrollbar transition-colors">
       {/* Generative AI Prompt Reel Remixer with Smart Suggestion Chips */}
       <div className="space-y-3">
         <button
@@ -442,7 +442,7 @@ export default function PresetSidebar({ timeline, setTimeline }) {
       </div>
 
       {/* Quick Bulk Format Transformer Toolbar */}
-      <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 flex items-center justify-between gap-1 text-[10px] font-bold">
+      <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-bold">
         <button
           onClick={() => handleBulkCaseTransform('uppercase')}
           className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700 transition flex items-center gap-1"
@@ -497,20 +497,20 @@ export default function PresetSidebar({ timeline, setTimeline }) {
                 <div
                   key={preset.id}
                   onClick={() => applyPreset(preset)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                  className={`p-3.5 min-h-[52px] rounded-2xl border transition-all cursor-pointer active:scale-[0.98] ${
                     isActive
-                      ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/10 dark:bg-yellow-400/10 shadow-lg shadow-yellow-500/10'
+                      ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/10 dark:bg-yellow-400/10 shadow-lg shadow-yellow-500/10 ring-1 ring-yellow-500/30'
                       : 'border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/50 hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-100/40 dark:hover:bg-zinc-800/40'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
                       {preset.name}
                     </span>
                     <span
-                      className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                      className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                         isActive
-                          ? 'bg-yellow-500 dark:bg-yellow-400 text-black'
+                          ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-xs'
                           : 'bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
                       }`}
                     >

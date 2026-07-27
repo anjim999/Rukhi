@@ -20,6 +20,11 @@ export default function DashboardPage({ onSelectProject }) {
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
   const [deleting, setDeleting] = useState(false);
 
+  // Multi-select state
+  const [selectedProjectIds, setSelectedProjectIds] = useState(new Set());
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   const [renameTarget, setRenameTarget] = useState(null);
   const [renameInput, setRenameInput] = useState('');
   const [renaming, setRenaming] = useState(false);
@@ -74,12 +79,57 @@ export default function DashboardPage({ onSelectProject }) {
     try {
       await deleteProject(deleteTarget.id);
       setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setSelectedProjectIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteTarget.id);
+        return next;
+      });
       toast.success('Project deleted successfully!', { id: 'delete-toast' });
       setDeleteTarget(null);
     } catch (err) {
       toast.error(`Failed to delete project: ${err.message}`, { id: 'delete-toast' });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Checkbox Selection Handlers
+  const toggleSelectProject = (e, id) => {
+    e.stopPropagation();
+    setSelectedProjectIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const isAllSelected = projects.length > 0 && selectedProjectIds.size === projects.length;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedProjectIds(new Set());
+    } else {
+      setSelectedProjectIds(new Set(projects.map((p) => p.id)));
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedProjectIds.size === 0) return;
+    setBulkDeleting(true);
+    const idsToDelete = Array.from(selectedProjectIds);
+    toast.loading(`Deleting ${idsToDelete.length} selected projects...`, { id: 'bulk-delete-toast' });
+
+    try {
+      await Promise.all(idsToDelete.map((id) => deleteProject(id)));
+      setProjects((prev) => prev.filter((p) => !selectedProjectIds.has(p.id)));
+      setSelectedProjectIds(new Set());
+      toast.success(`Successfully deleted ${idsToDelete.length} projects!`, { id: 'bulk-delete-toast' });
+      setShowBulkDeleteModal(false);
+    } catch (err) {
+      toast.error(`Failed to delete projects: ${err.message}`, { id: 'bulk-delete-toast' });
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -103,29 +153,29 @@ export default function DashboardPage({ onSelectProject }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-12">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-8 sm:space-y-12 w-full max-w-full overflow-x-hidden">
       
       {/* Telugu Creators Hero Showcase */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-amber-500/10 via-yellow-500/5 to-transparent border border-yellow-500/20 p-8 md:p-12 text-center space-y-6 shadow-2xl">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 text-xs font-extrabold shadow-sm">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-amber-500/10 via-yellow-500/5 to-transparent border border-yellow-500/20 p-5 sm:p-8 md:p-12 text-center space-y-4 sm:space-y-6 shadow-2xl">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 text-xs font-extrabold shadow-sm">
           <Sparkles className="w-4 h-4 fill-yellow-500 text-yellow-500" />
           Built for Telugu creators
         </div>
 
-        <div className="max-w-3xl mx-auto space-y-4">
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
+        <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
             For Telugu creators
           </h1>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-600 dark:text-yellow-400">
+          <h2 className="text-lg sm:text-2xl font-extrabold text-yellow-600 dark:text-yellow-400">
             Word-by-word Telugu captions for Reels and Shorts.
           </h2>
-          <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-base text-slate-600 dark:text-zinc-300 max-w-2xl mx-auto leading-relaxed">
             Telugu captions that don't look like a robot wrote them, burned into your export in under a minute.
           </p>
         </div>
 
         {/* Word-by-word Kinetic Caption Preview */}
-        <div className="max-w-md mx-auto my-6 p-6 rounded-2xl bg-black/80 border border-zinc-800 shadow-2xl space-y-4 backdrop-blur">
+        <div className="max-w-md mx-auto my-4 sm:my-6 p-4 sm:p-6 rounded-2xl bg-black/80 border border-zinc-800 shadow-2xl space-y-3 sm:space-y-4 backdrop-blur">
           <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 border-b border-zinc-800 pb-2">
             <span className="flex items-center gap-1.5 text-yellow-400 font-bold">
               <Volume2 className="w-3.5 h-3.5 animate-pulse" /> Audio Sync
@@ -133,13 +183,13 @@ export default function DashboardPage({ onSelectProject }) {
             <span>Tanglish & Telugu AI</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2.5 py-4 min-h-[70px]">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 py-2 sm:py-4 min-h-[60px] sm:min-h-[70px]">
             {TELUGU_CAPTION_WORDS.map((w, index) => {
               const isActive = index === activeWordIndex;
               return (
                 <span
                   key={index}
-                  className={`text-2xl sm:text-3xl font-black tracking-wide transition-all duration-300 ${
+                  className={`text-xl sm:text-3xl font-black tracking-wide transition-all duration-300 ${
                     isActive
                       ? 'scale-110 text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]'
                       : w.highlight
@@ -153,7 +203,7 @@ export default function DashboardPage({ onSelectProject }) {
             })}
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold text-zinc-400 pt-2 border-t border-zinc-800">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-semibold text-zinc-400 pt-2 border-t border-zinc-800">
             <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">
               Tanglish
             </span>
@@ -167,7 +217,7 @@ export default function DashboardPage({ onSelectProject }) {
         </div>
 
         {/* CTA Actions */}
-        <div className="flex items-center justify-center gap-4 pt-2">
+        <div className="flex items-center justify-center gap-4 pt-1 sm:pt-2">
           <button
             onClick={() => {
               if (!user) {
@@ -176,14 +226,14 @@ export default function DashboardPage({ onSelectProject }) {
                 scrollToUpload();
               }
             }}
-            className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-sm shadow-xl shadow-yellow-500/30 hover:brightness-105 active:scale-95 transition"
+            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-xs sm:text-sm shadow-xl shadow-yellow-500/30 hover:brightness-105 active:scale-95 transition cursor-pointer"
           >
             Get started <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* Creator Attribution Credit */}
-        <div className="pt-4 text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-center gap-2">
+        <div className="pt-2 text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-center gap-2">
           <span>Built for Telugu creators</span>
           <span>•</span>
           <span className="text-yellow-600 dark:text-yellow-400 font-bold">Built by @ssktechy</span>
@@ -201,14 +251,47 @@ export default function DashboardPage({ onSelectProject }) {
 
       {/* Recent Projects Section */}
       <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-zinc-800">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Film className="w-4 h-4 text-yellow-500" />
-            Recent Projects
-          </h3>
-          <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
-            {projects.length} videos
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Film className="w-4 h-4 text-yellow-500" />
+              Recent Projects
+            </h3>
+            <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
+              {projects.length} videos
+            </span>
+          </div>
+
+          {projects.length > 0 && (
+            <div className="flex items-center gap-3">
+              {/* Select All Checkbox Control */}
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/60 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white transition active:scale-95 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-zinc-600 text-yellow-500 focus:ring-yellow-500/40 cursor-pointer"
+                />
+                <span>{isAllSelected ? 'Deselect All' : 'Select All'}</span>
+              </button>
+
+              {/* Bulk Delete Action Button */}
+              {selectedProjectIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/20 transition active:scale-95 cursor-pointer animate-fadeIn"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete ({selectedProjectIds.size}) Selected</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -223,49 +306,102 @@ export default function DashboardPage({ onSelectProject }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => onSelectProject(project.id)}
-                className="group p-4 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:border-yellow-500/50 hover:shadow-lg dark:hover:bg-zinc-850 transition cursor-pointer space-y-3 relative overflow-hidden"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-yellow-500 transition flex-1">
-                    {project.title}
-                  </h4>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <StatusBadge status={project.status} />
-                    <button
-                      onClick={(e) => openRenameModal(e, project)}
-                      title="Rename Project"
-                      className="p-1 rounded-lg hover:bg-yellow-500/10 text-slate-400 hover:text-yellow-400 transition"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => openDeleteModal(e, project)}
-                      title="Delete Project"
-                      className="p-1 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+            {projects.map((project) => {
+              const isSelected = selectedProjectIds.has(project.id);
+              return (
+                <div
+                  key={project.id}
+                  onClick={() => onSelectProject(project.id)}
+                  className={`group p-4 rounded-2xl bg-white dark:bg-zinc-900 border transition-all cursor-pointer space-y-3 relative overflow-hidden active:scale-[0.99] ${
+                    isSelected
+                      ? 'border-yellow-500 dark:border-yellow-400 bg-yellow-500/5 dark:bg-yellow-400/5 shadow-lg shadow-yellow-500/10 ring-2 ring-yellow-500/30'
+                      : 'border-slate-200 dark:border-zinc-800 hover:border-yellow-500/50 hover:shadow-lg dark:hover:bg-zinc-850'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    {/* Checkbox for Multi-select */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => toggleSelectProject(e, project.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4.5 h-4.5 rounded-md border-slate-300 dark:border-zinc-600 text-yellow-500 focus:ring-yellow-500/40 cursor-pointer shrink-0 mt-0.5"
+                      />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate group-hover:text-yellow-500 transition flex-1">
+                        {project.title}
+                      </h4>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <StatusBadge status={project.status} />
+                      <button
+                        onClick={(e) => openRenameModal(e, project)}
+                        title="Rename Project"
+                        className="p-1.5 rounded-lg hover:bg-yellow-500/10 text-slate-400 hover:text-yellow-400 transition"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => openDeleteModal(e, project)}
+                        title="Delete Single Project"
+                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 font-mono pt-2 border-t border-slate-100 dark:border-zinc-800/60">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-slate-400 dark:text-zinc-500" />
+                      {project.duration ? `${Math.round(project.duration)}s` : '--'}
+                    </span>
+                    <span className="text-[11px] text-slate-400 dark:text-zinc-500">
+                      {new Date(project.created_at).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 font-mono pt-2 border-t border-slate-100 dark:border-zinc-800/60">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-slate-400 dark:text-zinc-500" />
-                    {project.duration ? `${Math.round(project.duration)}s` : '--'}
-                  </span>
-                  <span className="text-[11px] text-slate-400 dark:text-zinc-500">
-                    {new Date(project.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Delete Selected Projects?</h3>
+              <p className="text-sm text-slate-500 dark:text-zinc-400">
+                Are you sure you want to permanently delete <span className="text-slate-900 dark:text-white font-extrabold">{selectedProjectIds.size} selected projects</span>? This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={bulkDeleting}
+                className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-semibold text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkDelete}
+                disabled={bulkDeleting}
+                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-lg shadow-red-600/20 disabled:opacity-50 cursor-pointer"
+              >
+                {bulkDeleting ? 'Deleting...' : `Yes, Delete ${selectedProjectIds.size} Projects`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (

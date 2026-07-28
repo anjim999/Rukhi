@@ -74,7 +74,7 @@ export default function Header({ activeProject, onOpenTour }) {
           </div>
           <div>
             <h1 className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              AutoCaptions
+              RoCaps
               <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
                 PRO STUDIO
               </span>

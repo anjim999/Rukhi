@@ -110,7 +110,7 @@ export default function AuthModal() {
               <Sparkles className="w-4 h-4 fill-black" />
             </div>
             <span className="font-bold text-xs uppercase tracking-widest text-yellow-500">
-              AutoCaptions Pro
+              RoCaps Pro
             </span>
           </div>
 

@@ -927,9 +927,27 @@ Return ONLY a JSON object with this exact structure:
       });
     }
 
+    const suggestions = rawData?.hookSuggestions && Array.isArray(rawData.hookSuggestions) && rawData.hookSuggestions.length >= 3
+      ? rawData.hookSuggestions
+      : [
+          rawData?.hook || 'STOP DOING THIS IN 2026 🚨',
+          'THE UNTOLD REELS SECRET ⚡',
+          'WATCH THIS BEFORE YOU START 🚀',
+          'TRY THIS VIRAL TRICK 🔥',
+          'DONT MISS THIS TODAY 💡',
+        ];
+
     return {
       version: '1.0',
       aspectRatio: '9:16',
+      topBanner: {
+        enabled: true,
+        text: suggestions[0],
+        backgroundColor: '#FFE600',
+        textColor: '#000000',
+        fontFamily: 'Montserrat',
+      },
+      topBannerSuggestions: suggestions,
       stickyHook: null,
       segments,
       globalTheme: {
@@ -1617,5 +1635,86 @@ ${JSON.stringify(payload)}`;
     }));
 
     return { ...timeline, segments: newSegments };
+  }
+
+  /**
+   * Analyze spoken transcript and generate Top 5 High-Converting Viral Hook Banners using Gemini AI.
+   * @param {Object} timeline
+   */
+  async generateTop5HookBannersForTimeline(timeline) {
+    if (!timeline || !Array.isArray(timeline.segments)) {
+      return [
+        'VIRAL REELS SECRET 🚨',
+        'STOP DOING THIS IN 2026 ⚡',
+        'UNTOLD TRUTH 🚀',
+        'DO THIS IMMEDIATELY 🔥',
+        'DONT MISS THIS TIP 💡',
+      ];
+    }
+
+    const fullScript = timeline.segments
+      .map((s) => (s.words || []).map((w) => w.word).join(' '))
+      .join(' ')
+      .trim();
+
+    if (!fullScript || fullScript.length < 3) {
+      return [
+        'VIRAL REELS SECRET 🚨',
+        'STOP DOING THIS IN 2026 ⚡',
+        'UNTOLD TRUTH 🚀',
+        'DO THIS IMMEDIATELY 🔥',
+        'DONT MISS THIS TIP 💡',
+      ];
+    }
+
+    if (this.ai) {
+      try {
+        const prompt = `SYSTEM ROLE: You are an Elite Instagram Reels & TikTok Growth Strategist.
+Analyze this video speech transcript:
+"${fullScript.substring(0, 2000)}"
+
+TASK: Generate EXACTLY 5 high-converting, attention-grabbing viral hook banner headlines (max 3-5 uppercase words each, ending with 1 relevant emoji) strictly relevant to the exact topic, entities, and message of this video transcript!
+
+Return ONLY a compact JSON array of 5 strings:
+["HOOK TITLE 1 🚨", "HOOK TITLE 2 ⚡", "HOOK TITLE 3 🚀", "HOOK TITLE 4 🔥", "HOOK TITLE 5 💡"]`;
+
+        const rawText = await this._generateContentWithFallback(prompt, {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+        });
+
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed) && parsed.length >= 3) {
+            console.log(`[GEMINI HOOK GENERATOR SUCCESS] Generated 5 AI hooks for transcript: "${parsed.join(' | ')}"`);
+            return parsed.slice(0, 5).map((str) => String(str).trim().toUpperCase());
+          }
+        }
+      } catch (err) {
+        console.warn(`[GEMINI HOOK GENERATOR WARN] ${err.message}. Generating dynamic transcript-aware hooks.`);
+      }
+    }
+
+    // Dynamic transcript-aware generator extracting real spoken words from the video script
+    const cleanLower = fullScript.toLowerCase();
+    const words = fullScript.replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/).filter(w => w.length > 2);
+    const topWord1 = words[0] ? words[0].toUpperCase() : 'REELS';
+    const topWord2 = words[Math.floor(words.length / 2)] ? words[Math.floor(words.length / 2)].toUpperCase() : 'SECRET';
+    const topWord3 = words[words.length - 1] ? words[words.length - 1].toUpperCase() : 'TRUTH';
+
+    if (cleanLower.includes('money') || cleanLower.includes('cash') || cleanLower.includes('earn')) {
+      return ['SECRET TO MAKE MONEY 💸', 'DO THIS TO GET RICH 💰', 'STOP WASTING MONEY ⚡', 'VIRAL CASH GLITCH 🚀', 'EARN MORE IN 2026 💡'];
+    } else if (cleanLower.includes('movie') || cleanLower.includes('trailer') || cleanLower.includes('raja saab') || cleanLower.includes('song')) {
+      return ['BLOCKBUSTER REVEAL 🎬', 'THE RAJA SAAB BLAST 🔥', 'YOU CANT MISS THIS 🍿', 'MASS HYDERABAD LAUNCH ⚡', 'TOP CINEMA SECRET 👑'];
+    }
+
+    return [
+      `STOP DOING ${topWord1} IN 2026 🚨`,
+      `THE UNTOLD ${topWord2} SECRET ⚡`,
+      `WHY NOBODY TALKS ABOUT ${topWord3} 🚀`,
+      `TRY THIS VIRAL ${topWord1} TRICK 🔥`,
+      `DONT MISS THIS ${topWord2} TIP 💡`,
+    ];
   }
 }

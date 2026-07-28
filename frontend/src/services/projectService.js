@@ -175,3 +175,12 @@ export async function renameProject(projectId, title) {
 export async function deleteProject(projectId) {
   return axiosClient.delete(`/projects/${projectId}`);
 }
+
+/**
+ * AI Generate Top 5 Viral Hook Banners for Project
+ * @param {string} projectId
+ * @param {Object} [timeline]
+ */
+export async function generateHookBannersForProject(projectId, timeline) {
+  return axiosClient.post(`/projects/${projectId}/generate-hooks`, { timeline });
+}

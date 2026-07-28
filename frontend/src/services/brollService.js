@@ -26,6 +26,14 @@ export async function generateScriptOnly({ prompt, targetLanguage = 'te', durati
 }
 
 /**
+ * Search stock Pexels / Pixabay B-Roll media by query string
+ */
+export async function searchStockBroll(query = '') {
+  const data = await axiosClient.get('/broll/search', { params: { query } });
+  return data;
+}
+
+/**
  * Generate a complete AI Faceless Reel Project from a text prompt or approved script ($0 Cost)
  */
 export async function generateFacelessReel({ prompt, scriptText, targetLanguage = 'te', voiceProvider = 'edge', durationSec = 30, visualMode = 'cinematic', aspectRatio = '9:16' }) {

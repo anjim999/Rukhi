@@ -1145,13 +1145,19 @@ function renderTopHookBanner(ctx, topBanner, canvasW, canvasH) {
   if (!topBanner || !topBanner.enabled || !topBanner.text || !topBanner.text.trim()) return;
 
   const text = topBanner.text.trim().toUpperCase();
-  const fontSize = Math.max(18, Math.round(canvasW * 0.045));
+  const scaleRatio = (topBanner.fontSize || 48) / 48;
+  const baseSize = Math.max(16, Math.round(canvasW * 0.045));
+  const fontSize = Math.max(14, Math.round(baseSize * scaleRatio));
+
   const fontFamily = topBanner.fontFamily || 'Montserrat';
+  const fontWeight = topBanner.fontWeight || '900';
   const bgColor = topBanner.backgroundColor || '#FFE600';
   const textColor = topBanner.textColor || '#000000';
+  const textAlign = topBanner.textAlign || 'center';
+  const posPctY = typeof topBanner.positionY === 'number' ? topBanner.positionY : 12;
 
   ctx.save();
-  ctx.font = `900 ${fontSize}px '${fontFamily}', 'Noto Sans Telugu', 'Inter', sans-serif`;
+  ctx.font = `${fontWeight} ${fontSize}px '${fontFamily}', 'Noto Sans Telugu', 'Inter', sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -1159,18 +1165,24 @@ function renderTopHookBanner(ctx, topBanner, canvasW, canvasH) {
   const textW = metrics.width || (fontSize * text.length * 0.6);
   const padX = fontSize * 0.6;
   const padY = fontSize * 0.35;
-  const rectW = textW + padX * 2;
+  const rectW = Math.min(canvasW * 0.92, textW + padX * 2);
   const rectH = fontSize + padY * 2;
 
-  const centerX = canvasW / 2;
-  const centerY = canvasH * 0.12;
+  const centerY = canvasH * (posPctY / 100);
+  let centerX = canvasW / 2;
+
+  if (textAlign === 'left') {
+    centerX = (rectW / 2) + (canvasW * 0.04);
+  } else if (textAlign === 'right') {
+    centerX = canvasW - (rectW / 2) - (canvasW * 0.04);
+  }
 
   const rectX = centerX - rectW / 2;
   const rectY = centerY - rectH / 2;
   const radius = Math.min(16, rectH / 2);
 
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  ctx.shadowBlur = 12;
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = 14;
   ctx.shadowOffsetY = 4;
 
   ctx.fillStyle = bgColor;

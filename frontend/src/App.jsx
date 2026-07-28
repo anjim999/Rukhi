@@ -4,11 +4,14 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import Header from './components/common/Header';
 import AuthModal from './components/common/AuthModal';
 import ProductTour from './components/common/ProductTour';
 import DashboardPage from './pages/DashboardPage';
 import EditorPage from './pages/EditorPage';
+import HomePage from './pages/HomePage';
+import AIToolsPage from './pages/AIToolsPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
@@ -44,13 +47,14 @@ function MainApp() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-300 overflow-x-hidden w-full max-w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-300 w-full">
       <Header onOpenTour={() => setTourOpen(true)} />
 
-      <main className="flex-1 pb-16 sm:pb-12 w-full max-w-full overflow-x-hidden">
+      <main className="flex-1 pb-16 sm:pb-12 w-full">
         <Routes>
-          <Route path="/" element={<DashboardRouteWrapper />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/dashboard" element={<DashboardRouteWrapper />} />
+          <Route path="/ai-studio" element={<AIToolsPage />} />
           <Route path="/editor/:id" element={<EditorRouteWrapper />} />
           <Route path="/generation/:id" element={<EditorRouteWrapper />} />
           <Route path="/login" element={<LoginPage />} />

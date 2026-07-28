@@ -3,10 +3,13 @@ import { getAvailableEngines, generateDubbedAudio, transcribeVoiceAudio } from '
 import { getFullMediaUrl } from '../../services/projectService';
 
 const LANGUAGES = [
-  { code: 'te', label: 'Telugu (తెలుగు)', flag: '🇮🇳' },
-  { code: 'hi', label: 'Hindi (हिंदी)', flag: '🇮🇳' },
-  { code: 'en', label: 'English (US)', flag: '🇺🇸' },
+  { code: 'tenglish', label: 'Tenglish (Telugu + English)', flag: '🇮🇳' },
+  { code: 'te', label: 'Pure Telugu (తెలుగు)', flag: '🇮🇳' },
+  { code: 'hinglish', label: 'Hinglish (Hindi + English)', flag: '🇮🇳' },
+  { code: 'hintel', label: 'Hin-Tel (Hindi + Telugu)', flag: '🇮🇳' },
   { code: 'en-IN', label: 'Indian English', flag: '🇮🇳' },
+  { code: 'en', label: 'Pure English (US)', flag: '🇺🇸' },
+  { code: 'hi', label: 'Pure Hindi (हिंदी)', flag: '🇮🇳' },
   { code: 'ta', label: 'Tamil (தமிழ்)', flag: '🇮🇳' },
   { code: 'kn', label: 'Kannada (కన్నడ)', flag: '🇮🇳' },
 ];

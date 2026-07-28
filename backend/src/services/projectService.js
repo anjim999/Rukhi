@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import fs from 'fs';
 import { query } from '../db/pool.js';
 import { addMediaProcessingJob } from './queue/queueService.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -142,6 +143,30 @@ export async function updateTimeline(projectId, timelineJson) {
 }
 
 export async function deleteProject(projectId) {
+  // Fetch project details first to resolve physical file paths
+  const fetchRes = await query(`SELECT video_url, audio_url FROM projects WHERE id = $1`, [projectId]);
+  if (fetchRes.rows.length > 0) {
+    const { video_url, audio_url } = fetchRes.rows[0];
+
+    // Unlink raw uploaded video file
+    if (video_url) {
+      const filename = path.basename(video_url);
+      const videoPath = path.join(config.uploadDir, filename);
+      if (fs.existsSync(videoPath)) {
+        try { fs.unlinkSync(videoPath); } catch (_e) {}
+      }
+    }
+
+    // Unlink extracted audio WAV file
+    if (audio_url) {
+      const filename = path.basename(audio_url);
+      const audioPath = path.join(config.uploadDir, filename);
+      if (fs.existsSync(audioPath)) {
+        try { fs.unlinkSync(audioPath); } catch (_e) {}
+      }
+    }
+  }
+
   const result = await query(
     `DELETE FROM projects WHERE id = $1`,
     [projectId]
@@ -152,7 +177,7 @@ export async function deleteProject(projectId) {
     return { id: projectId, deleted: true };
   }
 
-  console.log(`[PROJECT] Deleted project ${projectId}`);
+  console.log(`[PROJECT] Deleted project ${projectId} and unlinked physical media files from disk.`);
   return { id: projectId, deleted: true };
 }
 

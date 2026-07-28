@@ -32,3 +32,6 @@ export async function sendEmail({ to, subject, html, text }) {
     return null;
   }
 }
+
+export { sendEmail as sendMail };
+

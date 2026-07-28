@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Sparkles, Video, FolderOpen, Sun, Moon, Menu, X, LogOut, ChevronDown, HelpCircle, Pencil, User, Check, Wand2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import SupportModal from './SupportModal';
+import PricingModal from '../pricing/PricingModal';
+import LogoutConfirmModal from './LogoutConfirmModal';
 
 export default function Header({ activeProject, onOpenTour }) {
   const navigate = useNavigate();
@@ -11,6 +15,9 @@ export default function Header({ activeProject, onOpenTour }) {
   const { user, openAuthModal, logout, updateProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const userDropdownRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -69,13 +76,15 @@ export default function Header({ activeProject, onOpenTour }) {
           onClick={() => setMobileMenuOpen(false)}
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-yellow-500 to-amber-400 flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5 fill-black" />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="rukhi.in logo"
+            className="w-9 h-9 rounded-xl shadow-lg shadow-yellow-500/20 group-hover:scale-105 transition-transform object-cover"
+          />
           <div>
-            <h1 className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              RoCaps
-              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+            <h1 className="font-black text-xl tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              rukhi<span className="text-yellow-500">.in</span>
+              <span className="text-[10px] uppercase font-extrabold tracking-widest px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
                 PRO STUDIO
               </span>
             </h1>
@@ -93,10 +102,10 @@ export default function Header({ activeProject, onOpenTour }) {
 
           <button
             onClick={() => navigate('/')}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
               isHome
-                ? 'bg-slate-200 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800/50'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 font-bold hover:bg-amber-500/20 hover:border-amber-500/50'
+                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
             }`}
           >
             Home
@@ -104,25 +113,25 @@ export default function Header({ activeProject, onOpenTour }) {
 
           <button
             onClick={() => navigate('/dashboard')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
               isDashboard
-                ? 'bg-slate-200 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800/50'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 font-bold hover:bg-amber-500/20 hover:border-amber-500/50'
+                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
             }`}
           >
-            <FolderOpen className="w-4 h-4 text-yellow-500" />
+            <FolderOpen className="w-3.5 h-3.5 text-yellow-500" />
             Studio Dashboard
           </button>
 
           <button
             onClick={() => navigate('/ai-studio')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
               isAITools
-                ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-bold border border-yellow-500/30'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800/50'
+                ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-bold border-yellow-500/30 hover:bg-yellow-500/30'
+                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
             }`}
           >
-            <Wand2 className="w-4 h-4 text-yellow-500" />
+            <Wand2 className="w-3.5 h-3.5 text-yellow-500" />
             <span>AI Studio Hub</span>
             <span className="bg-yellow-500 text-black text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full">NEW</span>
           </button>
@@ -131,10 +140,35 @@ export default function Header({ activeProject, onOpenTour }) {
           <button
             onClick={onOpenTour}
             title="Product Tour"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/50 text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-yellow-500 transition"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-transparent text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
-            <HelpCircle className="w-4 h-4 text-yellow-500" />
+            <HelpCircle className="w-3.5 h-3.5 text-yellow-500" />
             Tour
+          </button>
+
+          {/* Pricing Upgrade Button */}
+          <button
+            onClick={() => setShowPricingModal(true)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
+              showPricingModal
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-500 font-bold hover:bg-amber-500/25'
+                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
+            }`}
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${showPricingModal ? 'fill-amber-500 text-amber-500' : 'text-slate-400 dark:text-zinc-400'}`} />
+            <span>Pricing & Plans</span>
+          </button>
+
+          {/* Customer Support Trigger */}
+          <button
+            onClick={() => setShowSupportModal(true)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
+              showSupportModal
+                ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-400 font-bold hover:bg-indigo-500/25'
+                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/20'
+            }`}
+          >
+            Support
           </button>
 
           {/* Light / Dark Mode Toggle */}
@@ -181,29 +215,74 @@ export default function Header({ activeProject, onOpenTour }) {
                     onClick={() => setUserDropdownOpen(false)}
                   />
                   <div
-                    className="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-xl p-2 z-50 animate-fadeIn"
+                    className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-2.5 z-50 animate-fadeIn space-y-1"
                   >
-                    <div className="px-3 py-2 border-b border-slate-100 dark:border-zinc-800">
-                      <p className="font-bold text-xs text-slate-900 dark:text-white truncate">{user.name}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user.email}</p>
+                    {/* Header info */}
+                    <div className="px-3.5 py-3 border-b border-slate-100 dark:border-zinc-800 space-y-2">
+                      <div>
+                        <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{user.name}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user.email}</p>
+                      </div>
+
+                      {/* Plan & Credits Badge */}
+                      <div className="flex items-center justify-between pt-1">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          user.plan === 'pro'
+                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                            : user.plan === 'starter'
+                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
+                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
+                        }`}>
+                          {user.plan === 'pro' ? '👑 Pro' : user.plan === 'starter' ? '⚡ Starter' : 'Free'}
+                        </span>
+                        <span className="text-[11px] font-bold text-emerald-500">
+                          {user.credits !== undefined ? user.credits : 3} Credits
+                        </span>
+                      </div>
                     </div>
 
-                    <button
-                      onClick={handleOpenProfileModal}
-                      className="w-full mt-1 flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition cursor-pointer"
-                    >
-                      <Pencil className="w-4 h-4 text-yellow-500" />
-                      Change Profile Name
-                    </button>
-
+                    {/* Settings Page Link */}
                     <button
                       onClick={() => {
                         setUserDropdownOpen(false);
-                        logout();
+                        navigate('/settings');
                       }}
-                      className="w-full mt-1 flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-2xl transition cursor-pointer"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <User className="w-4 h-4 text-amber-500" />
+                      Account & Settings
+                    </button>
+
+                    {/* Upgrade Plan trigger */}
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        setShowPricingModal(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/10 rounded-2xl transition cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 fill-amber-500 text-amber-500" />
+                      Upgrade Plan & Credits
+                    </button>
+
+                    {/* Edit Display Name */}
+                    <button
+                      onClick={handleOpenProfileModal}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-2xl transition cursor-pointer"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                      Edit Profile Name
+                    </button>
+
+                    {/* Sign Out */}
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        setShowLogoutModal(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-2xl transition cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
                       Sign Out
                     </button>
                   </div>
@@ -303,13 +382,24 @@ export default function Header({ activeProject, onOpenTour }) {
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    logout();
+                    setShowLogoutModal(true);
                   }}
                   className="px-4 py-2 min-h-[40px] text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-500/20 rounded-xl active:scale-95 transition"
                 >
                   Sign Out
                 </button>
               </div>
+
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/settings');
+                }}
+                className="w-full py-3 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-xs flex items-center justify-center gap-2 transition"
+              >
+                <User className="w-4 h-4 text-amber-500" />
+                <span>Account & Settings</span>
+              </button>
             </div>
           ) : (
             <div className="pt-3 border-t border-slate-200 dark:border-zinc-800 flex items-center gap-3">
@@ -336,8 +426,8 @@ export default function Header({ activeProject, onOpenTour }) {
         </div>
       )}
       {/* Profile Display Name Edit Modal */}
-      {showProfileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      {showProfileModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500">
               <User className="w-7 h-7" />
@@ -378,8 +468,27 @@ export default function Header({ activeProject, onOpenTour }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      <SupportModal
+        isOpen={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
+        user={user}
+      />
+
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        user={user}
+      />
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={logout}
+      />
     </header>
   );
 }

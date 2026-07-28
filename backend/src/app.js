@@ -11,6 +11,9 @@ import projectRoutes from './routes/project.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import dubbingRoutes from './routes/dubbing.routes.js';
 import brollRoutes from './routes/broll.routes.js';
+import supportRoutes from './routes/support.routes.js';
+import adminRoutes from './routes/admin.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
 import { initAutoCleanupDaemon } from './services/media/cleanupService.js';
 
 /**
@@ -96,6 +99,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/dubbing', dubbingRoutes);
 app.use('/api/broll', brollRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error Handling
 app.use(notFoundHandler);

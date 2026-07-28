@@ -16,16 +16,67 @@ export async function initDb() {
       );
     `);
 
-    // Ensure auth columns exist on users table
+    // Ensure auth & subscription columns exist on users table
     try {
       await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`);
       await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255);`);
       await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
       await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);`);
       await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP WITH TIME ZONE;`);
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';`);
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free';`);
+      await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 3;`);
     } catch (colErr) {
-      console.error('[DB INIT] Auth column alteration notice:', colErr.message);
+      console.error('[DB INIT] Auth & Plan column alteration notice:', colErr.message);
     }
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS support_tickets (
+          id UUID PRIMARY KEY,
+          ticket_number VARCHAR(20) UNIQUE NOT NULL,
+          user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) NOT NULL,
+          category VARCHAR(50) NOT NULL DEFAULT 'general',
+          subject VARCHAR(255) NOT NULL,
+          message TEXT NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'open',
+          priority VARCHAR(20) NOT NULL DEFAULT 'medium',
+          admin_reply TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+          id UUID PRIMARY KEY,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          plan VARCHAR(50) NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'active',
+          gateway VARCHAR(20) NOT NULL,
+          gateway_subscription_id VARCHAR(255),
+          gateway_order_id VARCHAR(255),
+          amount NUMERIC(10, 2) DEFAULT 0,
+          currency VARCHAR(10) DEFAULT 'INR',
+          current_period_end TIMESTAMP WITH TIME ZONE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS payments (
+          id UUID PRIMARY KEY,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          amount NUMERIC(10, 2) NOT NULL,
+          currency VARCHAR(10) DEFAULT 'INR',
+          gateway VARCHAR(20) NOT NULL,
+          payment_id VARCHAR(255),
+          order_id VARCHAR(255),
+          status VARCHAR(20) NOT NULL DEFAULT 'pending',
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
     await query(`
       CREATE TABLE IF NOT EXISTS projects (

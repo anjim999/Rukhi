@@ -139,7 +139,7 @@ export async function renderProjectVideoMP4(projectId, quality = '1080p') {
 
   await runFFmpeg([
     '-i', inputVideoPath,
-    '-vf', `scale=trunc(iw/2)*2:trunc(ih/2)*2,subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
+    '-vf', `${spec.scale}:flags=bicubic,subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
     '-r', '30',
     '-c:v', 'libx264',
     '-preset', 'superfast',

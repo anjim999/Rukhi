@@ -21,6 +21,8 @@ import {
 import toast from 'react-hot-toast';
 import FacelessGeneratorModal from '../components/editor/FacelessGeneratorModal';
 import DubbingVoiceModal from '../components/editor/DubbingVoiceModal';
+import DemucsIsolatorModal from '../components/editor/DemucsIsolatorModal';
+import VoiceCloningModal from '../components/editor/VoiceCloningModal';
 import { searchStockBroll } from '../services/brollService';
 import { uploadVideo } from '../services/projectService';
 
@@ -30,6 +32,8 @@ export default function AIToolsPage() {
   // Modals state
   const [facelessModalOpen, setFacelessModalOpen] = useState(false);
   const [dubbingModalOpen, setDubbingModalOpen] = useState(false);
+  const [demucsModalOpen, setDemucsModalOpen] = useState(false);
+  const [voiceCloningModalOpen, setVoiceCloningModalOpen] = useState(false);
 
   // Live Stock B-Roll Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,6 +139,14 @@ export default function AIToolsPage() {
           </button>
 
           <button
+            onClick={() => setVoiceCloningModalOpen(true)}
+            className="px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 font-extrabold text-xs hover:bg-amber-500/20 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Volume2 className="w-4 h-4 text-amber-500" />
+            <span>1-2 Min AI Voice Cloning</span>
+          </button>
+
+          <button
             onClick={() => {
               const el = document.getElementById('broll-search-section');
               el?.scrollIntoView({ behavior: 'smooth' });
@@ -227,17 +239,25 @@ export default function AIToolsPage() {
                 Upload raw video or audio files up to 1GB. Meta Demucs strips background music while Deepgram Nova-2 & Gemini 2.5 Flash transcribe speech with 100% sync precision.
               </p>
             </div>
-            <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 mt-6">
-              <label className="w-full py-3.5 rounded-2xl bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 text-slate-900 dark:text-white font-extrabold text-xs hover:border-yellow-500 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 mt-6 space-y-2">
+              <button
+                onClick={() => setDemucsModalOpen(true)}
+                className="w-full py-3 rounded-2xl bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-xs shadow-md shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Mic className="w-4 h-4" />
+                <span>Open Demucs Isolator</span>
+              </button>
+
+              <label className="w-full py-2.5 rounded-2xl bg-white dark:bg-zinc-800/80 border border-slate-300 dark:border-zinc-700 text-slate-800 dark:text-zinc-200 font-bold text-xs hover:border-yellow-500 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
                 {isUploading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-yellow-500" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-500" />
                     <span>Uploading... ({uploadProgress}%)</span>
                   </>
                 ) : (
                   <>
-                    <Upload className="w-4 h-4 text-yellow-500" />
-                    <span>Upload Media File</span>
+                    <Upload className="w-3.5 h-3.5 text-yellow-500" />
+                    <span>Direct Upload to Studio</span>
                   </>
                 )}
                 <input
@@ -248,6 +268,35 @@ export default function AIToolsPage() {
                   className="hidden"
                 />
               </label>
+            </div>
+          </div>
+
+          {/* TOOL 4: 1-2 MIN AI VOICE CLONING STUDIO */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl hover:border-amber-500/50 transition-all flex flex-col justify-between group">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                  <Volume2 className="w-6 h-6" />
+                </div>
+                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-black uppercase tracking-wider">
+                  XTTS & ElevenLabs
+                </span>
+              </div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                1-2 Min AI Voice Cloning Studio
+              </h3>
+              <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm leading-relaxed">
+                Upload a 1-2 minute voice recording sample in Telugu (తెలుగు), English, or Hindi. XTTS v2 & ElevenLabs clone your exact voice accent, tone, and inflection to speak any text script prompt.
+              </p>
+            </div>
+            <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 mt-6">
+              <button
+                onClick={() => setVoiceCloningModalOpen(true)}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span>Open Voice Cloning Studio</span>
+              </button>
             </div>
           </div>
 
@@ -403,6 +452,18 @@ export default function AIToolsPage() {
           setDubbingModalOpen(false);
           toast.success('Voice Dubbing Audio Generated!');
         }}
+      />
+
+      {/* DEMUCS VOCAL ISOLATOR MODAL */}
+      <DemucsIsolatorModal
+        isOpen={demucsModalOpen}
+        onClose={() => setDemucsModalOpen(false)}
+      />
+
+      {/* 1-2 MIN AI VOICE CLONING MODAL */}
+      <VoiceCloningModal
+        isOpen={voiceCloningModalOpen}
+        onClose={() => setVoiceCloningModalOpen(false)}
       />
     </div>
   );

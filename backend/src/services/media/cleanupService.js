@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import existsFs from 'fs';
 import path from 'path';
 import { config } from '../../config/env.js';
+import { query } from '../../db/pool.js';
 
 const THREE_DAYS_MS = 72 * 60 * 60 * 1000; // 72 Hours in milliseconds
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;  // Run audit every 1 hour
@@ -64,7 +65,29 @@ export async function purgeOldFiles(dirPath, maxAgeMs = THREE_DAYS_MS) {
 }
 
 /**
- * Initializes the background 3-day file cleanup daemon.
+ * Purges database project records and export jobs older than 3 days.
+ */
+export async function purgeOldDatabaseRecords() {
+  try {
+    const projRes = await query(
+      `DELETE FROM projects WHERE created_at < NOW() - INTERVAL '3 days' RETURNING id`
+    );
+    const expRes = await query(
+      `DELETE FROM export_jobs WHERE created_at < NOW() - INTERVAL '3 days' RETURNING id`
+    );
+
+    if (projRes.rowCount > 0 || expRes.rowCount > 0) {
+      console.log(
+        `[3-DAY CLEANUP] Database purge: Removed ${projRes.rowCount} expired project(s) and ${expRes.rowCount} export job(s) older than 3 days.`
+      );
+    }
+  } catch (err) {
+    console.error('[3-DAY CLEANUP] Error executing database purge:', err.message);
+  }
+}
+
+/**
+ * Initializes the background 3-day file & database cleanup daemon.
  */
 export function initAutoCleanupDaemon() {
   const targetDirectories = Array.from(
@@ -78,13 +101,14 @@ export function initAutoCleanupDaemon() {
     ])
   );
 
-  console.log('[3-DAY CLEANUP] Initializing automatic 72-hour file purge daemon...');
+  console.log('[3-DAY CLEANUP] Initializing automatic 72-hour file & database purge daemon...');
 
   // Helper execution function
   const runCleanup = async () => {
     for (const dir of targetDirectories) {
       await purgeOldFiles(dir, THREE_DAYS_MS);
     }
+    await purgeOldDatabaseRecords();
   };
 
   // 1. Run audit immediately on startup

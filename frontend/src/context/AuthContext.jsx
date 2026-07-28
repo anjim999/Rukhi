@@ -129,6 +129,17 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const refreshUser = async () => {
+    if (!token) return;
+    try {
+      const res = await axiosClient.get('/auth/me');
+      if (res.user) setUser(res.user);
+      else if (res.data?.user) setUser(res.data.user);
+    } catch (_err) {
+      console.warn('Failed to refresh user profile');
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('auto_captions_token');
     setToken(null);
@@ -140,6 +151,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         token,
         loading,
         authModalOpen,
@@ -153,6 +165,7 @@ export function AuthProvider({ children }) {
         forgotPassword,
         resetPassword,
         updateProfile,
+        refreshUser,
         logout,
       }}
     >

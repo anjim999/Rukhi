@@ -7,12 +7,17 @@ const execPromise = util.promisify(exec);
 
 // Built-in high quality neural voice defaults for Edge-TTS
 const EDGE_VOICE_MAP = {
-  te: 'te-IN-MohanNeural',       // Telugu Male
+  te: 'te-IN-MohanNeural',           // Telugu Male
   'te-female': 'te-IN-ShrutiNeural', // Telugu Female
-  hi: 'hi-IN-MadhurNeural',      // Hindi Male
+  tenglish: 'te-IN-MohanNeural',     // Tenglish (Telugu + English mix)
+  hi: 'hi-IN-MadhurNeural',          // Hindi Male
   'hi-female': 'hi-IN-SwaraNeural',  // Hindi Female
-  en: 'en-IN-PrabhatNeural',     // Indian English Male
-  'en-us': 'en-US-GuyNeural',    // US English Male
+  hinglish: 'hi-IN-MadhurNeural',     // Hinglish (Hindi + English mix)
+  hintel: 'te-IN-MohanNeural',       // Hin-Tel (Hindi + Telugu mix)
+  en: 'en-IN-PrabhatNeural',         // Indian English Male
+  'en-us': 'en-US-GuyNeural',        // US English Male
+  ta: 'ta-IN-ValluvarNeural',        // Tamil Male
+  kn: 'kn-IN-[#1]Neural',             // Kannada
 };
 
 /**

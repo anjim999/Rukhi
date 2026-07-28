@@ -14,6 +14,8 @@ import AIToolsPage from './pages/AIToolsPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import SettingsPage from './pages/SettingsPage';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '729927667402-k6hksmher65amh9ufkfckd64m3762gja.apps.googleusercontent.com';
 
@@ -59,6 +61,8 @@ function MainApp() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="*" element={<DashboardRouteWrapper />} />
         </Routes>
       </main>

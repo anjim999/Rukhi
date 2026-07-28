@@ -47,6 +47,9 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 * ⚡ **Faceless Short-Form Reel Generator**: End-to-end automated reel creation from topic prompts—generating script, visual scenes, narration audio, and synchronized kinetic captions in 1 click.
 * 🎯 **Smart Aspect-Ratio Auto-Reframer**: Dynamic subject/face tracking to intelligently reframe 16:9 widescreen videos into 9:16 vertical shorts without losing focal points.
 * 🎙️ **Demucs AI Vocal Separator & Deepgram Nova-2 Engine**: Meta `htdemucs` vocal isolation pipeline combined with Deepgram Nova-2 (diarization, filler words) and Gemini 2.5 Flash for 98%+ speech-to-text accuracy even on heavy BGM audio.
+* 💳 **Razorpay & Stripe Subscription Engine**: Multi-tier monetization (Starter Creator ₹199, Pro Unlimited ₹399) with authentic REST API order creation (`/api/v1/orders`), HMAC-SHA256 signature verification, and automated credit allocation.
+* 🛡️ **Admin Oversight & Analytics Dashboard**: Real-time user metrics, transaction history, system usage tracking, and platform moderation endpoints.
+* 💬 **Embedded User Support & Helpdesk**: Integrated support ticket modal, direct email delivery (`smtp.hostinger.com`), and user issue tracking.
 * 📱 **Zero-Hallucination Social Media Post Generator**: Generates Instagram captions, viral hashtags, and YouTube Shorts titles/descriptions tailored to the video content.
 
 ---

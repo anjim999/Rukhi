@@ -94,10 +94,13 @@ export function initAutoCleanupDaemon() {
     new Set([
       config.uploadDir,
       config.outputDir,
+      config.tempDir,
+      path.resolve(process.cwd(), 'storage/uploads'),
+      path.resolve(process.cwd(), 'storage/exports'),
+      path.resolve(process.cwd(), 'storage/processed'),
+      path.resolve(process.cwd(), 'storage/temp'),
       path.resolve(process.cwd(), 'uploads'),
       path.resolve(process.cwd(), 'outputs'),
-      path.resolve(process.cwd(), 'backend/uploads'),
-      path.resolve(process.cwd(), 'backend/outputs'),
     ])
   );
 

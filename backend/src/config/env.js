@@ -26,6 +26,8 @@ export const config = {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
   },
-  uploadDir: process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads'),
-  outputDir: process.env.OUTPUT_DIR || path.resolve(process.cwd(), 'outputs'),
+  uploadDir: process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'storage/uploads'),
+  outputDir: process.env.OUTPUT_DIR || path.resolve(process.cwd(), 'storage/exports'),
+  tempDir: process.env.TEMP_DIR || path.resolve(process.cwd(), 'storage/temp'),
+  logsDir: process.env.LOGS_DIR || path.resolve(process.cwd(), 'storage/logs'),
 };

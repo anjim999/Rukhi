@@ -108,6 +108,27 @@ To deliver a commercial-grade user experience where captions align flawlessly wi
 
 ---
 
+## 📁 Storage Hierarchy & Auto-Cleanup Engine
+
+Auto Captions AI uses an organized, isolated `storage/` directory hierarchy paired with an automated 72-hour background file cleanup daemon:
+
+```
+backend/storage/
+├── uploads/     # Raw video/audio files uploaded by creators
+├── processed/   # Transcribed & audio-isolated intermediate tracks
+├── exports/     # Final rendered 60FPS MP4 videos ready for download
+├── temp/        # Temporary FFmpeg processing chunk buffers
+└── logs/        # System audit & background worker logs
+```
+
+### 🧹 Automatic 72-Hour Media Purge Daemon ([cleanupService.js](file:///home/anji/Documents/auto_captions/backend/src/services/media/cleanupService.js))
+- **Hourly System Audit**: Scans `storage/` subdirectories every hour.
+- **Modification-Time Filtering**: Safely deletes files older than 72 hours (`stats.mtimeMs > 3 days`). Active uploads and fresh files are untouched.
+- **Per-File Exception Handling**: Silently catches locked or in-use files, ensuring zero server crashes.
+- **Browser Caching (`maxAge: '7d'`)**: Serves media with HTTP byte-range support (`Accept-Ranges: bytes`) for smooth video scrubbing.
+
+---
+
 ## 📁 Repository Structure
 
 ```

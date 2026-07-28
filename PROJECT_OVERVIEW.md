@@ -295,8 +295,12 @@ auto_captions/
 │   │   │   └── mediaWorker.js         # BullMQ consumer for async video processing
 │   │   └── utils/
 │   │       └── fileUpload.js          # Multer disk storage setup
-│   ├── uploads/                       # Raw uploaded video files
-│   └── outputs/                       # Exported rendered MP4 videos
+│   └── storage/                       # Storage directory (Auto-purged every 72h)
+│       ├── uploads/                   # Raw uploaded video files
+│       ├── exports/                   # Exported rendered 60FPS MP4 videos
+│       ├── processed/                 # Intermediate audio-isolated tracks
+│       ├── temp/                      # FFmpeg processing chunk buffers
+│       └── logs/                      # System audit & background worker logs
 │
 └── frontend/
     ├── src/

@@ -11,6 +11,7 @@ import projectRoutes from './routes/project.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import dubbingRoutes from './routes/dubbing.routes.js';
 import brollRoutes from './routes/broll.routes.js';
+import { initAutoCleanupDaemon } from './services/media/cleanupService.js';
 
 /**
  * Express Application
@@ -114,6 +115,9 @@ const server = app.listen(config.port, async () => {
 
   // Auto-init DB tables
   await initDb();
+
+  // Start 3-Day File Auto-Cleanup Daemon
+  initAutoCleanupDaemon();
 });
 
 // Graceful Shutdown

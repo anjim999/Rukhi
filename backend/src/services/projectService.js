@@ -6,7 +6,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { PROJECT_STATUSES } from '../../../shared/constants/timeline.js';
 import { config } from '../config/env.js';
 
-export async function createProject({ userId, title, videoPath, targetStyle = 'auto' }) {
+export async function createProject({ userId, title, videoPath, targetStyle = 'auto', applyEmojis = false }) {
   const id = uuidv4();
 
   // Store browser-accessible URL path, not filesystem absolute path
@@ -27,9 +27,10 @@ export async function createProject({ userId, title, videoPath, targetStyle = 'a
     videoPath,
     userId,
     targetStyle,
+    applyEmojis,
   });
 
-  console.log(`[PROJECT] Created project ${project.id} (Style: ${targetStyle}) and queued for processing.`);
+  console.log(`[PROJECT] Created project ${project.id} (Style: ${targetStyle}, Emojis: ${applyEmojis}) and queued for processing.`);
   return project;
 }
 

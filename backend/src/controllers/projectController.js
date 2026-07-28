@@ -24,6 +24,7 @@ export async function uploadAndCreateProject(req, res, next) {
 
     const title = req.body.title || req.file.originalname;
     const targetStyle = req.body.targetStyle || 'auto';
+    const applyEmojis = req.body.applyEmojis === 'true' || req.body.applyEmojis === true;
 
     // Extract user ID from JWT auth token, header, or body, falling back to default dev user
     const userId = req.user?.id || req.body.userId || req.headers['x-user-id'] || '00000000-0000-0000-0000-000000000001';
@@ -33,6 +34,7 @@ export async function uploadAndCreateProject(req, res, next) {
       title,
       videoPath: req.file.path,
       targetStyle,
+      applyEmojis,
     });
 
     res.status(201).json({
@@ -265,6 +267,40 @@ export async function translateProjectTimeline(req, res, next) {
       success: true,
       data: { timeline: translatedTimeline },
       message: `Captions translated to ${targetStyle} style successfully.`,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function autoAddEmojisToProjectTimeline(req, res, next) {
+  try {
+    const { timeline } = req.body || {};
+    let sourceTimeline = timeline;
+
+    if (!sourceTimeline && req.params.id && req.params.id !== 'temp') {
+      const project = await projectService.getProjectById(req.params.id);
+      sourceTimeline = project ? (project.timeline || await projectService.getTimeline(req.params.id)) : null;
+    }
+
+    if (!sourceTimeline) {
+      throw new AppError('No caption timeline found.', 400);
+    }
+
+    const { GeminiCaptionDirector } = await import('../services/llm/GeminiCaptionDirector.js');
+    const director = new GeminiCaptionDirector();
+    const updatedTimeline = await director.autoAddViralEmojisToTimeline(sourceTimeline);
+
+    if (req.params.id && req.params.id !== 'temp') {
+      try {
+        await projectService.updateProjectTimeline(req.params.id, updatedTimeline);
+      } catch (_saveErr) {}
+    }
+
+    res.json({
+      success: true,
+      data: { timeline: updatedTimeline },
+      message: 'AI viral emojis applied successfully!',
     });
   } catch (err) {
     next(err);

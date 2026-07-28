@@ -13,13 +13,18 @@ import {
 import CanvasVideoPlayer from '../components/editor/CanvasVideoPlayer';
 import PresetSidebar from '../components/editor/PresetSidebar';
 import TimelineEditor from '../components/editor/TimelineEditor';
-import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X, Pause, Play, XCircle, Pencil, Undo2, Redo2 } from 'lucide-react';
+import DubbingVoiceModal from '../components/editor/DubbingVoiceModal';
+import FacelessGeneratorModal from '../components/editor/FacelessGeneratorModal';
+import { autoDetectBRollOverlays } from '../services/brollService';
+import { Loader2, Save, ArrowLeft, AlertTriangle, Check, Share2, Copy, Sparkles, X, Pause, Play, XCircle, Pencil, Undo2, Redo2, Video, Wand2 } from 'lucide-react';
 
 const TARGET_STYLE_MAP = {
   english: '🇬🇧 Pure English',
   telugu: '🇮🇳 Pure Telugu',
   hindi: '🇮🇳 Pure Hindi',
   tel_eng: '⚡ Tanglish',
+  hin_eng: '⚡ Hinglish',
+  hin_tel: '🌶️ Hin + Tel',
   chatting: '💬 Spoken Chat',
   genz: '🔥 Gen-Z Viral',
   dramatic: '🎬 Dramatic Cinema',
@@ -140,12 +145,45 @@ export default function EditorPage({ projectId, onBack }) {
     }
   }, [isEditingTitle]);
 
-  // Social Post Generator Modal state
+  // Social Post & AI Media Modal state
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const [showDubbingModal, setShowDubbingModal] = useState(false);
+  const [showFacelessModal, setShowFacelessModal] = useState(false);
+  const [brollLoading, setBrollLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
   const [socialData, setSocialData] = useState(null);
   const [copiedIg, setCopiedIg] = useState(false);
   const [copiedYt, setCopiedYt] = useState(false);
+
+  const handleAutoInsertBRoll = async () => {
+    if (!timeline || !timeline.segments || timeline.segments.length === 0) {
+      toast.error('No timeline segments found to generate B-Roll!');
+      return;
+    }
+
+    setBrollLoading(true);
+    toast.loading('🎬 AI is generating photorealistic AI video clips via Hunyuan & LTX models...', { id: 'broll-toast' });
+
+    try {
+      const res = await autoDetectBRollOverlays(timeline.segments);
+      if (res?.success && Array.isArray(res.overlays)) {
+        const updatedTimeline = {
+          ...timeline,
+          brollOverlays: res.overlays,
+        };
+        setTimeline(updatedTimeline);
+        await updateProjectTimeline(projectId, updatedTimeline);
+        toast.success(`✨ Added ${res.overlays.length} HD B-Roll overlays (${res.keywords.slice(0, 3).join(', ')})!`, { id: 'broll-toast' });
+      } else {
+        toast.error('No matching B-Roll clips found', { id: 'broll-toast' });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(`B-Roll error: ${err.message}`, { id: 'broll-toast' });
+    } finally {
+      setBrollLoading(false);
+    }
+  };
 
   const handleSaveTitle = async () => {
     if (!titleInput.trim() || titleInput.trim() === project?.title) {
@@ -169,6 +207,9 @@ export default function EditorPage({ projectId, onBack }) {
 
   useEffect(() => {
     let intervalId;
+    setTimeline(null);
+    setLoading(true);
+    setError(null);
 
     const fetchProjectAndTimeline = async () => {
       try {
@@ -181,6 +222,9 @@ export default function EditorPage({ projectId, onBack }) {
             const timeRes = await getProjectTimeline(projectId);
             if (timeRes.success) {
               setTimeline(timeRes.data);
+              if (timeRes.data?.aspectRatio) {
+                setAspectRatio(timeRes.data.aspectRatio);
+              }
               setLoading(false);
               if (intervalId) clearInterval(intervalId);
             }
@@ -507,7 +551,10 @@ export default function EditorPage({ projectId, onBack }) {
         <div className="flex items-center gap-2 flex-wrap justify-center my-1 sm:my-0">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl border border-slate-200 dark:border-zinc-700/80">
             <button
-              onClick={() => setAspectRatio('9:16')}
+              onClick={() => {
+                setAspectRatio('9:16');
+                setTimeline(prev => prev ? { ...prev, aspectRatio: '9:16' } : prev);
+              }}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
                 aspectRatio === '9:16'
                   ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
@@ -517,7 +564,10 @@ export default function EditorPage({ projectId, onBack }) {
               📱 9:16 Reel
             </button>
             <button
-              onClick={() => setAspectRatio('16:9')}
+              onClick={() => {
+                setAspectRatio('16:9');
+                setTimeline(prev => prev ? { ...prev, aspectRatio: '16:9' } : prev);
+              }}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
                 aspectRatio === '16:9'
                   ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
@@ -527,7 +577,10 @@ export default function EditorPage({ projectId, onBack }) {
               🎬 16:9 Wide
             </button>
             <button
-              onClick={() => setAspectRatio('1:1')}
+              onClick={() => {
+                setAspectRatio('1:1');
+                setTimeline(prev => prev ? { ...prev, aspectRatio: '1:1' } : prev);
+              }}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
                 aspectRatio === '1:1'
                   ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
@@ -536,12 +589,44 @@ export default function EditorPage({ projectId, onBack }) {
             >
               ⏹️ 1:1 Square
             </button>
+            <button
+              onClick={() => {
+                setAspectRatio('4:5');
+                setTimeline(prev => prev ? { ...prev, aspectRatio: '4:5' } : prev);
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
+                aspectRatio === '4:5'
+                  ? 'bg-yellow-500 dark:bg-yellow-400 text-black shadow-sm'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              📱 4:5 Feed
+            </button>
           </div>
 
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold text-xs">
             <span className="opacity-75">Script Mode:</span>
             <span>{TARGET_STYLE_MAP[timeline?.targetStyle] || TARGET_STYLE_MAP['auto']}</span>
           </div>
+
+          {timeline?.dubbedAudioUrl && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-300 font-bold text-xs shadow-sm">
+              <span className="animate-pulse">🎙️</span>
+              <span>Dubbed Audio: {(timeline.dubbedLanguage || 'DUB').toUpperCase()} ({timeline.dubbedProvider || 'edge'})</span>
+              <button
+                onClick={async () => {
+                  const resetTimeline = { ...timeline, dubbedAudioUrl: null, dubbedLanguage: null, dubbedProvider: null };
+                  setTimeline(resetTimeline);
+                  await updateProjectTimeline(projectId, resetTimeline);
+                  toast.success('Switched back to original video audio track!');
+                }}
+                className="text-[10px] bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-200 px-1.5 py-0.5 rounded transition cursor-pointer ml-1"
+                title="Remove dubbed audio and restore original video sound"
+              >
+                Reset Original
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right: Undo/Redo, AI Pack, Save */}
@@ -565,6 +650,41 @@ export default function EditorPage({ projectId, onBack }) {
               <Redo2 className="w-4 h-4" />
             </button>
           </div>
+
+          {/* AI B-Roll Auto-Inserter Button */}
+          <button
+            onClick={handleAutoInsertBRoll}
+            disabled={brollLoading}
+            className="px-3 sm:px-4 py-2 min-h-[38px] rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Auto-detect visual keywords & insert AI video clips ($0 API)"
+          >
+            {brollLoading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+            ) : (
+              <Video className="w-3.5 h-3.5 shrink-0 text-emerald-300" />
+            )}
+            <span>AI B-Roll</span>
+          </button>
+
+          {/* Prompt-to-Video Faceless Reel Button */}
+          <button
+            onClick={() => setShowFacelessModal(true)}
+            className="px-3 sm:px-4 py-2 min-h-[38px] rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-amber-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
+            title="Generate Faceless Reel (Script + Voice + Background + Subtitles) from Text Prompt"
+          >
+            <Wand2 className="w-3.5 h-3.5 shrink-0 text-black" />
+            <span>Faceless Reel</span>
+          </button>
+
+          {/* Dubbing & Voice Studio Button */}
+          <button
+            onClick={() => setShowDubbingModal(true)}
+            className="px-3 sm:px-4 py-2 min-h-[38px] rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-500 hover:to-purple-400 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
+            title="Open AI Voice Studio & Dubbing"
+          >
+            <span className="text-sm">🎙️</span>
+            <span>Dubbing Studio</span>
+          </button>
 
           {/* AI Post Generator Button */}
           <button
@@ -786,6 +906,80 @@ export default function EditorPage({ projectId, onBack }) {
           </div>
         </div>
       )}
+
+      {/* AI Voice Studio & Dubbing Modal */}
+      <DubbingVoiceModal
+        isOpen={showDubbingModal}
+        onClose={() => setShowDubbingModal(false)}
+        initialText={timeline?.segments?.map((s) => s.text).join(' ') || ''}
+        projectId={projectId}
+        onApplyAudio={async (dubbingResult) => {
+          if (!timeline) return;
+
+          let updatedSegments = timeline.segments;
+          if (dubbingResult.scriptText && Array.isArray(timeline.segments) && timeline.segments.length > 0) {
+            const words = dubbingResult.scriptText.split(/\s+/).filter(Boolean);
+            if (words.length > 0) {
+              const totalSegs = timeline.segments.length;
+              const baseWordsPerSeg = Math.floor(words.length / totalSegs);
+              const remainder = words.length % totalSegs;
+
+              let wordIndex = 0;
+              updatedSegments = timeline.segments.map((seg, idx) => {
+                const count = baseWordsPerSeg + (idx < remainder ? 1 : 0);
+                const segWords = count > 0 && wordIndex < words.length 
+                  ? words.slice(wordIndex, wordIndex + count) 
+                  : (wordIndex < words.length ? [words[wordIndex++]] : [words[words.length - 1]]);
+
+                if (count > 0 && wordIndex < words.length) {
+                  wordIndex += count;
+                }
+
+                const segText = segWords.join(' ');
+                const segDuration = Math.max(0.5, seg.end - seg.start);
+                const wordDuration = segDuration / Math.max(1, segWords.length);
+
+                return {
+                  ...seg,
+                  text: segText,
+                  words: segWords.map((w, wIdx) => ({
+                    id: `w_${seg.id}_${wIdx}_${Date.now()}`,
+                    word: w,
+                    start: Number((seg.start + wIdx * wordDuration).toFixed(2)),
+                    end: Number((seg.start + (wIdx + 1) * wordDuration).toFixed(2)),
+                  })),
+                };
+              });
+            }
+          }
+
+          const updatedTimeline = {
+            ...timeline,
+            segments: updatedSegments,
+            dubbedAudioUrl: dubbingResult.audioUrl,
+            dubbedLanguage: dubbingResult.language,
+            dubbedProvider: dubbingResult.provider,
+          };
+          setTimeline(updatedTimeline);
+
+          try {
+            await updateProjectTimeline(projectId, updatedTimeline);
+            toast.success(`✨ Dubbed voiceover (${dubbingResult.language.toUpperCase()}) applied & saved to timeline!`);
+          } catch (err) {
+            console.error(err);
+            toast.error(`Applied locally, but DB save failed: ${err.message}`);
+          }
+        }}
+      />
+
+      {/* Prompt-to-Video Faceless Reel Generator Modal */}
+      <FacelessGeneratorModal
+        isOpen={showFacelessModal}
+        onClose={() => setShowFacelessModal(false)}
+        onProjectCreated={(newProjectId) => {
+          window.location.href = `/editor/${newProjectId}`;
+        }}
+      />
     </div>
   );
 }

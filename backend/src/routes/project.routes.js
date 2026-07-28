@@ -17,6 +17,7 @@ import {
   resumeProject,
   renameProject,
   translateProjectTimeline,
+  autoAddEmojisToProjectTimeline,
 } from '../controllers/projectController.js';
 
 const router = Router();
@@ -31,6 +32,7 @@ router.get('/:id/timeline', getProjectTimeline);
 router.put('/:id/timeline', updateProjectTimeline);
 router.patch('/:id/rename', renameProject);
 router.post('/:id/translate', translateProjectTimeline);
+router.post('/:id/auto-emojis', autoAddEmojisToProjectTimeline);
 router.post('/:id/social-pack', getSocialPostPack);
 router.post('/:id/export', exportProjectVideo);
 router.get('/:id/download', downloadExportedVideo);

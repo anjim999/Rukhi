@@ -30,8 +30,8 @@ async function isProjectCancelled(projectId) {
 }
 
 async function processMediaJob(job) {
-  const { projectId, videoPath, userId, targetStyle = 'auto' } = job.data;
-  console.log(`[WORKER] Starting media processing for project ${projectId} (Style: ${targetStyle})`);
+  const { projectId, videoPath, userId, targetStyle = 'auto', applyEmojis = false } = job.data;
+  console.log(`[WORKER] Starting media processing for project ${projectId} (Style: ${targetStyle}, Emojis: ${applyEmojis})`);
 
   try {
     if (await isProjectCancelled(projectId)) {
@@ -170,6 +170,7 @@ async function processMediaJob(job) {
         aspectRatio: '9:16',
         presetName: 'bold_viral',
         targetStyle,
+        applyEmojis,
       });
       timeline = result.timeline;
     } else {
@@ -184,6 +185,7 @@ async function processMediaJob(job) {
         aspectRatio: '9:16',
         presetName: 'bold_viral',
         targetStyle,
+        applyEmojis,
       });
       timeline = result.timeline;
     }

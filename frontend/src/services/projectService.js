@@ -10,7 +10,7 @@ export function getFullMediaUrl(url) {
     return url;
   }
   const rawApiBase = import.meta.env.VITE_API_BASE_URL;
-  const serverRoot = rawApiBase ? rawApiBase.replace(/\/api\/?$/, '') : '';
+  const serverRoot = rawApiBase ? rawApiBase.replace(/\/api\/?$/, '') : 'http://localhost:5000';
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
   return `${serverRoot}${cleanPath}`;
 }
@@ -26,7 +26,11 @@ export function getFullMediaUrl(url) {
  * @param {string} [title] - Optional title
  * @param {Function} [onProgress] - Upload progress callback (0-100)
  */
-export async function uploadVideo(file, title, targetStyle = 'auto', onProgress) {
+export async function uploadVideo(file, title, targetStyle = 'auto', applyEmojis = false, onProgress) {
+  if (typeof applyEmojis === 'function') {
+    onProgress = applyEmojis;
+    applyEmojis = false;
+  }
   if (typeof targetStyle === 'function') {
     onProgress = targetStyle;
     targetStyle = 'auto';
@@ -36,6 +40,7 @@ export async function uploadVideo(file, title, targetStyle = 'auto', onProgress)
   formData.append('video', file);
   if (title) formData.append('title', title);
   if (targetStyle) formData.append('targetStyle', targetStyle);
+  if (applyEmojis) formData.append('applyEmojis', 'true');
 
   return axiosClient.post('/projects/upload', formData, {
     headers: {
@@ -91,6 +96,15 @@ export async function updateProjectTimeline(projectId, timeline) {
  */
 export async function translateProjectTimeline(projectId, targetStyle = 'english', timeline = null) {
   return axiosClient.post(`/projects/${projectId}/translate`, { targetStyle, timeline });
+}
+
+/**
+ * Trigger AI Viral Emoji enhancement on active caption timeline.
+ * @param {string} projectId
+ * @param {Object} [timeline]
+ */
+export async function autoAddEmojisToTimeline(projectId, timeline = null) {
+  return axiosClient.post(`/projects/${projectId}/auto-emojis`, { timeline });
 }
 
 /**

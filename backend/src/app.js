@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
+import path from 'path';
 import { config } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { closePool } from './db/pool.js';
@@ -8,6 +9,8 @@ import { initDb } from './db/initDb.js';
 import { closeQueues } from './services/queue/queueService.js';
 import projectRoutes from './routes/project.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import dubbingRoutes from './routes/dubbing.routes.js';
+import brollRoutes from './routes/broll.routes.js';
 
 /**
  * Express Application
@@ -34,38 +37,40 @@ if (config.nodeEnv === 'development') {
   });
 }
 
-if (!fs.existsSync(config.uploadDir)) {
-  fs.mkdirSync(config.uploadDir, { recursive: true });
-}
-if (!fs.existsSync(config.outputDir)) {
-  fs.mkdirSync(config.outputDir, { recursive: true });
-}
-app.use('/uploads', cors(), (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Accept-Ranges', 'bytes');
-  express.static(config.uploadDir, {
+const staticUploadDirs = Array.from(new Set([
+  config.uploadDir,
+  path.resolve(process.cwd(), 'uploads'),
+  path.resolve(process.cwd(), 'backend/uploads'),
+]));
+
+const staticOutputDirs = Array.from(new Set([
+  config.outputDir,
+  path.resolve(process.cwd(), 'outputs'),
+  path.resolve(process.cwd(), 'backend/outputs'),
+]));
+
+staticUploadDirs.forEach((dir) => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  app.use('/uploads', cors(), express.static(dir, {
     maxAge: '7d',
     setHeaders: (res) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('Accept-Ranges', 'bytes');
     },
-  })(req, res, next);
+  }));
 });
 
-app.use('/outputs', cors(), (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Accept-Ranges', 'bytes');
-  express.static(config.outputDir, {
+staticOutputDirs.forEach((dir) => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  app.use('/outputs', cors(), express.static(dir, {
     maxAge: '7d',
     setHeaders: (res) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('Accept-Ranges', 'bytes');
     },
-  })(req, res, next);
+  }));
 });
 
 // Root Health Probes (Render / Load Balancer Pings)
@@ -88,6 +93,8 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/dubbing', dubbingRoutes);
+app.use('/api/broll', brollRoutes);
 
 // Error Handling
 app.use(notFoundHandler);

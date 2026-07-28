@@ -23,8 +23,12 @@
 Auto Captions AI solves the core problem content creators face: **manually writing, timing, and styling subtitles takes hours**. 
 
 Auto Captions AI automates this entire pipeline in seconds:
-- **Instant AI Transcription & Script Formatting**: Transcribes raw speech in native Telugu, Hindi, English, Teluglish (Telugu in Roman script), Hinglish, and code-switched audio.
+- **Instant AI Transcription & Script Formatting**: Transcribes raw speech in native Telugu, Hindi, English, Teluglish (Telugu in Roman script), Hinglish, and code-switched audio using Meta Demucs vocal separator, Deepgram Nova-2, and Gemini 2.5 Flash.
 - **Submagic Kinetic Subtitles**: Dynamically styles words into animated blocks with active-word solid box highlights, neon glow effects, emojis, and sound effects.
+- **AI B-Roll Engine & Stock Visual Overlays**: Contextual keyword extraction for automated stock video/image search (Pexels / Pixabay) and overlay clip placement on the timeline.
+- **Multilingual Voice Dubbing Studio**: AI speech translation and neural voice synthesis in Telugu, Hindi, English, Spanish, French, and other languages.
+- **Faceless Short-Form Video Generator**: Topic-to-video workflow generating scripts, stock visual footage, audio narration, and synchronized captions automatically.
+- **Smart Aspect-Ratio Auto-Reframer**: Dynamic subject tracking for reframing 16:9 widescreen videos into 9:16 vertical reels.
 - **Broadcast-Grade Ripple Sync & Nudge Engine**: Auto-shifts downstream captions upon timestamp edits, with quick 1-click nudge controls (`-0.5s`, `-0.1s`, `+0.1s`, `+0.5s`) and global offset delay tool.
 - **70+ Multilingual Typography & Visual Font Studio Modal**: Full Google Fonts suite for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.
 - **Un-Clipped React Portal Dropdowns (`CustomFontSelect.jsx`)**: Floating `rounded-2xl` popovers rendered on `document.body` with built-in font search bar.
@@ -221,7 +225,16 @@ CREATE TABLE IF NOT EXISTS captions (
 - `PUT /api/projects/:id/timeline` — Body: `{ timeline }` $\to$ Save timeline edits.
 - `POST /api/projects/:id/export` — Trigger server-side 60FPS FFmpeg MP4 render.
 - `POST /api/projects/:id/social-pack` — Generate AI Instagram & YouTube post captions.
+- `POST /api/projects/faceless/generate` — Body: `{ prompt, niche, duration }` $\to$ Instant automated faceless reel creation.
 - `DELETE /api/projects/:id` — Remove project and clean up files.
+
+### B-Roll Routes (`/api/broll`)
+- `GET /api/broll/search` — Search Pexels/Pixabay stock media by query string.
+- `POST /api/broll/auto-insert` — Body: `{ projectId, captions }` $\to$ AI auto-inserts matching video/image overlays.
+
+### Voice Dubbing Routes (`/api/dubbing`)
+- `GET /api/dubbing/voices` — Fetch list of available TTS voices and clone models.
+- `POST /api/dubbing/synthesize` — Body: `{ text, targetLanguage, voiceId }` $\to$ Generate multi-lingual AI voice dubbing track.
 
 ---
 
@@ -240,7 +253,9 @@ auto_captions/
 │   │   ├── config/env.js              # Environment variable loader
 │   │   ├── controllers/
 │   │   │   ├── authController.js      # Auth request handlers
-│   │   │   └── projectController.js   # Upload, Timeline & Export handlers
+│   │   │   ├── projectController.js   # Upload, Timeline & Export handlers
+│   │   │   ├── brollController.js     # Stock B-Roll search & auto-insertion
+│   │   │   └── dubbingController.js   # Voice dubbing & multi-lingual speech synthesis
 │   │   ├── db/
 │   │   │   ├── pool.js                # PostgreSQL connection pool
 │   │   │   ├── initDb.js              # Database initialization & migrations
@@ -250,7 +265,9 @@ auto_captions/
 │   │   │   └── errorHandler.js        # Centralized error handler
 │   │   ├── routes/
 │   │   │   ├── auth.routes.js         # Auth routes
-│   │   │   └── project.routes.js      # Project routes
+│   │   │   ├── project.routes.js      # Project routes
+│   │   │   ├── broll.routes.js        # B-Roll stock media routes
+│   │   │   └── dubbing.routes.js      # Voice dubbing routes
 │   │   ├── services/
 │   │   │   ├── authService.js         # User registration & password hashing
 │   │   │   ├── projectService.js      # Project CRUD operations
@@ -259,11 +276,18 @@ auto_captions/
 │   │   │   │   └── GeminiCaptionDirector.js # Gemini STT & Sync Engine
 │   │   │   ├── media/
 │   │   │   │   ├── ffmpegService.js   # FFmpeg audio extractor & prober
-│   │   │   │   └── exportService.js   # 60FPS FFmpeg MP4 Exporter
+│   │   │   │   ├── exportService.js   # 60FPS FFmpeg MP4 Exporter
+│   │   │   │   ├── brollService.js    # Stock Pexels/Pixabay visual search
+│   │   │   │   ├── dubbingService.js  # Voice clone & dubbing synthesizer
+│   │   │   │   ├── reframerService.js # Dynamic widescreen-to-vertical auto-reframer
+│   │   │   │   ├── videoGeneratorService.js # Faceless video generator
+│   │   │   │   └── tts/               # TTS providers
 │   │   │   ├── queue/
 │   │   │   │   └── queueService.js    # BullMQ Producer configuration
 │   │   │   └── stt/
 │   │   │       ├── STTProvider.js     # Abstract STT provider
+│   │   │       ├── DeepgramProvider.js # Deepgram Nova-2 STT provider
+│   │   │       ├── demucsService.js   # Meta htdemucs AI vocal separator
 │   │   │       └── LocalWhisperProvider.js # Whisper CLI fallback provider
 │   │   ├── workers/
 │   │   │   └── mediaWorker.js         # BullMQ consumer for async video processing
@@ -278,17 +302,19 @@ auto_captions/
     │   │   └── axiosClient.js         # Axios client with JWT interceptors
     │   ├── components/
     │   │   ├── common/                # Header, AuthModal, ProductTour
-    │   │   ├── editor/                # CanvasVideoPlayer & TimelineEditor
+    │   │   ├── editor/                # CanvasVideoPlayer, TimelineEditor, DubbingVoiceModal & FacelessGeneratorModal
     │   │   └── upload/                # VideoDropzone component
     │   ├── context/
     │   │   ├── AuthContext.jsx        # Global authentication state
     │   │   └── ThemeContext.jsx       # Theme state provider
     │   ├── pages/
-    │   │   ├── DashboardPage.jsx      # Projects dashboard
+    │   │   ├── DashboardPage.jsx      # Projects dashboard & Faceless Generator launcher
     │   │   └── auth/                  # LoginPage & RegisterPage
     │   ├── services/
     │   │   ├── authService.js         # Auth API calls
-    │   │   └── projectService.js      # Project & Export API calls
+    │   │   ├── projectService.js      # Project & Export API calls
+    │   │   ├── brollService.js        # Stock media B-Roll API calls
+    │   │   └── dubbingService.js      # Voice synthesis & dubbing API calls
     │   ├── App.jsx                    # React Router configuration
     │   ├── main.jsx                   # React root mount point
     │   └── index.css                  # Tailwind styles & design tokens

@@ -117,7 +117,7 @@ export class DeepgramProvider extends STTProvider {
     const startTime = Date.now();
     const fileBuffer = fs.readFileSync(audioPath);
 
-    // 1. Direct explicit language request or targetStyle language hint
+    // 1. Direct explicit language request
     if (options.language) {
       try {
         const result = await this._callDeepgramAPI(fileBuffer, this.model, options.language);
@@ -131,30 +131,22 @@ export class DeepgramProvider extends STTProvider {
       }
     }
 
-    // 1b. Probe Telugu model if targetStyle is Telugu / Tanglish / Chatting
-    if (options.targetStyle === 'telugu' || options.targetStyle === 'tel_eng' || options.targetStyle === 'chatting') {
-      try {
-        const teResult = await this._callDeepgramAPI(fileBuffer, 'nova-3', 'te');
-        if (teResult && teResult.words.length >= 2) {
-          const latencyMs = Date.now() - startTime;
-          console.log(`[DEEPGRAM STT] ✅ Complete (Telugu acoustic model) in ${latencyMs}ms — ${teResult.words.length} words.`);
-          return teResult;
-        }
-      } catch (_teErr) {}
-    }
-
     // 2. Default Nova-3 Auto-detect
     try {
       const result = await this._callDeepgramAPI(fileBuffer, this.model, null, true);
       if (result && result.words.length >= 2) {
-        // Check if auto-detect misidentified regional speech as Hindi ('hi') when audio has Devanagari text
+        // ALWAYS check if auto-detect misidentified South Indian / regional speech as Hindi ('hi')
+        // regardless of targetStyle!
         const hasHindiScript = /[\u0900-\u097F]/.test(result.fullText || '');
-        if (hasHindiScript && (!options.targetStyle || options.targetStyle === 'auto' || options.targetStyle === 'english')) {
-          // Probe Telugu ('te') model to ensure auto-detect didn't misclassify South Indian Telugu speech
+        const isAutoDetectedHindi = result.language === 'hi' || hasHindiScript;
+
+        if (isAutoDetectedHindi) {
+          console.log(`[DEEPGRAM AUTO-PROBE] Auto-detect returned Hindi script/language. Probing Telugu ('te') acoustic model to verify source language...`);
           try {
             const teResult = await this._callDeepgramAPI(fileBuffer, 'nova-3', 'te');
-            if (teResult && teResult.words.length >= Math.floor(result.words.length * 0.7)) {
-              console.log(`[DEEPGRAM AUTO-PROBE] 💡 Corrected auto-detect: Telugu acoustic model matched ${teResult.words.length} words.`);
+            if (teResult && teResult.words.length >= Math.floor(result.words.length * 0.6)) {
+              console.log(`[DEEPGRAM AUTO-PROBE] 💡 Corrected auto-detect misclassification: Audio is authentic Telugu speech (${teResult.words.length} words).`);
+              teResult.language = 'te';
               return teResult;
             }
           } catch (_e) {}
@@ -169,7 +161,7 @@ export class DeepgramProvider extends STTProvider {
     }
 
     // 3. Smart Multi-Language Auto-Probe for Regional & Code-Switched Speech
-    console.log(`[DEEPGRAM AUTO-PROBE] Auto-detection returned 0 words. Probing regional acoustic models (Telugu / Hindi / English / Hosted Whisper)...`);
+    console.log(`[DEEPGRAM AUTO-PROBE] Auto-detection returned insufficient words. Probing regional acoustic models (Telugu / Hindi / English)...`);
 
     const candidateLangs = ['te', 'hi', 'en'];
     for (const lang of candidateLangs) {

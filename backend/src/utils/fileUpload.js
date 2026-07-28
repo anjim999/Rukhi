@@ -11,49 +11,25 @@ if (!fs.existsSync(config.uploadDir)) {
 }
 
 /**
- * Allowed MIME types for video uploads.
- * @readonly
- */
-const ALLOWED_MIME_TYPES = Object.freeze([
-  'video/mp4',
-  'video/webm',
-  'video/quicktime',   // .mov
-  'video/x-msvideo',   // .avi
-  'video/x-matroska',  // .mkv
-]);
-
-/**
- * Maximum file size: 1 GB (1024 MB)
- * Supports high-bitrate 4K 60FPS raw video clips up to 1GB.
- */
-const MAX_FILE_SIZE = 1024 * 1024 * 1024;
-
-/**
  * Multer disk storage configuration.
- * - Saves files to config.uploadDir
- * - Renames files with UUID to avoid collisions
  */
 const storage = multer.diskStorage({
   destination(_req, _file, cb) {
     cb(null, config.uploadDir);
   },
   filename(_req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
+    const ext = path.extname(file.originalname).toLowerCase() || '.webm';
     const uniqueName = `${uuidv4()}${ext}`;
     cb(null, uniqueName);
   },
 });
 
-/**
- * File filter — reject unsupported MIME types early.
- */
-function fileFilter(_req, file, cb) {
+function videoFilter(_req, file, cb) {
   const mime = (file.mimetype || '').toLowerCase();
   const ext = path.extname(file.originalname || '').toLowerCase();
   if (
     mime.startsWith('video/') ||
     mime === 'application/octet-stream' ||
-    ALLOWED_MIME_TYPES.some((t) => mime.includes(t)) ||
     ['.mp4', '.webm', '.mov', '.avi', '.mkv'].includes(ext)
   ) {
     cb(null, true);
@@ -62,18 +38,28 @@ function fileFilter(_req, file, cb) {
   }
 }
 
-/**
- * Configured multer instance for single video file uploads.
- *
- * Usage in a route:
- *   import { uploadVideo } from '../utils/fileUpload.js';
- *   router.post('/upload', uploadVideo.single('video'), controller);
- */
+function audioFilter(_req, file, cb) {
+  const mime = (file.mimetype || '').toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (
+    mime.startsWith('audio/') ||
+    mime === 'application/octet-stream' ||
+    ['.webm', '.wav', '.mp3', '.ogg', '.m4a', '.aac'].includes(ext)
+  ) {
+    cb(null, true);
+  } else {
+    cb(new AppError(`Unsupported audio type: ${file.mimetype}.`, 400));
+  }
+}
+
 export const uploadVideo = multer({
   storage,
-  fileFilter,
-  limits: {
-    fileSize: MAX_FILE_SIZE,
-    files: 1,
-  },
+  fileFilter: videoFilter,
+  limits: { fileSize: 1024 * 1024 * 1024 },
+});
+
+export const uploadAudio = multer({
+  storage,
+  fileFilter: audioFilter,
+  limits: { fileSize: 100 * 1024 * 1024 },
 });

@@ -134,6 +134,7 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
   const [showGlobalShift, setShowGlobalShift] = useState(false);
   const [activeSegmentFontPickerId, setActiveSegmentFontPickerId] = useState(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isAddingEmojis, setIsAddingEmojis] = useState(false);
   const [showTranslateMenu, setShowTranslateMenu] = useState(false);
   const [showTopBannerMenu, setShowTopBannerMenu] = useState(false);
 
@@ -159,6 +160,27 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
       toast.error(`Translation failed: ${err.message}`, { id: 'translate-toast' });
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  const handleAddEmojis = async () => {
+    if (!timeline || !timeline.segments || isAddingEmojis) return;
+    setIsAddingEmojis(true);
+    toast.loading('AI is attaching viral emojis to your captions...', { id: 'emoji-toast' });
+    try {
+      const activeId = projectId || timeline.projectId || 'temp';
+      const res = await autoAddEmojisToTimeline(activeId, timeline);
+      if (res && res.data && res.data.timeline) {
+        setTimeline(res.data.timeline);
+        toast.success('Viral emojis attached to your captions!', { id: 'emoji-toast' });
+      } else {
+        toast.error('Emoji response empty.', { id: 'emoji-toast' });
+      }
+    } catch (err) {
+      console.error('[EMOJI ERROR]', err);
+      toast.error(`Failed to add emojis: ${err.message}`, { id: 'emoji-toast' });
+    } finally {
+      setIsAddingEmojis(false);
     }
   };
 
@@ -670,7 +692,18 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
               </button>
 
               {/* 1-Click AI Translation Dropdown */}
-              <div className="relative">
+              <div className="relative flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isAddingEmojis || isTranslating}
+                  onClick={handleAddEmojis}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 transition shadow-sm shadow-amber-500/10 cursor-pointer disabled:opacity-50"
+                  title="Attach top-tier viral emojis to key words in your captions"
+                >
+                  {isAddingEmojis ? <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" /> : <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
+                  <span>{isAddingEmojis ? 'Adding...' : '✨ Add Emojis'}</span>
+                </button>
+
                 <button
                   type="button"
                   disabled={isTranslating}
@@ -715,6 +748,20 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
                       className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
                     >
                       <span>⚡</span> Tanglish (Telugu + Eng)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTranslate('hin_eng')}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>⚡</span> Hinglish (Hindi + Eng)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTranslate('hin_tel')}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>🌶️</span> Hin + Tel (Hindi + Telugu)
                     </button>
                     <button
                       type="button"

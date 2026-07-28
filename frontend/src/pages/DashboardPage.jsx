@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import VideoDropzone from '../components/upload/VideoDropzone';
+import FacelessGeneratorModal from '../components/editor/FacelessGeneratorModal';
 import { listProjects, deleteProject, renameProject } from '../services/projectService';
-import { Film, Clock, Sparkles, Volume2, CheckCircle2, ArrowRight, Trash2, Pencil, Check, X } from 'lucide-react';
+import { Film, Clock, Sparkles, Volume2, CheckCircle2, ArrowRight, Trash2, Pencil, Check, X, Video, Wand2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const TELUGU_CAPTION_WORDS = [
@@ -19,6 +20,7 @@ export default function DashboardPage({ onSelectProject }) {
   const [activeWordIndex, setActiveWordIndex] = useState(3);
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
   const [deleting, setDeleting] = useState(false);
+  const [showFacelessModal, setShowFacelessModal] = useState(false);
 
   // Multi-select state
   const [selectedProjectIds, setSelectedProjectIds] = useState(new Set());
@@ -217,7 +219,15 @@ export default function DashboardPage({ onSelectProject }) {
         </div>
 
         {/* CTA Actions */}
-        <div className="flex items-center justify-center gap-4 pt-1 sm:pt-2">
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-1 sm:pt-2">
+          <button
+            onClick={() => setShowFacelessModal(true)}
+            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-purple-600/30 hover:brightness-110 active:scale-95 transition cursor-pointer border border-purple-400/30"
+          >
+            <Video className="w-4 h-4 text-purple-200" />
+            <span>🎬 Generate AI Faceless Reel ($0)</span>
+          </button>
+
           <button
             onClick={() => {
               if (!user) {
@@ -228,7 +238,7 @@ export default function DashboardPage({ onSelectProject }) {
             }}
             className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-xs sm:text-sm shadow-xl shadow-yellow-500/30 hover:brightness-105 active:scale-95 transition cursor-pointer"
           >
-            Get started <ArrowRight className="w-4 h-4" />
+            Upload Video <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -258,11 +268,20 @@ export default function DashboardPage({ onSelectProject }) {
               Recent Projects
             </h3>
             <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
-              {projects.length} videos
+              ({projects.length})
             </span>
           </div>
 
-          {projects.length > 0 && (
+          <button
+            onClick={() => setShowFacelessModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 hover:text-white hover:bg-purple-500/25 text-xs font-bold transition cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>+ New AI Faceless Reel</span>
+          </button>
+        </div>
+
+        {projects.length > 0 && (
             <div className="flex items-center gap-3">
               {/* Select All Checkbox Control */}
               <button
@@ -292,7 +311,6 @@ export default function DashboardPage({ onSelectProject }) {
               )}
             </div>
           )}
-        </div>
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -483,6 +501,15 @@ export default function DashboardPage({ onSelectProject }) {
           </div>
         </div>
       )}
+
+      {/* Faceless AI Generator Modal */}
+      <FacelessGeneratorModal
+        isOpen={showFacelessModal}
+        onClose={() => setShowFacelessModal(false)}
+        onProjectCreated={(projectId) => {
+          onSelectProject(projectId);
+        }}
+      />
 
     </div>
   );

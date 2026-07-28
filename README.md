@@ -42,6 +42,11 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
   - **Strict Server-Delivered MP4 Downloads**: Eliminates raw unformatted browser blob downloads, guaranteeing every exported file is a server-processed H.264 MP4 file.
 * ⚡ **Instant Network Cancellation & Single-Pass Progress**: Built-in `AbortController` integration across all HTTP requests and timers, paired with a deterministic single-pass progress pipeline (`0% ➔ 100%`).
 * 🚀 **Async Processing Architecture**: BullMQ and Redis queues offload media probing, audio extraction, and AI processing to background worker threads.
+* 🎥 **AI B-Roll Engine & Stock Visual Overlays**: Keyword extraction from caption script to automatically search stock video/image libraries (Pexels / Pixabay) and insert overlay clips onto the canvas timeline with precise start/end timing.
+* 🗣️ **Multilingual AI Voice Dubbing Studio**: Translates original audio into regional & global languages (Telugu, Hindi, English, Spanish, French) and synthesizes multi-track neural voice dubs with pitch & speed controls.
+* ⚡ **Faceless Short-Form Reel Generator**: End-to-end automated reel creation from topic prompts—generating script, visual scenes, narration audio, and synchronized kinetic captions in 1 click.
+* 🎯 **Smart Aspect-Ratio Auto-Reframer**: Dynamic subject/face tracking to intelligently reframe 16:9 widescreen videos into 9:16 vertical shorts without losing focal points.
+* 🎙️ **Demucs AI Vocal Separator & Deepgram Nova-2 Engine**: Meta `htdemucs` vocal isolation pipeline combined with Deepgram Nova-2 (diarization, filler words) and Gemini 2.5 Flash for 98%+ speech-to-text accuracy even on heavy BGM audio.
 * 📱 **Zero-Hallucination Social Media Post Generator**: Generates Instagram captions, viral hashtags, and YouTube Shorts titles/descriptions tailored to the video content.
 
 ---
@@ -108,15 +113,16 @@ auto_captions/
 │   ├── src/
 │   │   ├── app.js                  # Express API server entrypoint
 │   │   ├── config/env.js           # Environment configurations
-│   │   ├── controllers/            # API Controllers (Project, Caption, Export)
+│   │   ├── controllers/            # API Controllers (Project, Caption, B-Roll, Dubbing)
 │   │   ├── db/                     # PostgreSQL pool & migrations
 │   │   ├── middleware/             # Auth & centralized error handling
-│   │   ├── routes/                 # Express API routes
+│   │   ├── routes/                 # Express API routes (project, broll, dubbing)
 │   │   ├── services/               # Core Services
 │   │   │   ├── llm/                # Gemini Caption Director & Prompts
-│   │   │   ├── media/              # FFmpeg service & 60FPS MP4 Exporter
+│   │   │   ├── media/              # FFmpeg, Exporter, B-Roll, Dubbing, Reframer & Video Generator
+│   │   │   │   └── tts/            # Text-to-Speech synthesis providers
 │   │   │   ├── queue/              # BullMQ queue producers
-│   │   │   └── stt/                # Local Whisper & STT Providers
+│   │   │   └── stt/                # Gemini, Deepgram Nova-2, Demucs & Whisper STT Engine
 │   │   ├── workers/                # BullMQ media processing consumer
 │   │   └── utils/                  # File uploads & helpers
 │   ├── uploads/                    # Raw uploaded videos
@@ -125,10 +131,10 @@ auto_captions/
 ├── frontend/                       # React 18 + Vite + Tailwind CSS App
 │   ├── src/
 │   │   ├── components/             # Common & Editor UI Components
-│   │   │   └── editor/             # CanvasVideoPlayer & TimelineEditor
+│   │   │   └── editor/             # CanvasVideoPlayer, TimelineEditor, DubbingVoiceModal & FacelessGeneratorModal
 │   │   ├── context/                # Auth & Theme Context
 │   │   ├── pages/                  # Auth, Dashboard, Editor Pages
-│   │   └── services/               # Axios API Clients
+│   │   └── services/               # Axios API Clients (Project, B-Roll, Dubbing)
 │   └── index.css                   # Tailwind & Design tokens
 │
 └── shared/                         # Shared constants across FE/BE
@@ -232,6 +238,11 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 | `PUT` | `/api/projects/:id/timeline` | Save edited caption timeline |
 | `POST` | `/api/projects/:id/export` | Render 60FPS MP4 video with FFmpeg |
 | `POST` | `/api/projects/:id/social-pack` | Generate AI Instagram & YouTube post captions |
+| `POST` | `/api/projects/faceless/generate` | Generate faceless reel from prompt |
+| `GET` | `/api/broll/search` | Search Pexels/Pixabay stock media by query |
+| `POST` | `/api/broll/auto-insert` | AI auto-insert B-Roll overlays into project |
+| `GET` | `/api/dubbing/voices` | Get available TTS and voice clone models |
+| `POST` | `/api/dubbing/synthesize` | Generate multi-lingual AI voice dubbing track |
 | `DELETE`| `/api/projects/:id` | Delete project and associated media files |
 
 ---

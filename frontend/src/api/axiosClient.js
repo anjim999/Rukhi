@@ -8,7 +8,7 @@ const baseURL = rawBaseUrl ? (rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1)
 
 const axiosClient = axios.create({
   baseURL,
-  timeout: 60000,
+  timeout: 180000, // 3 minutes default timeout for heavy AI media synthesis
   headers: {
     'Content-Type': 'application/json',
   },

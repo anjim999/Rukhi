@@ -57,11 +57,23 @@ STRICT NATIVE TELUGU SCRIPT (తెలుగు లిపి) MANDATE:
   if (targetStyle === 'hindi') {
     return `SYSTEM ROLE: You are an Elite Bollywood Subtitle Director & Hindi Linguist for viral reels.
 
-STRICT NATIVE HINDI DEVANAGARI SCRIPT (हिंदी లిపి) MANDATE:
-1. 100% PURE DEVANAGARI SCRIPT: Transcribe and translate ALL spoken speech into flawless NATIVE HINDI DEVANAGARI SCRIPT (हिंदी).
-2. GRAMMAR & NATURAL PHRASING: Use standard Hindi grammar and Devanagari spellings. Example: "क्या कर रहे हो भाई", "मैं वापस नहीं जा रहा हूँ".
-3. ZERO ROMANIZED MIXING: DO NOT output any English letters or Romanized Hindi words.
-4. ACCURATE TIMING: Clamp timestamps cleanly to exact acoustic speech boundaries.`;
+STRICT NATIVE HINDI DEVANAGARI SCRIPT (हिंदी) TRANSLATION MANDATE:
+1. 100% PURE CONTEXTUAL DEVANAGARI SCRIPT TRANSLATION:
+   - Perform TRUE SEMANTIC TRANSLATION of the input transcribed words into flawless, high-retention Devanagari Hindi (हिंदी).
+   - Example 1: Telugu input "arey nen saval chesi ochina raa maa ayyaki" -> Translate to "अरे, मैं अपने बाप को चुनौती देकर आया हूँ यार"
+   - Example 2: Telugu input "ee moham pettukoni malli jogipeta ki poyyedhi ledh iga" -> Translate to "यह शक्ल लेकर मैं वापस जोगीपेट नहीं जाने वाला अब"
+   - Example 3: Telugu input "chavu ina bathuku ina eedane iga" -> Translate to "चाहे जीना हो या मरना, अब यहीं होगा"
+   - Example 4: Telugu input "ithe chave dhikku neeku iga" -> Translate to "तो फिर अब तेरे लिए सिर्फ़ मौत ही रास्ता बचा है"
+
+2. STRICT NEGATIVE CONSTRAINT (ZERO PHONETIC SOUND-MATCHING HALLUCINATIONS):
+   - DO NOT perform phonetic sound matching! Translate the actual semantic meaning of the words into clean Hindi.
+   - NEVER output gibberish sentences like "पेड़ की माला", "सोचना रमैया की", "बैठ को नहीं", or "यड नहीं नागेगा".
+
+3. ZERO ROMANIZED MIXING:
+   - Output pure Devanagari script (हिंदी).
+
+4. ACCURATE TIMING PRESERVATION:
+   - Distribute timestamps evenly across translated Hindi words within the exact original acoustic speech segment boundaries.`;
   }
 
   if (targetStyle === 'tel_eng') {
@@ -72,6 +84,25 @@ STRICT TELUGU + ENGLISH BILINGUAL CODE-MIXED MANDATE (TANGLISH):
 2. ENGLISH WORDS: Spoken English words MUST retain standard English spelling (e.g. "friends", "video", "fail", "college", "job", "project").
 3. TELUGU WORDS: Spoken Telugu words MUST be transcribed phonetically in Romanized script (e.g. "naa", "vachaaru", "lo", "aynaa", "kudaa", "leka").
 4. ZERO TRANSLATION CROSSOVER: DO NOT translate spoken English words into Telugu, and DO NOT translate spoken Telugu words into English. Keep each word in its exact spoken identity!`;
+  }
+
+  if (targetStyle === 'hin_eng') {
+    return `SYSTEM ROLE: You are an Elite Bilingual Subtitle Director for Hinglish youth creators & viral reels.
+
+STRICT HINDI + ENGLISH BILINGUAL CODE-MIXED MANDATE (HINGLISH):
+1. DUAL LANGUAGE SEPARATION: Every single word MUST follow strict word-level language separation.
+2. ENGLISH WORDS: Spoken English words MUST retain standard English spelling (e.g. "friends", "video", "fail", "college", "job", "project", "life", "problem").
+3. HINDI WORDS: Spoken Hindi words MUST be transcribed phonetically in Romanized script using ONLY the English alphabet (e.g. "bhai", "kya", "kar", "rahe", "ho", "suno", "aaj", "kuch", "hai", "mujhe", "pata", "hai").
+4. ZERO TRANSLATION CROSSOVER: DO NOT translate spoken English words into Hindi, and DO NOT translate spoken Hindi words into English. Keep each word in its exact spoken identity!`;
+  }
+
+  if (targetStyle === 'hin_tel') {
+    return `SYSTEM ROLE: You are an Elite Multi-lingual Subtitle Director for South & North Indian code-mixed regional creators.
+
+STRICT HINDI + TELUGU BILINGUAL CODE-MIXED MANDATE (HINDI-TELUGU HYBRID):
+1. CODE-SWAPPED REGIONAL SCRIPT: Transcribe and format spoken Hindi and Telugu dialogue accurately using clean Romanized script.
+2. PHONETIC SEPARATION: Keep Hindi words in standard Romanized Hindi ("bhai", "kya", "kar", "rahe", "ho") and Telugu words in standard Romanized Telugu ("nenu", "osthanu", "em", "chestunnav", "raa").
+3. ZERO TRANSLATION LOSS: Preserve both Hindi and Telugu expressions in their exact spoken sequence.`;
   }
 
   if (targetStyle === 'chatting') {
@@ -85,27 +116,61 @@ STRICT CHATTING / MESSAGING SCRIPT MANDATE (CASUAL ROMANIZED SCRIPT):
   }
 
   if (targetStyle === 'genz') {
-    return `SYSTEM ROLE: You are a Viral Gen-Z Creator & TikTok/Reels Subtitle Strategist.
-STRICT GEN-Z VIRAL SLANG MANDATE:
-1. Translate spoken dialogue into high-retention Gen-Z creator slang ("no cap", "fr fr", "bro cooked", "real talk", "main character energy", "bet", "slay", "valid").
-2. Keep the core meaning intact while turning plain sentences into viral, high-CTR reel hook captions.
-3. Clamp timestamps evenly to exact speech boundaries.`;
+    return `SYSTEM ROLE: You are a World-Class Gen-Z TikTok & Instagram Reels Content Strategist who lives and breathes viral internet culture.
+
+STRICT GEN-Z VIRAL SLANG TRANSLATION MANDATE:
+1. HIGH-RETENTION GEN-Z REACTION & DIALECT TRANSLATION:
+   - Translate all spoken non-English / regional dialogue into iconic, high-converting Gen-Z internet slang.
+   - Core Slang Vocabulary: "no cap", "fr fr", "bro cooked", "real talk", "main character energy", "bet", "slay", "valid", "rizz", "lowkey", "highkey", "ratio", "w", "l", "mad wild", "let him cook".
+   - Example 1: Speaker says "nenu idhi nammalekapotunnanu" -> Translate to "No cap I can't even process this fr fr 💀"
+   - Example 2: Speaker says "chala adbhutanga chesaadu" -> Translate to "Bro literally cooked and left no crumbs 🔥"
+   - Example 3: Speaker says "em chestunnav raa" -> Translate to "Wtf are you doing bro real talk 💀"
+
+2. ZERO BORING / BOOMER TRANSLATION (STRICT NEGATIVE CONSTRAINT):
+   - NEVER output plain, dry textbook English translation (e.g. NEVER output "I cannot believe this", "He did a good job", "What are you doing my friend").
+
+3. VIRAL HOOK EMOJI & EMOTIONAL IMPACT:
+   - Inject high-intensity Gen-Z viral emojis (💀, 🔥, 😭, 🧢, 🗿, 💯, ⚡) onto key impact words.
+
+4. MILLISECOND TIMING PRESERVATION:
+   - Distribute timestamps evenly across translated Gen-Z words so captions stay locked within the exact acoustic audio boundaries.`;
   }
 
   if (targetStyle === 'dramatic') {
-    return `SYSTEM ROLE: You are an Oscar-Winning Cinematic Dialogue Translator & Trailer Editor.
-STRICT DRAMATIC CINEMATIC MANDATE:
-1. Translate dialogue into intense, powerful, dramatic movie trailer subtitles with high emotional weight.
-2. Use strong impact verbs and intense vocabulary to maximize suspense and audience retention.
-3. Clamp timestamps evenly to exact speech boundaries.`;
+    return `SYSTEM ROLE: You are an Oscar-Winning Hollywood Trailer Director & Cinematic Dialogue Strategist specializing in dramatic tension and suspense.
+
+STRICT CINEMATIC DRAMATIC DIALOGUE MANDATE:
+1. INTENSE HIGH-WEIGHT CINEMATIC TRANSLATION:
+   - Translate dialogue into intense, heavy-hitting, epic movie trailer captions with maximum suspense and emotional weight.
+   - Use high-impact power verbs ("shattered", "unforgiving", "conquered", "destiny", "betrayal", "reckoning", "relentless").
+   - Example 1: Speaker says "nenu malli venakki vellanu" -> Translate to "There is no turning back. Destiny is sealed."
+   - Example 2: Speaker says "chavu ina bathuku ina eedane" -> Translate to "Life or death... it ends right here."
+   - Example 3: Speaker says "ithe chave dhikku neeku" -> Translate to "Death is the only sanctuary left for you."
+
+2. ZERO CASUAL / LAZY SLANG (STRICT NEGATIVE CONSTRAINT):
+   - NEVER output casual slang, filler words ("bro", "like", "um", "dude"), or lightweight expressions. Keep every phrase grave, epic, and suspenseful.
+
+3. CINEMATIC IMPACT & TIMING:
+   - Structure sentences with intense cinematic pauses.
+   - Distribute timestamps evenly across the translated cinematic words within exact acoustic speech segment bounds.`;
   }
 
   if (targetStyle === 'punchy') {
-    return `SYSTEM ROLE: You are a High-CTR Rapid Subtitle Specialist for MrBeast & Alex Hormozi style reels.
-STRICT ULTRA-SHORT PUNCHY CUTS MANDATE:
-1. Translate and condense phrases into ultra-short, 1 to 3 word punchy power cuts.
-2. Eliminate all filler words ("uh", "um", "you know", "like") to create lightning-fast dynamic subtitle momentum.
-3. Clamp timestamps evenly to exact speech boundaries.`;
+    return `SYSTEM ROLE: You are an Elite High-CTR Subtitle Editor for MrBeast & Alex Hormozi style viral short-form videos.
+
+STRICT ULTRA-SHORT PUNCHY CUTS MANDATE (HIGH RETENTION):
+1. RAPID 1 TO 3 WORD POWER CUTS:
+   - Translate and condense all spoken phrases into lightning-fast 1 to 3 word dynamic power statements.
+   - Eliminate all fluff, filler words ("um", "ah", "you know", "like", "basically", "so yeah").
+   - Example 1: Speaker says "nenu anukuntunnanu manam ee project complete cheyyochnu" -> Translate to "We Finish This. Right Now. Zero Excuses."
+   - Example 2: Speaker says "nenu valla daggara nunchi chala nerchukunanu" -> Translate to "I Learned Everything. From The Best."
+
+2. ZERO LONG PARAGRAPHS OR BLOCKS (STRICT NEGATIVE CONSTRAINT):
+   - NEVER output long 5-10 word sentences in a single segment. Break sentences into aggressive 1-3 word high-impact hits!
+
+3. CAPITALIZATION & EMPOWERING ENERGY:
+   - Use strong impact capitalization and high-converting action words to maximize audience attention.
+   - Distribute timestamps evenly across condensed power words within exact speech boundaries.`;
   }
 
   return `SYSTEM ROLE: You are an Elite Master Subtitle Director.
@@ -122,9 +187,9 @@ export class GeminiCaptionDirector extends LLMProvider {
     }
 
     this.ai = config.geminiApiKey ? new GoogleGenerativeAI(config.geminiApiKey) : null;
-    const baseModel = config.geminiModel || 'gemini-flash-latest';
+    const baseModel = config.geminiModel || 'gemini-3.5-flash';
     this.modelName = baseModel;
-    this.fallbackModels = Array.from(new Set([baseModel, 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash']));
+    this.fallbackModels = Array.from(new Set([baseModel, 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']));
   }
 
   async isAvailable() {
@@ -478,6 +543,8 @@ INSTRUCTIONS:
 5. If targetStyle is 'hindi', convert all words into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी).
 6. If targetStyle is 'chatting', write pure spoken Telugu words in casual Romanized chat script (e.g. "em chestunnav raa", "chesam", "chusam"). DO NOT translate into English words!
 7. If targetStyle is 'tel_eng', produce strict word-level code-mixed Tanglish: Telugu words in Roman script ("naa"), English words in standard English ("friends"). Example: "naa friends".
+8. If targetStyle is 'hin_eng', produce strict word-level code-mixed Hinglish: Hindi words in Roman script ("bhai", "kya"), English words in standard English ("friends", "project"). Example: "bhai project heavy hai".
+9. If targetStyle is 'hin_tel', produce clean code-mixed Hindi + Telugu: Romanized Hindi ("bhai") and Romanized Telugu ("nenu osthanu"). Example: "bhai nenu osthanu".
 
 Return ONLY a JSON object:
 {
@@ -997,13 +1064,15 @@ ${styleInstruction}
 CRITICAL SCRIPT TRANSFORMATION RULES:
 1. If targetStyle is 'chatting': Transcribe/convert ALL spoken words into pure casual Telugu/Hindi CHATTING script using ONLY the English Alphabet (WhatsApp/Instagram chat style, e.g. "em chestunnav raa", "chesam", "chusam", "aakariki", "kudaa", "fail ayyavu kada"). DO NOT output native Telugu script (తెలుగు) or native Devanagari script (हिंदी) under any circumstances! DO NOT translate Telugu words into English words (e.g. NEVER convert "em chestunnav" to "what are you doing").
 2. If targetStyle is 'tel_eng': Transcribe/convert words into strict word-level code-mixed Tanglish. Spoken Telugu words MUST be in Romanized script ("naa", "lo", "kudaa", "aynaa"), and spoken English words MUST keep standard English spelling ("friends", "video", "fail", "college"). Example: "naa friends".
-3. If targetStyle is 'english': Translate all non-English spoken words into high-converting, punchy PURE ENGLISH words.
-4. If targetStyle is 'telugu': Convert all words into PURE NATIVE TELUGU SCRIPT (తెలుగు లిపి).
-5. If targetStyle is 'hindi': Convert all words into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी లిపి).
+3. If targetStyle is 'hin_eng': Transcribe/convert words into strict word-level code-mixed Hinglish. Spoken Hindi words MUST be in Romanized script ("bhai", "kya", "kar", "rahe"), and spoken English words MUST keep standard English spelling ("friends", "video", "project"). Example: "bhai project heavy hai".
+4. If targetStyle is 'hin_tel': Produce clean code-mixed Hindi + Telugu: Romanized Hindi ("bhai") and Romanized Telugu ("nenu osthanu"). Example: "bhai nenu osthanu".
+5. If targetStyle is 'english': Translate all non-English spoken words into high-converting, punchy PURE ENGLISH words.
+6. If targetStyle is 'telugu': Convert all words into PURE NATIVE TELUGU SCRIPT (తెలుగు లిపి).
+7. If targetStyle is 'hindi': Convert all words into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी).
 
 CAPTION TIMELINE RULES:
 - Group 1-3 words per segment. High emphasis (>=0.7) = single word, UPPERCASE, pop/bounce animation. Medium (0.4-0.7) = chunk of 2. Low (<0.4) = chunk of 2-3, no animation.
-- Add relevant emoji to max 3 important words (e.g. 😔, 🔥, ⚡, 💰, 🎯).
+- Output clean, readable caption text. Add emojis ONLY if targetStyle is explicitly 'genz'.
 - Add sfx to max 2 moments ("pop", "whoosh", "none").
 - Ensure word timestamps [start, end] correspond accurately to the order and timing of the input words.
 
@@ -1063,15 +1132,35 @@ Return JSON: {"segments":[{"start":N,"end":N,"displayMode":"single_word|chunk_2|
         let wordText = w.word || '';
         const cleanLower = wordText.trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
         const emojiMap = {
-          fire: '🔥', hot: '🔥', burn: '🔥', fast: '⚡', speed: '⚡', quick: '⚡',
-          money: '💰', cash: '💰', dollar: '💰', rich: '💰', win: '🏆', winner: '🏆',
-          star: '⭐', secret: '🤫', magic: '✨', king: '👑', love: '❤️', heart: '❤️',
-          rocket: '🚀', growth: '📈', idea: '💡', target: '🎯', alert: '🚨', boom: '💥',
-          video: '🎥', reel: '📱', time: '⏱️', clock: '⏰', hero: '🦸',
+          // Fire & Energy
+          fire: '🔥', hot: '🔥', burn: '🔥', manta: '🔥', aag: '🔥', blast: '💥', boom: '💥',
+          // Speed & Fast
+          fast: '⚡', speed: '⚡', quick: '⚡', twaraga: '⚡', jaldi: '⚡',
+          // Money & Wealth
+          money: '💰', cash: '💰', dollar: '💰', rich: '💰', dhabbu: '💰', paisa: '💰', lakh: '💰', crore: '💰',
+          // Victory & Winning
+          win: '🏆', winner: '🏆', victory: '🏆', gelupu: '🏆', jeet: '🏆', trophy: '🏆',
+          // King & Authority & Father
+          king: '👑', boss: '👑', leader: '👑', ayya: '👑', baap: '👑', papa: '👑', father: '👑',
+          // Love & Emotion
+          love: '❤️', heart: '❤️', pyaar: '❤️', prema: '❤️', gunde: '❤️', dil: '❤️',
+          // Death & Danger & Stop
+          death: '💀', dead: '💀', die: '💀', chavu: '💀', mar: '💀', marna: '💀', khatam: '💀',
+          danger: '🚨', alert: '🚨', warning: '🚨', apayam: '🚨', khatra: '🚨', stop: '🛑',
+          // Challenge & Target & Questions
+          target: '🎯', goal: '🎯', saval: '🎯', challenge: '🎯', sharth: '🎯', question: '❓',
+          // Thinking & Mind
+          think: '🤔', thought: '🤔', sochna: '🤔', alochana: '🤔', brain: '💡', dimag: '💡', idea: '💡',
+          // Face & Seeing
+          face: '🗿', moham: '🗿', chehra: '🗿', look: '👀', see: '👀', chudadam: '👀', dekh: '👀',
+          // Truth & Facts
+          truth: '💯', fact: '💯', real: '💯', sach: '💯', nijam: '💯', cap: '🧢',
+          // Magic & Star & Rocket
+          star: '⭐', magic: '✨', shine: '✨', hero: '🦸', rocket: '🚀', growth: '📈', video: '🎥', reel: '📱', time: '⏱️',
         };
 
         let autoEmoji = w.emoji || null;
-        if (!autoEmoji) {
+        if (!autoEmoji && (raw?.targetStyle === 'genz' || raw?.applyEmojis === true)) {
           for (const [key, emoji] of Object.entries(emojiMap)) {
             if (cleanLower === key || cleanLower.startsWith(key)) {
               autoEmoji = emoji;
@@ -1395,5 +1484,138 @@ ${JSON.stringify(segmentPayload)}`;
       console.error(`[TRANSLATE BACKEND ERROR] Failed to translate timeline: ${err.message}`, err);
       return timeline;
     }
+  }
+
+  /**
+   * Analyzes an active caption timeline and attaches top-tier, highly relevant viral emojis to key words.
+   * Triggered explicitly when the user clicks the "Add Emojis ✨" button.
+   */
+  async autoAddViralEmojisToTimeline(timeline) {
+    if (!timeline || !Array.isArray(timeline.segments) || timeline.segments.length === 0) {
+      return timeline;
+    }
+
+    const emojiMap = {
+      fire: '🔥', hot: '🔥', burn: '🔥', manta: '🔥', aag: '🔥', blast: '💥', boom: '💥',
+      fast: '⚡', speed: '⚡', quick: '⚡', twaraga: '⚡', jaldi: '⚡',
+      money: '💰', cash: '💰', dollar: '💰', rich: '💰', dhabbu: '💰', paisa: '💰', lakh: '💰', crore: '💰',
+      win: '🏆', winner: '🏆', victory: '🏆', gelupu: '🏆', jeet: '🏆', trophy: '🏆',
+      king: '👑', boss: '👑', leader: '👑', ayya: '👑', baap: '👑', papa: '👑', father: '👑',
+      love: '❤️', heart: '❤️', pyaar: '❤️', prema: '❤️', gunde: '❤️', dil: '❤️',
+      death: '💀', dead: '💀', die: '💀', chavu: '💀', mar: '💀', marna: '💀', khatam: '💀',
+      danger: '🚨', alert: '🚨', warning: '🚨', apayam: '🚨', khatra: '🚨', stop: '🛑',
+      target: '🎯', goal: '🎯', saval: '🎯', challenge: '🎯', sharth: '🎯', question: '❓',
+      think: '🤔', thought: '🤔', sochna: '🤔', alochana: '🤔', brain: '💡', dimag: '💡', idea: '💡',
+      face: '🗿', moham: '🗿', chehra: '🗿', look: '👀', see: '👀', chudadam: '👀', dekh: '👀',
+      truth: '💯', fact: '💯', real: '💯', sach: '💯', nijam: '💯', cap: '🧢',
+      star: '⭐', magic: '✨', shine: '✨', hero: '🦸', rocket: '🚀', growth: '📈', video: '🎥', reel: '📱', time: '⏱️',
+    };
+
+    if (this.ai) {
+      try {
+        const payload = timeline.segments.map((s, sIdx) => ({
+          index: sIdx,
+          words: (s.words || []).map((w) => ({ id: String(w.id), text: w.word })),
+        }));
+
+        const prompt = `You are a Master Reel Subtitle Stylist & Emoji Strategist.
+Task: Analyze the caption words below and attach top-tier, highly relevant, contextual viral emojis (e.g. 🔥, ⚡, 💀, 💰, 👑, 🎯, 🚨, 💡, 🤫, 📈, ❤️, 🏆, ✨, 🚀, 😱, 🛑) to key emotional, action, or emphasis words.
+
+Rules:
+1. Attach relevant emojis ONLY to words that carry strong emotion, action, money, danger, question, or key subject weight.
+2. Return JSON:
+{
+  "emojiUpdates": [
+    { "id": "<word_id>", "emoji": "🔥", "word": "<Word 🔥>" }
+  ]
+}
+
+Input Payload:
+${JSON.stringify(payload)}`;
+
+        const rawText = await this._generateContentWithFallback(prompt, { responseMimeType: 'application/json', temperature: 0.2 });
+        const parsed = this._parseJSON(rawText);
+
+        const aiEmojiMap = new Map();
+        if (Array.isArray(parsed.emojiUpdates)) {
+          parsed.emojiUpdates.forEach((u) => {
+            if (u.id && (u.emoji || u.word)) {
+              aiEmojiMap.set(String(u.id), { emoji: u.emoji || null, word: u.word || null });
+            }
+          });
+        }
+
+        const newSegments = timeline.segments.map((seg) => ({
+          ...seg,
+          words: (seg.words || []).map((w) => {
+            let wordText = w.word || '';
+            let autoEmoji = w.emoji || null;
+
+            const aiMatch = aiEmojiMap.get(String(w.id));
+            if (aiMatch) {
+              if (aiMatch.emoji) autoEmoji = aiMatch.emoji;
+              if (aiMatch.word && !wordText.includes(aiMatch.word)) wordText = aiMatch.word;
+            }
+
+            if (!autoEmoji) {
+              const cleanLower = wordText.trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+              for (const [key, emoji] of Object.entries(emojiMap)) {
+                if (cleanLower === key || cleanLower.startsWith(key)) {
+                  autoEmoji = emoji;
+                  if (!wordText.includes(emoji)) {
+                    wordText = `${wordText.trim()} ${emoji}`;
+                  }
+                  break;
+                }
+              }
+            }
+
+            return {
+              ...w,
+              word: wordText,
+              emoji: autoEmoji,
+              isHighlighted: w.isHighlighted || !!autoEmoji,
+              highlightColor: w.highlightColor || (autoEmoji ? '#FACC15' : w.highlightColor),
+            };
+          }),
+        }));
+
+        console.log(`[AUTO EMOJI SUCCESS] Applied viral emojis to caption timeline.`);
+        return { ...timeline, segments: newSegments };
+      } catch (err) {
+        console.warn(`[AUTO EMOJI ERROR] LLM emoji generation failed: ${err.message}. Using fallback local dictionary.`);
+      }
+    }
+
+    const newSegments = timeline.segments.map((seg) => ({
+      ...seg,
+      words: (seg.words || []).map((w) => {
+        let wordText = w.word || '';
+        let autoEmoji = w.emoji || null;
+        const cleanLower = wordText.trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+        if (!autoEmoji) {
+          for (const [key, emoji] of Object.entries(emojiMap)) {
+            if (cleanLower === key || cleanLower.startsWith(key)) {
+              autoEmoji = emoji;
+              if (!wordText.includes(emoji)) {
+                wordText = `${wordText.trim()} ${emoji}`;
+              }
+              break;
+            }
+          }
+        }
+
+        return {
+          ...w,
+          word: wordText,
+          emoji: autoEmoji,
+          isHighlighted: w.isHighlighted || !!autoEmoji,
+          highlightColor: w.highlightColor || (autoEmoji ? '#FACC15' : w.highlightColor),
+        };
+      }),
+    }));
+
+    return { ...timeline, segments: newSegments };
   }
 }

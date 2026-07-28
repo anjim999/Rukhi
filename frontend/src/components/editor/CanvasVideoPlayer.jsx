@@ -18,10 +18,43 @@ function getSanitizedFilename(title, fallback = 'reel', ext = 'mp4') {
   return `${clean}.${ext}`;
 }
 
+function drawCover(ctx, imgOrVideo, dstW, dstH) {
+  try {
+    const srcW = imgOrVideo.videoWidth || imgOrVideo.naturalWidth || imgOrVideo.width || dstW;
+    const srcH = imgOrVideo.videoHeight || imgOrVideo.naturalHeight || imgOrVideo.height || dstH;
+    
+    if (!srcW || !srcH) {
+      ctx.drawImage(imgOrVideo, 0, 0, dstW, dstH);
+      return;
+    }
+
+    const srcAspect = srcW / srcH;
+    const dstAspect = dstW / dstH;
+
+    let sX = 0, sY = 0, sW = srcW, sH = srcH;
+    if (srcAspect > dstAspect) {
+      sW = srcH * dstAspect;
+      sX = (srcW - sW) / 2;
+    } else {
+      sH = srcW / dstAspect;
+      sY = (srcH - sH) / 2;
+    }
+
+    ctx.drawImage(imgOrVideo, sX, sY, sW, sH, 0, 0, dstW, dstH);
+  } catch (_e) {
+    try {
+      ctx.drawImage(imgOrVideo, 0, 0, dstW, dstH);
+    } catch (_e2) {}
+  }
+}
+
+
 export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTimeline, currentTime, setCurrentTime, projectTitle, aspectRatio = '9:16', setAspectRatio }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const resolvedVideoUrl = getFullMediaUrl(videoUrl);
+  const isVideoUrlAnImage = resolvedVideoUrl && (resolvedVideoUrl.includes('image.pollinations.ai') || /\.(png|jpe?g|webp|gif)($|\?)/i.test(resolvedVideoUrl));
+  const activeVideoSrc = (resolvedVideoUrl && !isVideoUrlAnImage) ? resolvedVideoUrl : '';
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -171,64 +204,191 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
     const drawFrame = () => {
       if (!isSubscribed) return;
 
-      if (video.readyState >= 2) {
-        const width = video.videoWidth || 1080;
-        const height = video.videoHeight || 1920;
-        if (canvas.width !== width || canvas.height !== height) {
-          canvas.width = width;
-          canvas.height = height;
-        }
+      const masterTime = (dubbedAudioRef.current && !dubbedAudioRef.current.paused)
+        ? dubbedAudioRef.current.currentTime
+        : video.currentTime;
 
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+      const activeAspect = aspectRatio || timeline?.aspectRatio || '9:16';
+      const targetWidth = activeAspect === '16:9' ? 1920 : (activeAspect === '1:1' || activeAspect === '4:5') ? 1080 : 1080;
+      const targetHeight = activeAspect === '16:9' ? 1080 : activeAspect === '1:1' ? 1080 : activeAspect === '4:5' ? 1350 : 1920;
 
-        // Draw video frame 1:1 natively
-        try {
-          ctx.drawImage(video, 0, 0, width, height);
-        } catch (_e) {
-          // Ignore transient cross-origin frame errors
-        }
+      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+      }
 
-        const time = video.currentTime;
+      const width = canvas.width;
+      const height = canvas.height;
 
-        // Throttle UI slider updates (100ms) for smooth slider feedback without thrashing react state
-        if (!isRecordingRef.current && Date.now() - lastUiUpdateRef.current > 100) {
-          lastUiUpdateRef.current = Date.now();
-          setCurrentTime(time);
-        }
+      ctx.clearRect(0, 0, width, height);
 
-        if (timeline?.topBanner?.enabled) {
-          renderTopHookBanner(ctx, timeline.topBanner, width, height);
-        }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
-        if (timeline?.segments) {
-          const activeSegment = timeline.segments.find(
-            (seg) => time >= (seg.start - 0.05) && time <= (seg.end + 0.05)
-          );
+      // 1. Draw Active Full-Screen B-Roll Cutaway Clip or Base Video
+      let drawnOverlay = false;
+      if (timeline?.brollOverlays && Array.isArray(timeline.brollOverlays)) {
+        const activeOverlay = timeline.brollOverlays.find(
+          (o) => masterTime >= o.start && masterTime <= o.end
+        );
 
-          if (activeSegment) {
-            if (lastSegIdRef.current !== activeSegment.id) {
-              lastSegIdRef.current = activeSegment.id;
-              segStartTimeRef.current = time;
+        // Explicitly pause any non-active B-Roll video element or when master player is paused
+        if (brollElementsRef.current) {
+          const isMasterPaused = !isPlaying && (!dubbedAudioRef.current || dubbedAudioRef.current.paused) && video.paused;
+          Object.entries(brollElementsRef.current).forEach(([url, el]) => {
+            if (el && el.tagName === 'VIDEO') {
+              const isActive = activeOverlay && (activeOverlay.clip?.videoUrl === url || activeOverlay.clip?.thumbnailUrl === url);
+              if (!isActive || isMasterPaused) {
+                if (!el.paused) {
+                  try { el.pause(); } catch (_) {}
+                }
+              }
             }
-            const segAge = time - segStartTimeRef.current;
-            renderSubmagicCaptions(ctx, activeSegment, time, width, height, segAge, timeline);
+          });
+        }
+
+        if (activeOverlay) {
+          const rawUrl = activeOverlay.clip?.videoUrl || activeOverlay.clip?.thumbnailUrl;
+          const url = getFullMediaUrl(rawUrl);
+          let el = brollElementsRef.current[url] || brollElementsRef.current[rawUrl];
+
+          if (!el && url) {
+            const isImg = activeOverlay.clip?.isAIImage || 
+                          url.includes('pollinations.ai') || 
+                          /\.(png|jpe?g|webp|gif|svg)($|\?)/i.test(url) || 
+                          (rawUrl && /\.(png|jpe?g|webp|gif|svg)($|\?)/i.test(rawUrl));
+
+            if (isImg) {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.src = url;
+              brollElementsRef.current[url] = img;
+              if (rawUrl) brollElementsRef.current[rawUrl] = img;
+              el = img;
+            } else {
+              const v = document.createElement('video');
+              v.src = url;
+              v.crossOrigin = 'anonymous';
+              v.muted = true;
+              v.loop = true;
+              v.playsInline = true;
+              v.load();
+              brollElementsRef.current[url] = v;
+              if (rawUrl) brollElementsRef.current[rawUrl] = v;
+              el = v;
+            }
+          }
+
+          if (el) {
+            try {
+              if (el.tagName === 'VIDEO') {
+                const isMasterPlaying = isPlaying || (dubbedAudioRef.current && !dubbedAudioRef.current.paused) || (!video.paused);
+                if (isMasterPlaying) {
+                  if (el.paused) {
+                    el.play().catch(() => {});
+                  }
+                } else {
+                  if (!el.paused) {
+                    try { el.pause(); } catch (_) {}
+                  }
+                }
+
+                if (el.readyState >= 1) {
+                  drawCover(ctx, el, width, height);
+                  drawnOverlay = true;
+                }
+              } else if (el.tagName === 'IMG') {
+                if (el.complete && (el.naturalWidth > 0 || el.width > 0)) {
+                  drawCover(ctx, el, width, height);
+                  drawnOverlay = true;
+                }
+              }
+            } catch (_) {}
           }
         }
       }
 
-      if ('requestVideoFrameCallback' in video) {
-        handle = video.requestVideoFrameCallback(drawFrame);
-      } else {
-        handle = requestAnimationFrame(drawFrame);
+      if (!drawnOverlay) {
+        if (video && video.readyState >= 2 && video.videoWidth > 0) {
+          try {
+            drawCover(ctx, video, width, height);
+            drawnOverlay = true;
+          } catch (_e) {}
+        }
       }
+
+      if (!drawnOverlay) {
+        // Fallback dark cinematic gradient background
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, '#09090b');
+        grad.addColorStop(0.5, '#18181b');
+        grad.addColorStop(1, '#09090b');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      // Master End Stop Check: When video/audio reaches timeline duration, stop completely!
+      const maxTimelineDuration = timeline?.duration || 30;
+      if (masterTime >= maxTimelineDuration && !video.paused) {
+        console.log('[CANVAS PLAYER] 🏁 Reached end of timeline. Stopping all playback.');
+        video.pause();
+        video.currentTime = 0;
+        if (dubbedAudioRef.current) {
+          dubbedAudioRef.current.pause();
+          dubbedAudioRef.current.currentTime = 0;
+        }
+        if (brollElementsRef.current) {
+          Object.values(brollElementsRef.current).forEach((el) => {
+            if (el && el.tagName === 'VIDEO') {
+              try { el.pause(); el.currentTime = 0; } catch (_) {}
+            }
+          });
+        }
+        setIsPlaying(false);
+        setCurrentTime(0);
+        return;
+      }
+
+      // Auto resync base video element clock with master voiceover time
+      if (dubbedAudioRef.current && !video.paused) {
+        video.muted = true;
+        const drift = Math.abs(video.currentTime - masterTime);
+        if (drift > 0.3) {
+          video.currentTime = masterTime % (video.duration || 5);
+        }
+      }
+
+      // Throttle UI slider updates (100ms) for smooth slider feedback without thrashing react state
+      if (!isRecordingRef.current && Date.now() - lastUiUpdateRef.current > 100) {
+        lastUiUpdateRef.current = Date.now();
+        setCurrentTime(masterTime);
+      }
+
+      // 2. Render Top Hook Banner
+      if (timeline?.topBanner?.enabled) {
+        renderTopHookBanner(ctx, timeline.topBanner, width, height);
+      }
+
+      // 3. Render Submagic Kinetic Subtitles
+      if (timeline?.segments) {
+        const activeSegment = timeline.segments.find(
+          (seg) => masterTime >= (seg.start - 0.05) && masterTime <= (seg.end + 0.05)
+        );
+
+        if (activeSegment) {
+          if (lastSegIdRef.current !== activeSegment.id) {
+            lastSegIdRef.current = activeSegment.id;
+            segStartTimeRef.current = masterTime;
+          }
+          const segAge = masterTime - segStartTimeRef.current;
+          renderSubmagicCaptions(ctx, activeSegment, masterTime, width, height, segAge, timeline);
+        }
+      }
+
+      handle = requestAnimationFrame(drawFrame);
     };
 
-    if ('requestVideoFrameCallback' in video) {
-      handle = video.requestVideoFrameCallback(drawFrame);
-    } else {
-      handle = requestAnimationFrame(drawFrame);
-    }
+    handle = requestAnimationFrame(drawFrame);
 
     return () => {
       isSubscribed = false;
@@ -240,42 +400,195 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
     };
   }, [timeline, setCurrentTime]);
 
+  const dubbedAudioRef = useRef(null);
+
+  useEffect(() => {
+    if (!timeline?.dubbedAudioUrl) {
+      if (dubbedAudioRef.current) {
+        dubbedAudioRef.current.pause();
+        dubbedAudioRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.muted = isMuted;
+        console.log('[CANVAS PLAYER] 🔊 Restored original video audio track (unmuted).');
+      }
+      return;
+    }
+
+    const fullDubbedUrl = getFullMediaUrl(timeline.dubbedAudioUrl);
+    const audio = new Audio(fullDubbedUrl);
+    audio.preload = 'auto';
+    dubbedAudioRef.current = audio;
+
+    audio.onended = () => {
+      console.log('[CANVAS PLAYER] 🛑 Voiceover completed. Stopping playback.');
+      setIsPlaying(false);
+      setCurrentTime(0);
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+      if (dubbedAudioRef.current) {
+        dubbedAudioRef.current.pause();
+        dubbedAudioRef.current.currentTime = 0;
+      }
+      if (brollElementsRef.current) {
+        Object.values(brollElementsRef.current).forEach((el) => {
+          if (el && el.tagName === 'VIDEO') {
+            try {
+              el.pause();
+              el.currentTime = 0;
+            } catch (_) {}
+          }
+        });
+      }
+    };
+
+    if (videoRef.current) {
+      videoRef.current.loop = false;
+    }
+
+    console.log('[CANVAS PLAYER] 🎙️ Loaded dubbed audio track & enabled seamless background video loop:', fullDubbedUrl);
+
+    return () => {
+      audio.pause();
+      dubbedAudioRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.muted = isMuted;
+      }
+    };
+  }, [timeline?.dubbedAudioUrl, isMuted]);
+
+  useEffect(() => {
+    if (timeline?.duration && timeline.duration > 0) {
+      setDuration(timeline.duration);
+      console.log('[CANVAS PLAYER] ⏱️ Set player duration to timeline duration:', timeline.duration);
+    }
+  }, [timeline?.duration]);
+
+  const brollElementsRef = useRef({});
+
+  // Reset and reload background video element when videoUrl changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.load();
+      console.log('[CANVAS PLAYER] 🔄 Loaded new video asset:', videoUrl);
+    }
+  }, [videoUrl]);
+
+  // Preload and cache current project B-Roll elements
+  useEffect(() => {
+    brollElementsRef.current = {};
+
+    if (!timeline?.brollOverlays || timeline.brollOverlays.length === 0) return;
+
+    timeline.brollOverlays.forEach((overlay) => {
+      const rawUrl = overlay.clip?.videoUrl || overlay.clip?.thumbnailUrl;
+      const url = getFullMediaUrl(rawUrl);
+      if (url && !brollElementsRef.current[url]) {
+        const isImage = overlay.clip?.isAIImage || url.includes('pollinations.ai') || /\.(png|jpe?g|webp|gif|svg)($|\?)/i.test(url);
+        if (!isImage && (overlay.clip?.isRealAIVideo || /\.mp4($|\?)/i.test(url))) {
+          const v = document.createElement('video');
+          v.src = url;
+          v.crossOrigin = 'anonymous';
+          v.muted = true;
+          v.loop = true;
+          v.playsInline = true;
+          v.load();
+          brollElementsRef.current[url] = v;
+          if (rawUrl) brollElementsRef.current[rawUrl] = v;
+        } else {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = url;
+          brollElementsRef.current[url] = img;
+          if (rawUrl) brollElementsRef.current[rawUrl] = img;
+        }
+      }
+    });
+  }, [projectId, timeline?.brollOverlays]);
+
   const togglePlay = (e) => {
-    const video = videoRef.current;
-    if (!video || !videoUrl || isRecording || videoError) return;
+    if (isRecording || (videoError && !timeline?.dubbedAudioUrl)) return;
 
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(15);
     }
 
-    if (video.paused) {
-      video.play().then(() => setIsPlaying(true)).catch((err) => {
-        console.warn('[MOBILE PLAYBACK] Unmuted playback blocked, retrying with muted fallback:', err);
-        video.muted = true;
-        setIsMuted(true);
-        video.play().then(() => setIsPlaying(true)).catch((err2) => {
-          console.error('[MOBILE PLAYBACK ERROR]', err2);
+    const video = videoRef.current;
+    const isAudioPlaying = dubbedAudioRef.current && !dubbedAudioRef.current.paused;
+    const isVideoPlaying = video && !video.paused;
+
+    if (!isAudioPlaying && !isVideoPlaying && !isPlaying) {
+      if (dubbedAudioRef.current) {
+        if (video) video.muted = true;
+        if (video) dubbedAudioRef.current.currentTime = video.currentTime;
+        dubbedAudioRef.current.play().catch((err) => console.warn('[PLAYBACK] Audio play warning:', err));
+      }
+
+      if (video && video.src && video.src.trim() !== '') {
+        video.play().catch((err) => {
+          console.warn('[PLAYBACK] Base video element play warning:', err);
         });
-      });
+      }
+
+      setIsPlaying(true);
     } else {
-      video.pause();
+      if (dubbedAudioRef.current) {
+        try { dubbedAudioRef.current.pause(); } catch (_) {}
+      }
+      if (video) {
+        try { video.pause(); } catch (_) {}
+      }
+      if (brollElementsRef.current) {
+        Object.values(brollElementsRef.current).forEach((el) => {
+          if (el && el.tagName === 'VIDEO') {
+            try { el.pause(); } catch (_) {}
+          }
+        });
+      }
       setIsPlaying(false);
     }
   };
 
   const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+    }
+    if (dubbedAudioRef.current) {
+      dubbedAudioRef.current.muted = !isMuted;
+    }
     setIsMuted(!isMuted);
   };
 
   // Direct manual seek slider handler
   const handleSeek = (e) => {
     const targetTime = parseFloat(e.target.value);
-    if (videoRef.current) {
-      videoRef.current.currentTime = targetTime;
-      setCurrentTime(targetTime);
+    if (dubbedAudioRef.current) {
+      try { dubbedAudioRef.current.currentTime = targetTime; } catch (_) {}
     }
+    if (videoRef.current && videoRef.current.src) {
+      try { videoRef.current.currentTime = targetTime; } catch (_) {}
+    }
+
+    if (timeline?.brollOverlays && Array.isArray(timeline.brollOverlays) && brollElementsRef.current) {
+      const activeOverlay = timeline.brollOverlays.find(
+        (o) => targetTime >= o.start && targetTime <= o.end
+      );
+      if (activeOverlay) {
+        const rawUrl = activeOverlay.clip?.videoUrl || activeOverlay.clip?.thumbnailUrl;
+        const url = getFullMediaUrl(rawUrl);
+        const el = brollElementsRef.current[url] || brollElementsRef.current[rawUrl];
+        if (el && el.tagName === 'VIDEO' && el.duration) {
+          try {
+            const relTime = (targetTime - activeOverlay.start) % el.duration;
+            el.currentTime = Math.max(0, relTime);
+          } catch (_) {}
+        }
+      }
+    }
+
+    setCurrentTime(targetTime);
   };
 
 function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
@@ -355,16 +668,38 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
 
       const stream = canvas.captureStream(60);
       try {
-        if (video.captureStream) {
-          const vs = video.captureStream();
-          const at = vs.getAudioTracks()[0];
-          if (at) stream.addTrack(at);
-        } else if (video.mozCaptureStream) {
-          const vs = video.mozCaptureStream();
-          const at = vs.getAudioTracks()[0];
-          if (at) stream.addTrack(at);
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const dest = audioCtx.createMediaStreamDestination();
+        let hasAudioSource = false;
+
+        if (dubbedAudioRef.current) {
+          try {
+            const audioSource = audioCtx.createMediaElementSource(dubbedAudioRef.current);
+            audioSource.connect(dest);
+            audioSource.connect(audioCtx.destination);
+            hasAudioSource = true;
+          } catch (_) {}
         }
-      } catch (_e) {}
+
+        if (video && video.src && video.src.trim() !== '') {
+          try {
+            const videoSource = audioCtx.createMediaElementSource(video);
+            videoSource.connect(dest);
+            videoSource.connect(audioCtx.destination);
+            hasAudioSource = true;
+          } catch (_) {}
+        }
+
+        if (hasAudioSource) {
+          const audioTrack = dest.stream.getAudioTracks()[0];
+          if (audioTrack) {
+            stream.addTrack(audioTrack);
+            console.log('🎙️ [EXPORT ENGINE] Mixed audio stream attached successfully!');
+          }
+        }
+      } catch (audioErr) {
+        console.warn('⚠️ [EXPORT ENGINE] AudioContext stream capture warning:', audioErr);
+      }
 
       let mimeType = 'video/webm';
       if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264')) {
@@ -450,7 +785,16 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
       };
 
       mediaRecorder.start(100);
-      await video.play();
+
+      if (dubbedAudioRef.current) {
+        try { dubbedAudioRef.current.currentTime = 0; } catch (_) {}
+        dubbedAudioRef.current.play().catch((e) => console.warn('[EXPORT] Dubbed audio play error:', e));
+      }
+      if (video && video.src && video.src.trim() !== '') {
+        try { video.currentTime = 0; } catch (_) {}
+        video.play().catch((e) => console.warn('[EXPORT] Base video play warning:', e));
+      }
+
       setIsPlaying(true);
 
       let stopTriggered = false;
@@ -466,7 +810,12 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
           clearTimeout(activeSafetyTimerRef.current);
           activeSafetyTimerRef.current = null;
         }
-        try { video.pause(); } catch (_e) {}
+        if (dubbedAudioRef.current) {
+          try { dubbedAudioRef.current.pause(); } catch (_e) {}
+        }
+        if (video) {
+          try { video.pause(); } catch (_e) {}
+        }
         setIsPlaying(false);
         if (mediaRecorder.state !== 'inactive') {
           mediaRecorder.stop();
@@ -478,20 +827,29 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
           stopRecording();
           return;
         }
-        if (video.duration && video.duration > 0) {
-          setRecordProgress(Math.min(99, Math.round((video.currentTime / video.duration) * 100)));
+
+        const currentProgressTime = (dubbedAudioRef.current && !dubbedAudioRef.current.paused)
+          ? dubbedAudioRef.current.currentTime
+          : (video ? video.currentTime : 0);
+        const maxDuration = (timeline?.duration && Number(timeline.duration) > 0)
+          ? Number(timeline.duration)
+          : (dubbedAudioRef.current?.duration || video?.duration || 60);
+
+        if (maxDuration > 0) {
+          const pct = Math.min(99, Math.round((currentProgressTime / maxDuration) * 100));
+          setRecordProgress(pct);
+          toast.loading(`🎬 Exporting ${exportQuality} Reel (${pct}%)... [${currentProgressTime.toFixed(1)}s / ${maxDuration.toFixed(1)}s]`, { id: 'export-toast' });
         }
-        if (
-          video.ended ||
-          (video.duration > 0 && video.currentTime >= video.duration - 0.12)
-        ) {
+        if (currentProgressTime >= maxDuration - 0.12) {
           stopRecording();
         }
       }, 50);
       activeCheckEndRef.current = checkEnd;
 
-      const validDuration = (video.duration && !isNaN(video.duration) && video.duration > 0) ? video.duration : 60;
-      const maxTimeoutMs = Math.max(30000, Math.round((validDuration + 10) * 1000));
+      const actualVideoDuration = (timeline?.duration && Number(timeline.duration) > 0)
+        ? Number(timeline.duration)
+        : (dubbedAudioRef.current?.duration || video?.duration || 60);
+      const maxTimeoutMs = Math.max(60000, Math.round((actualVideoDuration + 15) * 1000));
 
       const safetyTimer = setTimeout(() => {
         console.warn('[EXPORT WATCHDOG] Max duration safety timeout reached, completing export cleanly...');
@@ -512,6 +870,8 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
     telugu: { label: '🇮🇳 Pure Telugu', desc: 'తెలుగు Native Script' },
     hindi: { label: '🇮🇳 Pure Hindi', desc: 'हिंदी Native Script' },
     tel_eng: { label: '⚡ Tel + Eng', desc: 'Bilingual Tanglish' },
+    hin_eng: { label: '⚡ Hin + Eng', desc: 'Bilingual Hinglish' },
+    hin_tel: { label: '🌶️ Hin + Tel', desc: 'Bilingual Hin + Tel' },
     chatting: { label: '💬 Chat Script', desc: 'em chestunnav raa' },
     auto: { label: '🌐 As Spoken', desc: 'Auto Script' },
   };
@@ -526,29 +886,47 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
             ? 'aspect-[16/9] max-w-[680px] w-full'
             : aspectRatio === '1:1'
             ? 'aspect-square max-h-[45vh] sm:max-h-[580px] w-auto'
+            : aspectRatio === '4:5'
+            ? 'aspect-[4/5] max-h-[48vh] sm:max-h-[640px] w-auto'
             : 'aspect-[9/16] max-h-[48vh] sm:max-h-[680px] w-auto'
         } group mx-auto`}
       >
         <video
           ref={videoRef}
-          src={resolvedVideoUrl}
+          src={activeVideoSrc}
           crossOrigin="anonymous"
           playsInline={true}
           webkit-playsinline="true"
           preload="auto"
           muted={isMuted}
           onLoadedMetadata={(e) => {
-            setDuration(e.target.duration);
+            const totalDuration = timeline?.duration || (dubbedAudioRef.current && dubbedAudioRef.current.duration) || e.target.duration;
+            setDuration(totalDuration);
             setVideoError(null);
           }}
           onCanPlay={(e) => {
-            if (e.target.duration) setDuration(e.target.duration);
+            const totalDuration = timeline?.duration || (dubbedAudioRef.current && dubbedAudioRef.current.duration) || e.target.duration;
+            if (totalDuration) setDuration(totalDuration);
           }}
           onError={() => {
-            setVideoError('Media file unavailable on server.');
-            setIsPlaying(false);
+            if (!timeline?.dubbedAudioUrl && !timeline?.brollOverlays?.length) {
+              setVideoError('Media file unavailable on server.');
+              setIsPlaying(false);
+            } else {
+              console.warn('[CANVAS PLAYER] Base video element error. Continuing playback with audio & AI overlays.');
+              setVideoError(null);
+            }
           }}
-          onEnded={() => setIsPlaying(false)}
+          onEnded={() => {
+            if (dubbedAudioRef.current && !dubbedAudioRef.current.paused && dubbedAudioRef.current.currentTime < (timeline?.duration || 180)) {
+              if (videoRef.current) {
+                videoRef.current.currentTime = 0;
+                videoRef.current.play().catch(() => {});
+              }
+            } else {
+              setIsPlaying(false);
+            }
+          }}
           className="absolute top-0 left-0 opacity-0 pointer-events-none w-1 h-1"
         />
         <canvas

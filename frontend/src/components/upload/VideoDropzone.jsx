@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Film, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { UploadCloud, Film, AlertCircle, CheckCircle2, Loader2, Sparkles, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { uploadVideo } from '../../services/projectService';
 
@@ -7,6 +7,7 @@ export default function VideoDropzone({ onProjectCreated }) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState(null);
   const [targetStyle, setTargetStyle] = useState('auto'); // 'auto' | 'chatting' | 'english' | 'telugu' | 'hindi'
+  const [applyEmojis, setApplyEmojis] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -72,7 +73,7 @@ export default function VideoDropzone({ onProjectCreated }) {
     toast.loading(`Uploading video & initializing AI engine (${styleLabel})...`, { id: 'upload-toast' });
 
     try {
-      const response = await uploadVideo(file, file.name, targetStyle, (percent) => {
+      const response = await uploadVideo(file, file.name, targetStyle, applyEmojis, (percent) => {
         setProgress(percent);
       });
 
@@ -156,6 +157,8 @@ export default function VideoDropzone({ onProjectCreated }) {
                   { id: 'telugu', label: '🇮🇳 Pure Telugu', desc: 'తెలుగు Native Script' },
                   { id: 'hindi', label: '🇮🇳 Pure Hindi', desc: 'हिंदी Native Script' },
                   { id: 'tel_eng', label: '⚡ Tel + Eng', desc: 'Bilingual Tanglish' },
+                  { id: 'hin_eng', label: '⚡ Hin + Eng', desc: 'Bilingual Hinglish' },
+                  { id: 'hin_tel', label: '🌶️ Hin + Tel', desc: 'Bilingual Hin + Tel' },
                   { id: 'chatting', label: '💬 Chat Script', desc: 'em chestunnav raa' },
                   { id: 'auto', label: '🌐 As Spoken', desc: 'Auto Detected' },
                 ].map((style) => (
@@ -174,6 +177,28 @@ export default function VideoDropzone({ onProjectCreated }) {
                   </button>
                 ))}
               </div>
+
+              {/* Viral Emojis Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setApplyEmojis(!applyEmojis)}
+                className={`w-full mt-2 p-2.5 rounded-xl border flex items-center justify-between transition cursor-pointer active:scale-[0.98] ${
+                  applyEmojis
+                    ? 'border-amber-500 bg-amber-500/10 text-slate-900 dark:text-white font-bold shadow-sm'
+                    : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className={`w-4 h-4 ${applyEmojis ? 'text-amber-500' : 'text-slate-400'}`} />
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold">✨ Add Viral Emojis</span>
+                    <span className="text-[10px] opacity-75">Attach 🔥 ⚡ 💰 💀 emojis to key words</span>
+                  </div>
+                </div>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${applyEmojis ? 'border-amber-500 bg-amber-500 text-black' : 'border-slate-400'}`}>
+                  {applyEmojis && <Check className="w-3 h-3 stroke-[3]" />}
+                </div>
+              </button>
             </div>
 
             {uploading ? (

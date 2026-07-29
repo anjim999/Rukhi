@@ -283,6 +283,64 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
+---
+
+## 🌐 Live Production Deployment & Architecture (Hostinger)
+
+Auto Captions AI is deployed live on Hostinger Business Web Hosting under custom domain **[https://rukhi.in](https://rukhi.in)** using a **Unified Production Full-Stack Architecture**.
+
+### ⚡ Hostinger Production Specs:
+* **Live Domain**: **[https://rukhi.in](https://rukhi.in)** 🔒 (HTTPS/2 Active on Hostinger Mumbai Edge `mum-edge`)
+* **Hosting Infrastructure**: Hostinger Business Web Hosting (200 GB NVMe Storage, Unmetered Bandwidth)
+* **Datacenter**: Mumbai, India (`mumbai`)
+* **Node.js Engine**: Node.js 20.x runtime with Phusion Passenger Process Supervisor
+* **Database**: Neon Cloud PostgreSQL (SSL Encrypted Port 5433)
+* **Queue & Cache**: Cloud Redis (BullMQ Background Worker Pipeline)
+* **Professional Mail**: `support@rukhi.in` via `smtp.hostinger.com:465`
+
+---
+
+### 🏗️ Unified Express + React SPA Architecture
+
+To ensure zero `503 Service Unavailable` errors on single-domain web hosting, the application uses a **Unified Full-Stack Deployment Pattern**:
+
+```
+                              [ Visitor: rukhi.in ]
+                                        │
+                                        ▼
+                        [ Hostinger Phusion Passenger ]
+                                        │
+                                        ▼
+                          [ Express Master API Server ]
+                                (backend/src/app.js)
+                                        │
+         ┌──────────────────────────────┴──────────────────────────────┐
+         ▼                                                             ▼
+[ React Frontend UI ]                                         [ Backend API Engine ]
+(Static SPA Build in dist/)                                   (/api/auth, /api/projects)
+Serves index.html & assets                                    Talks to Neon DB & Gemini AI
+```
+
+1. **Master Express Server**: [`backend/src/app.js`](file:///home/anji/Documents/auto_captions/backend/src/app.js) handles both HTTP API endpoints and static file serving.
+2. **React SPA Fallback**: When visitors request `/`, `/dashboard`, or `/login`, Express automatically serves `dist/index.html`.
+3. **API Routing**: Requests to `/api/*` are passed directly to authentication, caption generation, B-Roll, and payment routes.
+
+---
+
+### 🔄 GitHub CI/CD Auto-Deploy Pipeline
+
+The repository contains an automated GitHub Actions pipeline at [`.github/workflows/ci.yml`](file:///home/anji/Documents/auto_captions/.github/workflows/ci.yml).
+
+#### How to Enable Auto-Deploy on `git push`:
+1. Go to **GitHub Repository Settings** ➔ **Secrets and variables** ➔ **Actions**.
+2. Click **New repository secret**:
+   - **Name**: `HOSTINGER_API_TOKEN`
+   - **Secret**: *Your Hostinger API Token*
+3. Whenever code is pushed to the `main` branch (`git push origin main`), GitHub Actions automatically builds, packages, and deploys the unified application directly to Hostinger!
+
+---
+
 ## 📜 License
 
 This project is proprietary and built for high-performance AI video caption generation.
+

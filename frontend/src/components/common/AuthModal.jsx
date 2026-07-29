@@ -46,8 +46,16 @@ export default function AuthModal() {
         setIsSubmitting(false);
       }
     },
-    onError: (err) => console.error('Google Login Failed:', err),
+    onError: (err) => {
+      console.error('Google Login Failed:', err);
+      setIsSubmitting(false);
+      toast.error('Google sign-in was cancelled or failed.');
+    },
+    onNonOAuthError: () => {
+      setIsSubmitting(false);
+    },
   });
+
 
   if (!authModalOpen) return null;
 

@@ -77,18 +77,23 @@ export default function VideoDropzone({ onProjectCreated }) {
         setProgress(percent);
       });
 
-      if (response.success && onProjectCreated) {
+      if (response && response.success && onProjectCreated) {
         toast.success(`🎉 Video uploaded! Processing in ${styleLabel} style.`, { id: 'upload-toast' });
         onProjectCreated(response.data);
+      } else {
+        const errMsg = response?.error?.message || response?.error || response?.message || 'Video processing failed. Please try again.';
+        setError(errMsg);
+        toast.error(errMsg, { id: 'upload-toast' });
       }
     } catch (err) {
-      const errMsg = err.message || 'Upload failed. Please try again.';
+      const errMsg = err.message || 'Upload failed. Please check network connection and try again.';
       setError(errMsg);
       toast.error(errMsg, { id: 'upload-toast' });
     } finally {
       setUploading(false);
     }
   };
+
 
   return (
     <div className="w-full max-w-2xl mx-auto">

@@ -49,17 +49,21 @@ export function AuthProvider({ children }) {
   };
 
   const handleAuthSuccess = (userData, userToken, message) => {
-    setUser(userData);
-    setToken(userToken);
-    localStorage.setItem('auto_captions_token', userToken);
+    const validUser = userData || { name: 'User' };
+    setUser(validUser);
+    if (userToken) {
+      setToken(userToken);
+      localStorage.setItem('auto_captions_token', userToken);
+    }
     closeAuthModal();
-    toast.success(message || `Welcome back, ${userData.name || 'User'}!`);
+    toast.success(message || `Welcome back, ${validUser.name || 'User'}!`);
   };
 
   const login = async (email, password) => {
     try {
       const res = await axiosClient.post('/auth/login', { email, password });
-      const { user: userData, token: userToken } = res;
+      const userData = res?.user || res?.data?.user || res;
+      const userToken = res?.token || res?.data?.token;
       handleAuthSuccess(userData, userToken, 'Successfully logged in!');
       return true;
     } catch (err) {
@@ -71,7 +75,8 @@ export function AuthProvider({ children }) {
   const register = async (name, email, password) => {
     try {
       const res = await axiosClient.post('/auth/register', { name, email, password });
-      const { user: userData, token: userToken } = res;
+      const userData = res?.user || res?.data?.user || res;
+      const userToken = res?.token || res?.data?.token;
       handleAuthSuccess(userData, userToken, 'Account created successfully!');
       return true;
     } catch (err) {
@@ -83,14 +88,16 @@ export function AuthProvider({ children }) {
   const googleAuth = async ({ googleId, email, name, avatarUrl }) => {
     try {
       const res = await axiosClient.post('/auth/google', { googleId, email, name, avatarUrl });
-      const { user: userData, token: userToken } = res;
-      handleAuthSuccess(userData, userToken, `Signed in as ${userData.name || userData.email}`);
+      const userData = res?.user || res?.data?.user || res || { name, email };
+      const userToken = res?.token || res?.data?.token;
+      handleAuthSuccess(userData, userToken, `Signed in as ${userData?.name || userData?.email || name || email || 'User'}`);
       return true;
     } catch (err) {
       toast.error(err.message || 'Google authentication failed.');
       throw err;
     }
   };
+
 
   const forgotPassword = async (email) => {
     try {

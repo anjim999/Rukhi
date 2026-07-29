@@ -38,8 +38,16 @@ export default function LoginPage() {
         setIsSubmitting(false);
       }
     },
-    onError: (err) => console.error('Google Login Failed:', err),
+    onError: (err) => {
+      console.error('Google Login Failed:', err);
+      setIsSubmitting(false);
+      toast.error('Google sign-in was cancelled or failed.');
+    },
+    onNonOAuthError: () => {
+      setIsSubmitting(false);
+    },
   });
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

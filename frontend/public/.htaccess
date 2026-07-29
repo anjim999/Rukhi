@@ -1,0 +1,33 @@
+# Hostinger Production Architecture .htaccess
+# Handles Express API Proxy + Phusion Passenger + React SPA Fallback Router
+
+PassengerAppRoot /home/u209580425/domains/rukhi.in/nodejs
+PassengerAppType node
+PassengerNodejs /opt/alt/alt-nodejs20/root/bin/node
+PassengerStartupFile app.js
+PassengerBaseURI /
+PassengerRestartDir /home/u209580425/domains/rukhi.in/nodejs/tmp
+SetEnv LSNODE_CONSOLE_LOG console.log
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Bypass API and uploaded static media routes directly to Express
+  RewriteCond %{REQUEST_URI} ^/api [NC,OR]
+  RewriteCond %{REQUEST_URI} ^/uploads [NC,OR]
+  RewriteCond %{REQUEST_URI} ^/outputs [NC]
+  RewriteRule ^ - [L]
+
+  # Serve static files and assets directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # React SPA Route Fallback (Serves index.html for /dashboard, /editor, /login)
+  RewriteRule . /index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set Access-Control-Allow-Origin "*"
+</IfModule>

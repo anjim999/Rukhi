@@ -15,6 +15,8 @@ import supportRoutes from './routes/support.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import { initAutoCleanupDaemon } from './services/media/cleanupService.js';
+import './workers/mediaWorker.js';
+
 
 /**
  * Express Application
@@ -41,17 +43,22 @@ if (config.nodeEnv === 'development') {
   });
 }
 
+const persistentBase = '/home/u209580425/persistent_storage';
+
 const staticUploadDirs = Array.from(new Set([
   config.uploadDir,
+  path.join(persistentBase, 'uploads'),
   path.resolve(process.cwd(), 'uploads'),
   path.resolve(process.cwd(), 'backend/uploads'),
 ]));
 
 const staticOutputDirs = Array.from(new Set([
   config.outputDir,
+  path.join(persistentBase, 'outputs'),
   path.resolve(process.cwd(), 'outputs'),
   path.resolve(process.cwd(), 'backend/outputs'),
 ]));
+
 
 staticUploadDirs.forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -132,8 +139,12 @@ app.use(notFoundHandler);
 
 app.use(errorHandler);
 
-const listenTarget = process.env.PORT || (typeof PhusionPassenger !== 'undefined' ? 'passenger' : config.port);
-const server = app.listen(listenTarget, async () => {
+// Server Start & Non-Blocking Async DB Init
+const listenTarget = process.env.PORT || config.port;
+const server = app.listen(listenTarget, () => {
+
+
+
 
 
   console.log('');
@@ -141,17 +152,17 @@ const server = app.listen(listenTarget, async () => {
   console.log('║       AUTO CAPTIONS — API SERVER             ║');
   console.log('╠══════════════════════════════════════════════╣');
   console.log(`║  Environment : ${config.nodeEnv.padEnd(29)}║`);
-  console.log(`║  Port        : ${String(config.port).padEnd(29)}║`);
-  console.log(`║  Health      : http://localhost:${config.port}/api/health   ║`);
+  console.log(`║  Target      : ${String(listenTarget).padEnd(29)}║`);
   console.log('╚══════════════════════════════════════════════╝');
   console.log('');
 
-  // Auto-init DB tables
-  await initDb();
+  // Non-blocking async background initialization
+  initDb().catch((err) => console.error('[DB INIT ERROR]:', err.message));
 
   // Start 3-Day File Auto-Cleanup Daemon
   initAutoCleanupDaemon();
 });
+
 
 // Graceful Shutdown
 async function gracefulShutdown(signal) {

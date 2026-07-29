@@ -104,6 +104,11 @@ export async function renderProjectVideoMP4(projectId, quality = '1080p') {
     throw new AppError(`Input video file not found on server at: ${inputVideoPath}`, 404);
   }
 
+  // Ensure output directory exists before writing files
+  if (!fs.existsSync(config.outputDir)) {
+    fs.mkdirSync(config.outputDir, { recursive: true });
+  }
+
   // Generate SRT file
   const srtFileName = `${projectId}_subtitles.srt`;
   const srtFilePath = path.join(config.outputDir, srtFileName);
@@ -113,6 +118,7 @@ export async function renderProjectVideoMP4(projectId, quality = '1080p') {
   // Output MP4 file
   const outputFileName = `export_${projectId}_${quality}.mp4`;
   const outputFilePath = path.join(config.outputDir, outputFileName);
+
   const userDownloadName = getSanitizedFilename(project.title);
 
   // Escaped SRT path for FFmpeg subtitles filter
@@ -137,17 +143,18 @@ export async function renderProjectVideoMP4(projectId, quality = '1080p') {
 
   console.log(`[FFMPEG EXPORT ${quality}] Burning subtitles into Ultra-HD ${quality} video for project ${projectId} (${userDownloadName})...`);
 
+  const isHostinger = process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
+  const videoEncoderArgs = isHostinger
+    ? ['-c:v', 'mpeg4', '-q:v', '2']
+    : ['-c:v', 'libx264', '-preset', 'superfast', '-crf', '18', '-pix_fmt', 'yuv420p'];
+
   await runFFmpeg([
     '-i', inputVideoPath,
     '-vf', `${spec.scale}:flags=bicubic,subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
     '-r', '30',
-    '-c:v', 'libx264',
-    '-preset', 'superfast',
-    '-threads', '0',
-    '-crf', '18',
+    ...videoEncoderArgs,
     '-maxrate', spec.maxrate,
     '-bufsize', spec.bufsize,
-    '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
     '-b:a', '192k',
     '-ar', '44100',
@@ -171,18 +178,41 @@ export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 're
   const outputFilePath = path.join(config.outputDir, outputFileName);
   const userDownloadName = getSanitizedFilename(userTitle);
 
-  console.log(`[FFMPEG INSTA REMUX] Packaging recorded stream for Instagram Reels (+faststart): ${inputFilePath}`);
+  // Ensure output directory exists with proper permissions
+  const outputDir = path.dirname(outputFilePath);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  // Resolve absolute path to input file
+  const resolvedInputPath = path.isAbsolute(inputFilePath)
+    ? inputFilePath
+    : path.resolve(process.cwd(), inputFilePath);
+
+  if (!fs.existsSync(resolvedInputPath)) {
+    console.error(`[FFMPEG REMUX ERROR] Input file not found at: ${resolvedInputPath}`);
+    throw new AppError(`Uploaded video stream file not found at ${inputFilePath}`, 400);
+  }
+
+  console.log(`[FFMPEG INSTA REMUX] Packaging recorded stream for Instagram Reels (+faststart): ${resolvedInputPath}`);
+
+  const isHostinger = process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
+  const videoEncoderArgs = isHostinger
+    ? ['-c:v', 'mpeg4', '-q:v', '2']
+    : ['-c:v', 'libx264', '-preset', 'superfast', '-crf', '18', '-pix_fmt', 'yuv420p'];
 
   await runFFmpeg([
-    '-i', inputFilePath,
-    '-c:v', 'libx264',
-    '-preset', 'superfast',
-    '-crf', '18',
-    '-pix_fmt', 'yuv420p',
+    '-analyzeduration', '20M',
+    '-probesize', '20M',
+    '-i', resolvedInputPath,
+    '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+    ...videoEncoderArgs,
     '-c:a', 'aac',
     '-b:a', '192k',
     '-ar', '44100',
     '-ac', '2',
+    '-af', 'aresample=async=1',
+    '-max_muxing_queue_size', '4096',
     '-movflags', '+faststart',
     '-y',
     outputFilePath,
@@ -196,3 +226,4 @@ export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 're
     filename: userDownloadName,
   };
 }
+

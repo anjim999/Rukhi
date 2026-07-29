@@ -12,11 +12,21 @@ const ffprobePath = ffprobeStatic.path;
  * Guaranteed to run on Linux/macOS/Windows without system dependencies.
  */
 
+function ensureExecutable(binPath) {
+  if (binPath && typeof binPath === 'string' && fs.existsSync(binPath)) {
+    try {
+      fs.chmodSync(binPath, '755');
+    } catch (_e) {}
+  }
+}
+
 function runFFmpeg(args) {
   return new Promise((resolve, reject) => {
     const bin = ffmpegPath || 'ffmpeg';
+    ensureExecutable(bin);
     console.log(`[FFMPEG BIN] Using binary: ${bin}`);
     const process = spawn(bin, args);
+
     let stdout = '';
     let stderr = '';
 
@@ -43,8 +53,10 @@ function runFFmpeg(args) {
 function runFFprobe(args) {
   return new Promise((resolve, reject) => {
     const bin = ffprobePath || 'ffprobe';
+    ensureExecutable(bin);
     console.log(`[FFPROBE BIN] Using binary: ${bin}`);
     const process = spawn(bin, args);
+
     let stdout = '';
     let stderr = '';
 

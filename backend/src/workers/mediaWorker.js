@@ -6,7 +6,8 @@ import { DeepgramProvider } from '../services/stt/DeepgramProvider.js';
 import { LocalWhisperProvider } from '../services/stt/LocalWhisperProvider.js';
 import { GeminiCaptionDirector } from '../services/llm/GeminiCaptionDirector.js';
 import * as projectService from '../services/projectService.js';
-import { PROJECT_STATUSES } from '../../../shared/constants/timeline.js';
+import { PROJECT_STATUSES } from '../../shared/constants/timeline.js';
+
 
 const deepgramProvider = new DeepgramProvider();
 const whisperProvider = new LocalWhisperProvider({ modelSize: 'base', device: 'cpu' });

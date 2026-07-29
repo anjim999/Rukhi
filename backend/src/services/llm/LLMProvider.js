@@ -27,7 +27,8 @@
 
 /**
  * @typedef {Object} CaptionDirectorOutput
- * @property {import('../../../../shared/constants/timeline.js').CaptionTimeline} timeline - Full CaptionTimeline JSON
+ * @property {import('../../../shared/constants/timeline.js').CaptionTimeline} timeline - Full CaptionTimeline JSON
+
  * @property {string} provider  - Provider name
  * @property {number} latencyMs - Time taken for LLM inference in milliseconds
  */

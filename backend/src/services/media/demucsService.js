@@ -23,20 +23,59 @@ const DEMUCS_STEM = 'vocals';
  * Check if Demucs is installed and available on this system.
  * @returns {Promise<boolean>}
  */
-export async function isDemucsAvailable() {
-  return new Promise((resolve) => {
-    // Use importlib.util.find_spec to check if demucs is installed
-    // WITHOUT importing it (avoids 60s PyTorch load time)
-    const proc = spawn('python3', [
-      '-c', 'import importlib.util; print("yes" if importlib.util.find_spec("demucs") else "no")',
-    ], {
-      timeout: 10000,
+const PYTHON_PATH_ENV = {
+  ...process.env,
+  HOME: process.env.HOME && process.env.HOME !== '/' ? process.env.HOME : '/home/u209580425',
+  PATH: [
+    '/opt/alt/python311/bin',
+    '/home/u209580425/.local/bin',
+    process.env.PATH || '/usr/bin:/bin',
+  ].filter(Boolean).join(':'),
+  PYTHONPATH: [
+    process.env.PYTHONPATH,
+    '/home/u209580425/.local/lib/python3.11/site-packages',
+    ...(process.env.HOME ? [`${process.env.HOME}/.local/lib/python3.11/site-packages`] : []),
+  ].filter(Boolean).join(':'),
+  OMP_NUM_THREADS: '1',
+  MKL_NUM_THREADS: '1',
+  OPENBLAS_NUM_THREADS: '1',
+  VECLIB_MAXIMUM_THREADS: '1',
+  NUMEXPR_NUM_THREADS: '1',
+  TORCH_NUM_THREADS: '1',
+  HF_HUB_DISABLE_SYMLINKS_WARNING: '1',
+};
+
+export async function getPythonBin() {
+  const candidates = [
+    '/opt/alt/python311/bin/python3',
+    'python3',
+    'python',
+  ];
+  for (const bin of candidates) {
+    const works = await new Promise((resolve) => {
+      const proc = spawn(bin, [
+        '-c', 'import importlib.util; print("yes" if importlib.util.find_spec("demucs") else "no")',
+      ], {
+        env: PYTHON_PATH_ENV,
+        timeout: 10000,
+      });
+      let stdout = '';
+      proc.stdout.on('data', (d) => { stdout += d.toString(); });
+      proc.on('close', (code) => resolve(code === 0 && stdout.trim() === 'yes'));
+      proc.on('error', () => resolve(false));
     });
-    let stdout = '';
-    proc.stdout.on('data', (data) => { stdout += data.toString(); });
-    proc.on('close', (code) => resolve(code === 0 && stdout.trim() === 'yes'));
-    proc.on('error', () => resolve(false));
-  });
+    if (works) return bin;
+  }
+  return null;
+}
+
+/**
+ * Check if Demucs is installed and available on this system.
+ * @returns {Promise<boolean>}
+ */
+export async function isDemucsAvailable() {
+  const bin = await getPythonBin();
+  return bin !== null;
 }
 
 /**
@@ -57,26 +96,27 @@ export async function separateVocals(audioPath, projectId) {
   }
 
   // Check if Demucs is available
-  const available = await isDemucsAvailable();
-  if (!available) {
+  const pythonBin = await getPythonBin();
+  if (!pythonBin) {
     console.warn(`[DEMUCS] ⚠️ Demucs not installed. Falling back to original audio (BGM may affect accuracy).`);
     return audioPath;
   }
 
-  console.log(`[DEMUCS] 🎤 Separating vocals from BGM using Meta AI Demucs (Model: ${DEMUCS_MODEL})...`);
+  console.log(`[DEMUCS] 🎤 Separating vocals from BGM using Meta AI Demucs (Model: ${DEMUCS_MODEL}, Executable: ${pythonBin})...`);
   const startTime = Date.now();
 
   try {
     await new Promise((resolve, reject) => {
-      const proc = spawn('python3', [
+      const proc = spawn(pythonBin, [
         '-m', 'demucs',
         '--two-stems', DEMUCS_STEM,
         '-n', DEMUCS_MODEL,
         '--out', outputDir,
         '--device', 'cpu',
-        '--jobs', '2',
+        '--jobs', '1',
         audioPath,
       ], {
+        env: PYTHON_PATH_ENV,
         timeout: 300000, // 5 minute max (PyTorch cold-start ~60s + separation processing)
       });
 

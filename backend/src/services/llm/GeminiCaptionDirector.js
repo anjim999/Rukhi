@@ -12,7 +12,63 @@ import {
   CASE_FORMATS,
   ASPECT_RATIOS,
   THEME_PRESETS,
-} from '../../../../shared/constants/timeline.js';
+} from '../../../shared/constants/timeline.js';
+
+
+export function transliterateTeluguToRoman(text) {
+  if (!text || typeof text !== 'string') return text;
+  if (!/[\u0C00-\u0C7F\u0900-\u097F]/.test(text)) return text;
+
+  const wordMap = {
+    'తమ్ముడు': 'tammudu',
+    'ఒక్క': 'okka',
+    'నిమిషం': 'nimisham',
+    'నా': 'naa',
+    'అనుభూతితో': 'anubhutito',
+    'చెప్తున్నాను': 'cheptunnanu',
+    'అమ్మాయిలతో': 'ammayilato',
+    'తిరగరు': 'tiragaru',
+    'ఒక్కసారి': 'okkasari',
+    'ప్రేమలో': 'premaloo',
+    'పడ్డామంటే': 'paddamante',
+    'తువల': 'tuvala',
+    'థియరీ': 'theory',
+    'పోతుంది': 'potundi',
+    'తర్వాత': 'tarvata',
+    'ఎంత': 'enta',
+    'పీకునో': 'peekuno',
+    'ఉపయోగం': 'upayogam',
+    'ఏం': 'em',
+    'చేస్తున్నావ్': 'chestunnav',
+    'రా': 'raa',
+    'ఏంటి': 'enti',
+    'కాదు': 'kaadu',
+    'అవును': 'avunu',
+  };
+
+  let res = text;
+  for (const [teWord, roWord] of Object.entries(wordMap)) {
+    res = res.replace(new RegExp(teWord, 'g'), roWord);
+  }
+
+  const charMap = {
+    'అ': 'a', 'ఆ': 'aa', 'ఇ': 'i', 'ఈ': 'ee', 'ఉ': 'u', 'ఊ': 'oo', 'ఋ': 'ru', 'ఎ': 'e', 'ఏ': 'ae', 'ఐ': 'ai', 'ఒ': 'o', 'ఓ': 'o', 'ఔ': 'au', 'అం': 'am', 'అః': 'aha',
+    'క': 'ka', 'ఖ': 'kha', 'గ': 'ga', 'ఘ': 'gha', 'ఙ': 'nga',
+    'చ': 'cha', 'ఛ': 'chha', 'జ': 'ja', 'ఝ': 'jha', 'ఞ': 'nya',
+    'ట': 'ta', 'ఠ': 'tha', 'డ': 'da', 'ఢ': 'dha', 'ణ': 'na',
+    'త': 'ta', 'థ': 'tha', 'ద': 'da', 'ధ': 'dha', 'న': 'na',
+    'ప': 'pa', 'ఫ': 'pha', 'బ': 'ba', 'భ': 'bha', 'మ': 'ma',
+    'య': 'ya', 'ర': 'ra', 'ల': 'la', 'వ': 'va', 'శ': 'sha', 'ష': 'sha', 'స': 'sa', 'హ': 'ha', 'ళ': 'la', 'క్ష': 'ksha', 'ఱ': 'ra',
+    'ా': 'aa', 'ి': 'i', 'ీ': 'ee', 'ు': 'u', 'ూ': 'oo', 'ృ': 'ru', 'ె': 'e', 'ే': 'ae', 'ై': 'ai', 'ొ': 'o', 'ో': 'o', 'ౌ': 'au', 'ం': 'm', 'ః': 'h', '్': '',
+  };
+
+  let out = '';
+  for (let i = 0; i < res.length; i++) {
+    const ch = res[i];
+    out += charMap[ch] !== undefined ? charMap[ch] : ch;
+  }
+  return out;
+}
 
 function fileToGenerativePart(filePath, mimeType = 'audio/wav') {
   const fileBuffer = fs.readFileSync(filePath);
@@ -109,10 +165,13 @@ STRICT HINDI + TELUGU BILINGUAL CODE-MIXED MANDATE (HINDI-TELUGU HYBRID):
     return `SYSTEM ROLE: You are an Elite Social Media Subtitle Director specializing in WhatsApp & Instagram Chat Script captions.
 
 STRICT CHATTING / MESSAGING SCRIPT MANDATE (CASUAL ROMANIZED SCRIPT):
-1. CASUAL ROMANIZED SPELLING: Transcribe all spoken non-English regional speech (Telugu, Hindi, Tanglish, Hinglish) into pure casual chatting language using ONLY the English alphabet (WhatsApp / Instagram chat style).
-2. PHONETIC ACCURACY: Use standard social media chat spellings: "em chestunnav raa", "chesam", "chusam", "ekkadiki velthunnav", "aakariki", "kudaa", "kya kar rahe ho bro".
-3. ZERO NATIVE SCRIPT: DO NOT output native Telugu script (తెలుగు) or native Hindi script (हिंदी) under any circumstances.
-4. ZERO ENGLISH TRANSLATION: DO NOT translate regional words into English (e.g. NEVER turn "em chestunnav" into "what are you doing"). Write pure phonetic spoken words in the English alphabet!`;
+1. 100% VERBATIM WORD PRESERVATION (ZERO SUMMARY / ZERO DROPPED WORDS):
+   - You MUST transcribe and output EVERY SINGLE SPOKEN WORD from the input speech/word list into casual Romanized chat script (WhatsApp/Instagram style).
+   - DO NOT summarize, DO NOT drop words, and DO NOT condense 20+ words into 4-5 words! If the speaker spoke 22 words, your output MUST contain all 22 words!
+2. CASUAL ROMANIZED SPELLING:
+   - Use standard social media chat spellings: "em chestunnav raa", "photographer uncle", "nuvvu book rastunna", "haa interesting title enti", "naa saavu nen sastaa neekendhuku", "excuse me", "naa saavu nen sastaa ani oka youthful boy love story".
+3. ZERO ENGLISH TRANSLATION & ZERO NATIVE SCRIPT:
+   - DO NOT translate regional words into English (e.g. NEVER turn "em chestunnav" into "what are you doing"). Write pure phonetic spoken words in the English alphabet!`;
   }
 
   if (targetStyle === 'genz') {
@@ -187,9 +246,9 @@ export class GeminiCaptionDirector extends LLMProvider {
     }
 
     this.ai = config.geminiApiKey ? new GoogleGenerativeAI(config.geminiApiKey) : null;
-    const baseModel = config.geminiModel || 'gemini-3.5-flash';
+    const baseModel = config.geminiModel || 'gemini-2.5-flash';
     this.modelName = baseModel;
-    this.fallbackModels = Array.from(new Set([baseModel, 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']));
+    this.fallbackModels = Array.from(new Set([baseModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro']));
   }
 
   async isAvailable() {
@@ -536,15 +595,16 @@ TARGET SCRIPT & LANGUAGE STYLE MANDATE:
 ${styleInstruction}
 
 INSTRUCTIONS:
-1. Transform/Translate the word list into the requested target script (${targetStyle}).
-2. Maintain word-level alignment with the original speech timing so total duration (${duration}s) matches perfectly.
-3. If targetStyle is 'english', replace non-English/Telugu/Hindi words with their PURE ENGLISH translation equivalents.
-4. If targetStyle is 'telugu', convert all words into PURE NATIVE TELUGU SCRIPT (తెలుగు).
-5. If targetStyle is 'hindi', convert all words into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी).
-6. If targetStyle is 'chatting', write pure spoken Telugu words in casual Romanized chat script (e.g. "em chestunnav raa", "chesam", "chusam"). DO NOT translate into English words!
-7. If targetStyle is 'tel_eng', produce strict word-level code-mixed Tanglish: Telugu words in Roman script ("naa"), English words in standard English ("friends"). Example: "naa friends".
-8. If targetStyle is 'hin_eng', produce strict word-level code-mixed Hinglish: Hindi words in Roman script ("bhai", "kya"), English words in standard English ("friends", "project"). Example: "bhai project heavy hai".
-9. If targetStyle is 'hin_tel', produce clean code-mixed Hindi + Telugu: Romanized Hindi ("bhai") and Romanized Telugu ("nenu osthanu"). Example: "bhai nenu osthanu".
+1. STRICT ZERO-LOSS WORD COUNT PRESERVATION: You MUST output EVERY SINGLE SPOKEN WORD from the input list. DO NOT summarize, DO NOT drop phrases, and DO NOT condense a 20-word speech into 4-5 summary words!
+2. Transform/Translate the word list into the requested target script (${targetStyle}) while preserving the exact 1-to-1 word count and sequence.
+3. Maintain word-level alignment with the original speech timing so total duration (${duration}s) matches perfectly.
+4. If targetStyle is 'english', replace non-English/Telugu/Hindi words with their PURE ENGLISH translation equivalents.
+5. If targetStyle is 'telugu', convert all words into PURE NATIVE TELUGU SCRIPT (తెలుగు).
+6. If targetStyle is 'hindi', convert all words into PURE NATIVE HINDI DEVANAGARI SCRIPT (हिंदी).
+7. If targetStyle is 'chatting', write pure spoken Telugu words in casual Romanized chat script (e.g. "em chestunnav raa", "photographer uncle", "nuvvu book rastunna", "haa interesting title enti"). DO NOT translate into English words or summarize!
+8. If targetStyle is 'tel_eng', produce strict word-level code-mixed Tanglish: Telugu words in Roman script ("naa"), English words in standard English ("friends"). Example: "naa friends".
+9. If targetStyle is 'hin_eng', produce strict word-level code-mixed Hinglish: Hindi words in Roman script ("bhai", "kya"), English words in standard English ("friends", "project"). Example: "bhai project heavy hai".
+10. If targetStyle is 'hin_tel', produce clean code-mixed Hindi + Telugu: Romanized Hindi ("bhai") and Romanized Telugu ("nenu osthanu"). Example: "bhai nenu osthanu".
 
 Return ONLY a JSON object:
 {
@@ -570,11 +630,21 @@ Return ONLY a JSON object:
       };
     } catch (err) {
       console.warn(`[GEMINI STT TRANSFORMER ERROR] Transformation failed: ${err.message}. Using raw STT words fallback.`);
-      const timeline = this._buildTimelineFromWords({ words, fullText }, duration);
+      let fallbackWords = words;
+      let fallbackFullText = fullText;
+      if (['chatting', 'tel_eng', 'hinglish', 'auto'].includes(targetStyle)) {
+        fallbackWords = words.map((w) => ({
+          ...w,
+          word: transliterateTeluguToRoman(w.word),
+        }));
+        fallbackFullText = transliterateTeluguToRoman(fullText);
+      }
+
+      const timeline = this._buildTimelineFromWords({ words: fallbackWords, fullText: fallbackFullText }, duration);
       if (timeline) {
         timeline.targetStyle = targetStyle;
       }
-      return { timeline, fullText, language: 'en' };
+      return { timeline, fullText: fallbackFullText, language: 'en' };
     }
   }
 
@@ -1500,6 +1570,21 @@ ${JSON.stringify(segmentPayload)}`;
       };
     } catch (err) {
       console.error(`[TRANSLATE BACKEND ERROR] Failed to translate timeline: ${err.message}`, err);
+      if (['chatting', 'tel_eng', 'hinglish', 'auto'].includes(targetStyle)) {
+        console.log(`[TRANSLATE BACKEND FALLBACK] Applying local fail-safe Roman transliteration for '${targetStyle}'...`);
+        const transliteratedSegments = (timeline.segments || []).map((seg) => ({
+          ...seg,
+          words: (seg.words || []).map((w) => ({
+            ...w,
+            word: transliterateTeluguToRoman(w.word),
+          })),
+        }));
+        return {
+          ...timeline,
+          targetStyle,
+          segments: transliteratedSegments,
+        };
+      }
       return timeline;
     }
   }

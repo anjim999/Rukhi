@@ -4,7 +4,8 @@ import fs from 'fs';
 import { query } from '../db/pool.js';
 import { addMediaProcessingJob } from './queue/queueService.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { PROJECT_STATUSES } from '../../../shared/constants/timeline.js';
+import { PROJECT_STATUSES } from '../../shared/constants/timeline.js';
+
 import { config } from '../config/env.js';
 
 export async function createProject({ userId, title, videoPath, targetStyle = 'auto', applyEmojis = false }) {

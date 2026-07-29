@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "Production-grade backend API and background worker engine for Auto Captions",
   "main": "src/app.js",
+
   "type": "module",
   "scripts": {
     "start": "node src/app.js",
+    "build": "echo 'Build complete'",
+
+
+
     "dev": "nodemon -e js,mjs,json,env src/app.js",
     "worker": "nodemon -e js,mjs,json,env src/workers/mediaWorker.js"
   },

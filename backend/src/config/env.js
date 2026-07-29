@@ -5,9 +5,22 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+const envCandidatePaths = [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '../.env'),
+  '/home/u209580425/.env',
+];
 
-const rawPort = process.env.PORT || process.env.PASSENGER_APP_PORT || '5000';
+for (const envPath of envCandidatePaths) {
+  dotenv.config({ path: envPath });
+}
+
+
+const isHostinger = process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
+const persistentBase = '/home/u209580425/persistent_storage';
+
+const rawPort = process.env.PORT || '5000';
 
 export const config = {
   port: isNaN(parseInt(rawPort, 10)) ? rawPort : parseInt(rawPort, 10),
@@ -29,8 +42,8 @@ export const config = {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
   },
-  uploadDir: process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'storage/uploads'),
-  outputDir: process.env.OUTPUT_DIR || path.resolve(process.cwd(), 'storage/exports'),
-  tempDir: process.env.TEMP_DIR || path.resolve(process.cwd(), 'storage/temp'),
-  logsDir: process.env.LOGS_DIR || path.resolve(process.cwd(), 'storage/logs'),
+  uploadDir: isHostinger ? path.join(persistentBase, 'uploads') : path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'storage/uploads'),
+  outputDir: isHostinger ? path.join(persistentBase, 'outputs') : path.resolve(process.cwd(), process.env.OUTPUT_DIR || 'storage/exports'),
+  tempDir: isHostinger ? path.join(persistentBase, 'temp') : path.resolve(process.cwd(), process.env.TEMP_DIR || 'storage/temp'),
+  logsDir: isHostinger ? path.join(persistentBase, 'logs') : path.resolve(process.cwd(), process.env.LOGS_DIR || 'storage/logs'),
 };

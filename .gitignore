@@ -23,3 +23,5 @@ backend/outputs/*
 # Logs & System
 *.log
 .DS_Store
+*.zip
+

@@ -7,8 +7,11 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const rawPort = process.env.PORT || process.env.PASSENGER_APP_PORT || '5000';
+
 export const config = {
-  port: parseInt(process.env.PORT || '5000', 10),
+  port: isNaN(parseInt(rawPort, 10)) ? rawPort : parseInt(rawPort, 10),
+
   nodeEnv: process.env.NODE_ENV || 'development',
   dbUrl: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.POSTGRES_URL,
   redis: {

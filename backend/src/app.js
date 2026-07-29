@@ -107,8 +107,9 @@ app.use('/api/payments', paymentRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Server Start & DB Auto-Init
-const server = app.listen(config.port, async () => {
+const listenTarget = (typeof PhusionPassenger !== 'undefined') ? 'passenger' : config.port;
+const server = app.listen(listenTarget, async () => {
+
   console.log('');
   console.log('╔══════════════════════════════════════════════╗');
   console.log('║       AUTO CAPTIONS — API SERVER             ║');

@@ -77,13 +77,27 @@ staticOutputDirs.forEach((dir) => {
   }));
 });
 
-// Root Health Probes (Render / Load Balancer Pings)
-app.get('/', (_req, res) => {
-  res.json({ success: true, message: 'Auto Captions API Server is Running!' });
-});
-app.head('/', (_req, res) => {
-  res.status(200).end();
-});
+// Mount React Frontend Static Bundle & SPA Fallback (Prevents Hostinger 503s)
+const staticFrontendDirs = [
+  path.resolve(process.cwd(), '../frontend/dist'),
+  path.resolve(process.cwd(), 'frontend/dist'),
+  path.resolve(process.cwd(), 'dist'),
+  path.resolve(process.cwd(), 'public_html'),
+];
+
+let frontendDirFound = null;
+for (const dir of staticFrontendDirs) {
+  if (fs.existsSync(dir) && fs.existsSync(path.join(dir, 'index.html'))) {
+    frontendDirFound = dir;
+    app.use(express.static(dir));
+    break;
+  }
+}
+
+if (frontendDirFound) {
+  console.log(`[SERVER] Serving React Frontend from: ${frontendDirFound}`);
+}
+
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -103,12 +117,24 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 
+// React SPA Route Fallback (Serves index.html for frontend routes like /dashboard, /editor, /login)
+if (frontendDirFound) {
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/outputs')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDirFound, 'index.html'));
+  });
+}
+
 // Error Handling
 app.use(notFoundHandler);
+
 app.use(errorHandler);
 
-const listenTarget = (typeof PhusionPassenger !== 'undefined') ? 'passenger' : config.port;
+const listenTarget = process.env.PORT || (typeof PhusionPassenger !== 'undefined' ? 'passenger' : config.port);
 const server = app.listen(listenTarget, async () => {
+
 
   console.log('');
   console.log('╔══════════════════════════════════════════════╗');

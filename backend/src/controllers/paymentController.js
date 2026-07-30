@@ -3,8 +3,8 @@ import { query } from '../db/pool.js';
 import { createCashfreeOrder, getCashfreeOrderStatus } from '../services/payment/cashfreeService.js';
 
 export const SUBSCRIPTION_PLANS = {
-  starter: { id: 'starter', name: 'Starter Creator', amount: 1, credits: 30, durationDays: 30 }, // TEMP ₹1 for testing — revert to 199
-  STARTER: { id: 'starter', name: 'Starter Creator', amount: 1, credits: 30, durationDays: 30 }, // TEMP ₹1 for testing — revert to 199
+  starter: { id: 'starter', name: 'Starter Creator', amount: 199, credits: 30, durationDays: 30 },
+  STARTER: { id: 'starter', name: 'Starter Creator', amount: 199, credits: 30, durationDays: 30 },
   pro: { id: 'pro', name: 'Pro Unlimited', amount: 399, credits: 100, durationDays: 30 },
   PRO: { id: 'pro', name: 'Pro Unlimited', amount: 399, credits: 100, durationDays: 30 },
   studio: { id: 'studio', name: 'Studio Agency', amount: 799, credits: 300, durationDays: 30 },

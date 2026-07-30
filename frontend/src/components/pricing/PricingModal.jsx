@@ -25,7 +25,7 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
       description: 'Ideal for trying out rukhi.in captioning',
       exports: '3 Videos / month',
       features: ['720p HD Video Export', 'Watermark Included', 'Standard Fonts Suite', 'Manual Subtitle Sync'],
-      buttonText: 'Current Plan',
+      buttonText: 'Included (Free Tier)',
       isCurrent: user?.plan === 'free' || !user?.plan,
       popular: false,
     },
@@ -241,7 +241,7 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
                       : 'bg-white hover:bg-slate-200 text-slate-900'
                   }`}
                 >
-                  {loadingPlan === plan.id ? 'Processing...' : plan.isCurrent ? 'Current Active Plan' : plan.buttonText}
+                  {loadingPlan === plan.id ? 'Processing...' : plan.isCurrent ? '✓ Current Active Plan' : plan.buttonText}
                 </button>
               </div>
             ))}

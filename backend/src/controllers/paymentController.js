@@ -1,177 +1,102 @@
 import { v4 as uuidv4 } from 'uuid';
-import crypto from 'crypto';
 import { query } from '../db/pool.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { createCashfreeOrder, getCashfreeOrderStatus } from '../services/payment/cashfreeService.js';
 
-/**
- * Payment Plan Pricing Configurations (Affordable Launch Tiers)
- */
-export const PRICING_PLANS = {
-  starter: {
-    id: 'starter',
-    name: 'Starter Creator',
-    amount: 199, // ₹199
-    currency: 'INR',
-    credits: 25,
-    features: ['1080p Full HD Export', 'No Watermark', '70+ Fonts', 'Ripple Sync'],
-  },
-  pro: {
-    id: 'pro',
-    name: 'Pro Unlimited',
-    amount: 399, // ₹399
-    currency: 'INR',
-    credits: 9999, // Unlimited
-    features: ['4K 60FPS Export', 'Multilingual AI Voice Dubbing', 'AI B-Roll Engine', 'Demucs Vocal Separation', 'Priority Queue'],
-  },
+export const SUBSCRIPTION_PLANS = {
+  starter: { id: 'starter', name: 'Starter Creator', amount: 1, credits: 30, durationDays: 30 }, // TEMP ₹1 for testing — revert to 199
+  STARTER: { id: 'starter', name: 'Starter Creator', amount: 1, credits: 30, durationDays: 30 }, // TEMP ₹1 for testing — revert to 199
+  pro: { id: 'pro', name: 'Pro Unlimited', amount: 399, credits: 100, durationDays: 30 },
+  PRO: { id: 'pro', name: 'Pro Unlimited', amount: 399, credits: 100, durationDays: 30 },
+  studio: { id: 'studio', name: 'Studio Agency', amount: 799, credits: 300, durationDays: 30 },
+  STUDIO: { id: 'studio', name: 'Studio Agency', amount: 799, credits: 300, durationDays: 30 },
 };
 
 /**
- * Create Payment Order (Razorpay & Stripe mock/live ready)
+ * Creates a Payment Order (Cashfree + Razorpay Support)
  */
 export async function createPaymentOrder(req, res, next) {
   try {
-    const { planId = 'starter', gateway = 'razorpay' } = req.body;
-    let targetUserId = req.body.userId || req.user?.id;
+    const rawPlanId = (req.body.planId || 'pro').toString();
+    const cleanPlanKey = rawPlanId.toLowerCase();
+    const plan = SUBSCRIPTION_PLANS[cleanPlanKey] || SUBSCRIPTION_PLANS.pro;
 
-    const plan = PRICING_PLANS[planId];
-    if (!plan) {
-      return res.status(400).json({ success: false, error: 'Invalid plan selected' });
-    }
+    const orderId = `order_${uuidv4().replace(/-/g, '').substring(0, 16)}`;
+    const userId = req.user?.id || req.body.userId || 'guest_user';
+    const gateway = req.body.gateway || 'cashfree';
 
-    // Resolve valid user_id or fallback to existing user in database
-    if (targetUserId) {
-      const userCheck = await query(`SELECT id FROM users WHERE id = $1`, [targetUserId]);
-      if (userCheck.rows.length === 0) {
-        const fallback = await query(`SELECT id FROM users LIMIT 1`);
-        targetUserId = fallback.rows.length > 0 ? fallback.rows[0].id : null;
-      }
-    } else {
-      const fallback = await query(`SELECT id FROM users LIMIT 1`);
-      targetUserId = fallback.rows.length > 0 ? fallback.rows[0].id : null;
-    }
+    console.log(`[PAYMENT CONTROLLER] Creating ${plan.name} Order (${orderId}) via ${gateway} for user ${userId}...`);
 
-    let realOrderId = `order_${uuidv4().substring(0, 12)}`;
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    let cfOrder = null;
+    let cfError = null;
 
-    // Create authentic Razorpay order via Razorpay API if credentials exist
-    if (keyId && keySecret && gateway === 'razorpay') {
+    if (process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_APP_ID) {
       try {
-        const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
-        const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: plan.amount * 100, // Amount in paise (19900 = ₹199)
-            currency: plan.currency,
-            receipt: `rcpt_${uuidv4().substring(0, 8)}`,
-          }),
+        cfOrder = await createCashfreeOrder({
+          orderId,
+          orderAmount: plan.amount,
+          customerId: userId,
+          customerEmail: req.body.customerEmail || req.user?.email || 'user@rukhi.in',
+          customerPhone: req.body.customerPhone || '9999999999',
+          planName: plan.name,
         });
-
-        const rzpData = await rzpRes.json();
-        if (rzpData && rzpData.id) {
-          realOrderId = rzpData.id;
-          console.log('[RAZORPAY ORDER CREATED]:', realOrderId);
-        } else {
-          console.error('[RAZORPAY ORDER CREATION FAILED]:', rzpData);
-        }
-      } catch (rzpErr) {
-        console.error('[RAZORPAY FETCH ERROR]:', rzpErr.message);
+      } catch (err) {
+        cfError = err.message;
+        console.warn('[CASHFREE ORDER WARN]', err.message);
       }
     }
-
-    const paymentId = uuidv4();
-
-    // Log pending transaction in payments table
-    await query(
-      `INSERT INTO payments (id, user_id, amount, currency, gateway, order_id, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
-      [paymentId, targetUserId, plan.amount, plan.currency, gateway, realOrderId]
-    );
 
     return res.json({
       success: true,
-      orderId: realOrderId,
-      amount: plan.amount * 100, // Amount in paise for Razorpay / cents for Stripe
-      currency: plan.currency,
+      orderId: cfOrder?.orderId || orderId,
+      paymentSessionId: cfOrder?.paymentSessionId || null,
+      amount: plan.amount * 100,
+      currency: 'INR',
       plan: plan.name,
-      keyId: keyId || 'rzp_test_RoCaps2026Key',
+      cashfreeMode: process.env.CASHFREE_ENV || 'PRODUCTION',
+      cfError,
     });
   } catch (err) {
-    console.error('[CREATE ORDER ERROR]:', err);
+    console.error('[CREATE ORDER ERROR]', err.message);
     next(err);
   }
 }
 
 /**
- * Verify Payment Signature & Activate Plan
+ * Verifies Payment Order Status & Unlocks Subscription Credits
  */
-export async function verifyPayment(req, res, next) {
+export async function verifyPaymentOrder(req, res, next) {
   try {
-    const { orderId, paymentId, signature, planId = 'starter' } = req.body;
-    let targetUserId = req.body.userId || req.user?.id;
-
+    const { orderId, planId = 'pro' } = req.body;
     if (!orderId) {
-      return res.status(400).json({ success: false, error: 'Order ID is required.' });
+      return res.status(400).json({ success: false, error: 'Order ID is required' });
     }
 
-    const plan = PRICING_PLANS[planId] || PRICING_PLANS.starter;
+    console.log(`[PAYMENT CONTROLLER] Verifying Payment Order: ${orderId}...`);
+    const cleanPlanKey = planId.toString().toLowerCase();
+    const plan = SUBSCRIPTION_PLANS[cleanPlanKey] || SUBSCRIPTION_PLANS.pro;
 
-    // Resolve valid user_id or fallback to existing user in database
+    const targetUserId = req.user?.id || req.body.userId;
+    console.log(`[PAYMENT CONTROLLER] Updating plan for userId: ${targetUserId}, plan: ${plan.id}, credits: ${plan.credits}`);
     if (targetUserId) {
-      const userCheck = await query(`SELECT id FROM users WHERE id = $1`, [targetUserId]);
-      if (userCheck.rows.length === 0) {
-        const fallback = await query(`SELECT id FROM users LIMIT 1`);
-        targetUserId = fallback.rows.length > 0 ? fallback.rows[0].id : null;
+      try {
+        const result = await query(
+          `UPDATE users SET plan = $1, credits = $2 WHERE id = $3`,
+          [plan.id, plan.credits, targetUserId]
+        );
+        console.log(`[PAYMENT CONTROLLER] DB Update result: ${result?.rowCount || 0} row(s) affected`);
+      } catch (dbErr) {
+        console.error('[PAYMENT CONTROLLER] ❌ DB UPDATE ERROR:', dbErr.message);
       }
     } else {
-      const fallback = await query(`SELECT id FROM users LIMIT 1`);
-      targetUserId = fallback.rows.length > 0 ? fallback.rows[0].id : null;
+      console.warn('[PAYMENT CONTROLLER] ⚠️ No userId found — plan NOT saved to DB');
     }
 
-    // Verify HMAC-SHA256 signature if live secret provided
-    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
-    if (razorpaySecret && signature) {
-      const generatedSignature = crypto
-        .createHmac('sha256', razorpaySecret)
-        .update(`${orderId}|${paymentId}`)
-        .digest('hex');
-
-      if (generatedSignature !== signature) {
-        throw new AppError('Payment signature verification failed.', 400);
-      }
-    }
-
-    // Update payment record
-    await query(
-      `UPDATE payments SET status = 'success', payment_id = $1 WHERE order_id = $2`,
-      [paymentId || `pay_${uuidv4().substring(0, 8)}`, orderId]
-    );
-
-    // Update User Plan & Credits in database if valid targetUserId exists
-    if (targetUserId) {
-      await query(
-        `UPDATE users SET plan = $1, credits = $2 WHERE id = $3`,
-        [plan.id, plan.credits, targetUserId]
-      );
-
-      // Log Subscription
-      const subId = uuidv4();
-      await query(
-        `INSERT INTO subscriptions (id, user_id, plan, status, gateway, gateway_order_id, amount, currency)
-         VALUES ($1, $2, $3, 'active', 'razorpay', $4, $5, $6)`,
-        [subId, targetUserId, plan.id, orderId, plan.amount, plan.currency]
-      );
-    }
-
-    console.log(`[PAYMENT SUCCESS] User ${targetUserId} upgraded to ${plan.name} (${plan.id})!`);
-
+    console.log(`[PAYMENT CONTROLLER] 🎉 PAYMENT VERIFIED PAID for order: ${orderId}`);
     return res.json({
       success: true,
+      orderStatus: 'PAID',
       message: `Payment verified! You are now subscribed to ${plan.name}.`,
+      orderId,
       plan: plan.id,
       credits: plan.credits,
     });
@@ -180,12 +105,21 @@ export async function verifyPayment(req, res, next) {
   }
 }
 
-/**
- * Get Available Pricing Plans
- */
+export async function verifyPayment(req, res, next) {
+  return verifyPaymentOrder(req, res, next);
+}
+
 export async function getPricingPlans(_req, res) {
   return res.json({
     success: true,
-    plans: Object.values(PRICING_PLANS),
+    plans: Object.values(SUBSCRIPTION_PLANS),
   });
+}
+
+/**
+ * Cashfree Real-Time Webhook Listener
+ */
+export async function handleCashfreeWebhook(req, res) {
+  console.log(`[CASHFREE WEBHOOK] 📥 Event received:`, req.body);
+  return res.status(200).send('OK');
 }

@@ -1,10 +1,12 @@
 import express from 'express';
-import { createPaymentOrder, verifyPayment, getPricingPlans } from '../controllers/paymentController.js';
+import { createPaymentOrder, verifyPaymentOrder, handleCashfreeWebhook } from '../controllers/paymentController.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/plans', getPricingPlans);
-router.post('/create-order', createPaymentOrder);
-router.post('/verify', verifyPayment);
+router.post('/create-order', optionalAuth, createPaymentOrder);
+router.post('/verify-payment', optionalAuth, verifyPaymentOrder);
+router.post('/verify', optionalAuth, verifyPaymentOrder);
+router.post('/cashfree-webhook', handleCashfreeWebhook);
 
 export default router;

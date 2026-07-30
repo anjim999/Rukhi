@@ -4,6 +4,7 @@ import { Zap, Check, ShieldCheck, Sparkles, X, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast';
 import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../context/AuthContext';
+import { launchCashfreeCheckout } from '../../services/paymentService';
 
 export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUpgraded }) {
   const { user: authUser, setUser, refreshUser } = useAuth();
@@ -71,54 +72,38 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
 
       // 1. Create Payment Order on Backend
       const orderRes = await axiosClient.post('/payments/create-order', {
-        planId,
-        userId: user?.id || '00000000-0000-0000-0000-000000000001',
-        gateway: 'razorpay',
+        planId: planId.toUpperCase(),
+        customerEmail: user?.email || 'user@rukhi.in',
+        customerPhone: user?.phone || '9999999999',
       });
-
-      console.log('[PRICING MODAL] Order response from backend:', orderRes);
 
       const orderData = orderRes?.data || orderRes;
 
       if (!orderData?.success) {
-        console.error('[PRICING MODAL] Order creation failed:', orderData);
-        throw new Error(orderData?.error || 'Failed to create payment order');
+        throw new Error(orderData?.error || 'Failed to create payment order session.');
       }
 
-      const { orderId, amount, currency, keyId } = orderData;
-      console.log('[PRICING MODAL] Order details:', { orderId, amount, currency, keyId, windowRazorpay: Boolean(window.Razorpay) });
+      const { orderId, paymentSessionId, cashfreeMode } = orderData;
 
-      // Launch Razorpay popup if keyId is present and Razorpay SDK is loaded
-      if (window.Razorpay && keyId) {
-        const options = {
-          key: keyId,
-          amount: amount,
-          currency: currency,
-          name: 'rukhi.in AI Studio',
-          description: `Upgrade to ${plans.find((p) => p.id === planId)?.name}`,
-          order_id: orderId,
-          handler: async (response) => {
-            console.log('[PRICING MODAL] Razorpay payment success response:', response);
-            await verifyAndActivatePlan(planId, orderId, response.razorpay_payment_id, response.razorpay_signature);
+      // 2. Launch Cashfree Popup Modal if paymentSessionId exists
+      if (paymentSessionId && window.Cashfree) {
+        console.log('[PRICING MODAL] Launching Cashfree Popup Modal with Session ID:', paymentSessionId);
+        await launchCashfreeCheckout({
+          paymentSessionId,
+          mode: cashfreeMode || 'SANDBOX',
+          onPaid: async () => {
+            await verifyAndActivatePlan(planId, orderId);
           },
-          prefill: {
-            name: user?.name || '',
-            email: user?.email || '',
+          onError: (err) => {
+            setError(err?.message || 'Cashfree Payment closed or cancelled.');
           },
-          theme: {
-            color: '#f59e0b',
-          },
-        };
-        console.log('[PRICING MODAL] Opening Razorpay instance with options:', options);
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', function (resp) {
-          console.error('[PRICING MODAL] Razorpay payment.failed event:', resp.error);
-          setError(resp.error?.description || 'Payment failed.');
         });
-        rzp.open();
-      } else {
-        console.warn('[PRICING MODAL] Razorpay SDK missing or no keyId provided. Falling back to test activation mode.');
-        await verifyAndActivatePlan(planId, orderId, `pay_test_${Date.now()}`, 'test_sig');
+        return;
+      }
+
+      // If Cashfree checkout didn't launch, show error
+      if (!paymentSessionId || !window.Cashfree) {
+        throw new Error('Cashfree checkout could not be loaded. Please refresh and try again.');
       }
     } catch (err) {
       console.error('[PRICING MODAL] Error in handleSelectPlan:', err);
@@ -267,7 +252,7 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         <div className="shrink-0 px-8 py-4 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Secure 256-bit Encrypted Checkout via Razorpay & Stripe</span>
+            <span>Secure 256-bit Encrypted Checkout via Cashfree</span>
           </div>
           <span>Cancel or switch plans anytime</span>
         </div>

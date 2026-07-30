@@ -133,6 +133,7 @@ app.use('/api/broll', brollRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // React SPA Route Fallback (Serves index.html for frontend routes like /dashboard, /editor, /login)
 if (frontendDirFound) {

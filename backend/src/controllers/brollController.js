@@ -1,5 +1,6 @@
 import { autoDetectAndFetchBRoll, searchBRollClips } from '../services/media/brollService.js';
-import { generateFacelessVideoProject, generateScriptForPrompt } from '../services/media/videoGeneratorService.js';
+import { generateConsistentAIReel } from '../services/ai/aiReelService.js';
+import { generateScriptForPrompt } from '../services/media/legacyVideoGeneratorService.js';
 
 /**
  * Auto-detect visual keywords and generate AI video overlays for timeline segments
@@ -71,40 +72,38 @@ export async function generateScriptOnly(req, res, next) {
 }
 
 /**
- * Generate a complete AI Faceless Reel Project from a text prompt or custom approved script ($0 Cost)
+ * Generate a complete Consistent Character AI Reel from a topic or text prompt
  */
 export async function generateFacelessReel(req, res, next) {
   try {
     const {
       prompt,
-      scriptText,
-      targetLanguage = 'te',
-      voiceProvider = 'edge',
+      stylePreset = 'ENTREPRENEUR',
+      targetLanguage = 'chatting',
       durationSec = 30,
-      visualMode = 'cinematic',
-      aspectRatio = '9:16'
     } = req.body;
 
     const userId = req.user?.id || req.headers['x-user-id'] || null;
 
-    if ((!prompt || !prompt.trim()) && (!scriptText || !scriptText.trim())) {
-      return res.status(400).json({ success: false, error: 'Prompt or script text is required' });
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ success: false, error: 'Prompt topic is required' });
     }
 
-    console.log(`[B-ROLL CONTROLLER] 🚀 Generating AI Faceless Reel (Length: ${durationSec}s, AspectRatio: ${aspectRatio}, Mode: ${visualMode}, Voice: ${voiceProvider})`);
+    console.log(`[B-ROLL CONTROLLER] 🚀 Launching Consistent Character AI Reel Engine (Style: ${stylePreset}, Length: ${durationSec}s, Lang: ${targetLanguage})`);
 
-    const result = await generateFacelessVideoProject({
-      prompt: prompt || 'AI Story',
-      customScriptText: scriptText,
+    const result = await generateConsistentAIReel({
+      topicPrompt: prompt.trim(),
+      duration: parseInt(durationSec, 10) || 30,
+      stylePreset,
+      voicePreset: 'TE_MALE',
       targetLanguage,
-      voiceProvider,
-      durationSec,
-      visualMode,
-      aspectRatio,
       userId,
     });
 
-    return res.json(result);
+    return res.json({
+      success: true,
+      ...result,
+    });
   } catch (err) {
     next(err);
   }

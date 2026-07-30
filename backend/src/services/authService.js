@@ -80,6 +80,7 @@ export async function registerUser({ name, email, password }) {
           </div>
         </div>
         <p style="text-align: center; color: #71717a; font-size: 13px; margin-top: 30px;">
+          Follow us on Instagram: <a href="https://www.instagram.com/rukhi.in/" style="color: #ec4899; text-decoration: none; font-weight: 700;">@rukhi.in</a><br />
           © ${new Date().getFullYear()} rukhi.in. All rights reserved.
         </p>
       </div>

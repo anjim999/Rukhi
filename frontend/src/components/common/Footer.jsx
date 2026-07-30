@@ -47,9 +47,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Support Links */}
+          {/* Support & Social Links */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Support & Help</h4>
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Support & Social</h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <Link to="/contact" className="hover:text-cyan-400 transition-colors flex items-center space-x-1.5">
@@ -60,6 +60,16 @@ export default function Footer() {
               <li>
                 <a href="mailto:support@rukhi.in" className="hover:text-cyan-400 transition-colors">
                   support@rukhi.in
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/rukhi.in/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-pink-400 transition-colors flex items-center space-x-1.5 font-bold text-pink-400"
+                >
+                  <span>📸 Instagram: @rukhi.in</span>
                 </a>
               </li>
             </ul>

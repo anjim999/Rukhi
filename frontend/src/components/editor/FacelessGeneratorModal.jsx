@@ -134,11 +134,11 @@ export default function FacelessGeneratorModal({ isOpen, onClose, onProjectCreat
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 bg-slate-950/50">
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/80">
           <div className="flex items-center space-x-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-500 shadow-lg shadow-cyan-500/20">
               <Sparkles className="w-5 h-5 text-white" />
@@ -156,8 +156,8 @@ export default function FacelessGeneratorModal({ isOpen, onClose, onProjectCreat
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        {/* Scrollable Content */}
+        <div className="flex-1 p-5 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar">
           
           {/* Topic Input */}
           <div className="space-y-2">
@@ -297,7 +297,7 @@ export default function FacelessGeneratorModal({ isOpen, onClose, onProjectCreat
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between">
           <button
             onClick={onClose}
             className="px-4 py-2.5 rounded-xl text-xs text-slate-400 hover:text-white transition-colors"

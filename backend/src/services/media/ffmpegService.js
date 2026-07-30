@@ -20,7 +20,7 @@ function ensureExecutable(binPath) {
   }
 }
 
-function runFFmpeg(args) {
+export function runFFmpeg(args) {
   return new Promise((resolve, reject) => {
     const bin = ffmpegPath || 'ffmpeg';
     ensureExecutable(bin);
@@ -50,7 +50,7 @@ function runFFmpeg(args) {
   });
 }
 
-function runFFprobe(args) {
+export function runFFprobe(args) {
   return new Promise((resolve, reject) => {
     const bin = ffprobePath || 'ffprobe';
     ensureExecutable(bin);

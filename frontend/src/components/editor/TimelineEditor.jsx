@@ -741,6 +741,17 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
     );
   };
 
+  const handleQuickPresetSelect = (presetId) => {
+    const updatedTheme = {
+      ...(timeline.globalTheme || {}),
+      presetName: presetId,
+    };
+    setTimeline({ ...timeline, globalTheme: updatedTheme });
+    toast.success(`Applied ${presetId.replace('_', ' ').toUpperCase()} preset theme!`, { id: 'preset-quick-toast', duration: 1500 });
+  };
+
+  if (!timeline || !timeline.segments) return null;
+
   return (
     <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 sm:p-5 space-y-4 max-h-[85vh] flex flex-col transition-colors overflow-x-hidden">
       <div className="w-full pb-3 border-b border-slate-200 dark:border-zinc-800 flex flex-col gap-2.5">
@@ -758,6 +769,33 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
             <span className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-yellow-500/20">
               ✨ AI Auto-Synced
             </span>
+          </div>
+
+          {/* Quick Audition Preset Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar py-0.5 max-w-[280px] sm:max-w-none">
+            {[
+              { id: THEME_PRESETS.HORMOZI, label: '🔥 Hormozi' },
+              { id: THEME_PRESETS.SUBMAGIC_GLOW, label: '⚡ Submagic' },
+              { id: THEME_PRESETS.GOLD_LUXURY, label: '🌟 Gold' },
+              { id: THEME_PRESETS.MRBEAST_PUNCH, label: '💥 MrBeast' },
+              { id: THEME_PRESETS.NEON_LEMON, label: '🎨 Neon' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickPresetSelect(p.id);
+                }}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap transition-all border cursor-pointer ${
+                  timeline.globalTheme?.presetName === p.id
+                    ? 'bg-yellow-500 text-black border-yellow-400 font-black shadow-sm'
+                    : 'bg-slate-100 dark:bg-zinc-800/80 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 hover:border-yellow-500/50'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
 
           <div className="flex items-center gap-2">

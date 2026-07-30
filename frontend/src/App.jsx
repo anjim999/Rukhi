@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import Header from './components/common/Header';
+import Footer from './components/common/Footer';
 import AuthModal from './components/common/AuthModal';
 import ProductTour from './components/common/ProductTour';
 import DashboardPage from './pages/DashboardPage';
@@ -16,6 +17,11 @@ import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import SettingsPage from './pages/SettingsPage';
+
+import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/legal/TermsOfServicePage';
+import RefundPolicyPage from './pages/legal/RefundPolicyPage';
+import ContactUsPage from './pages/legal/ContactUsPage';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '729927667402-k6hksmher65amh9ufkfckd64m3762gja.apps.googleusercontent.com';
 
@@ -63,10 +69,18 @@ function MainApp() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
+
+          {/* Legal Compliance Routes for Razorpay / Cashfree / Stripe Approval */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/refund-policy" element={<RefundPolicyPage />} />
+          <Route path="/contact" element={<ContactUsPage />} />
+
           <Route path="*" element={<DashboardRouteWrapper />} />
         </Routes>
       </main>
 
+      <Footer />
       <AuthModal />
       <ProductTour isOpen={tourOpen} onClose={() => setTourOpen(false)} />
 

@@ -61,27 +61,37 @@ const staticOutputDirs = Array.from(new Set([
 
 
 staticUploadDirs.forEach((dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  app.use('/uploads', cors(), express.static(dir, {
-    maxAge: '7d',
-    setHeaders: (res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Accept-Ranges', 'bytes');
-    },
-  }));
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (_e) {}
+
+  if (fs.existsSync(dir)) {
+    app.use('/uploads', cors(), express.static(dir, {
+      maxAge: '7d',
+      setHeaders: (res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Accept-Ranges', 'bytes');
+      },
+    }));
+  }
 });
 
 staticOutputDirs.forEach((dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  app.use('/outputs', cors(), express.static(dir, {
-    maxAge: '7d',
-    setHeaders: (res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Accept-Ranges', 'bytes');
-    },
-  }));
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (_e) {}
+
+  if (fs.existsSync(dir)) {
+    app.use('/outputs', cors(), express.static(dir, {
+      maxAge: '7d',
+      setHeaders: (res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Accept-Ranges', 'bytes');
+      },
+    }));
+  }
 });
 
 // Mount React Frontend Static Bundle & SPA Fallback (Prevents Hostinger 503s)

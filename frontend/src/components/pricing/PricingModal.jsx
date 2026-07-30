@@ -80,17 +80,21 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
       const orderData = orderRes?.data || orderRes;
 
       if (!orderData?.success) {
-        throw new Error(orderData?.error || 'Failed to create payment order session.');
+        throw new Error(orderData?.error || orderData?.message || 'Failed to create payment order session.');
       }
 
-      const { orderId, paymentSessionId, cashfreeMode } = orderData;
+      const { orderId, paymentSessionId, cashfreeMode, cfError } = orderData;
+
+      if (!paymentSessionId) {
+        throw new Error(cfError || 'Cashfree payment session missing. Please refresh and try again.');
+      }
 
       // 2. Launch Cashfree Popup Modal if paymentSessionId exists
       if (paymentSessionId && window.Cashfree) {
         console.log('[PRICING MODAL] Launching Cashfree Popup Modal with Session ID:', paymentSessionId);
         await launchCashfreeCheckout({
           paymentSessionId,
-          mode: cashfreeMode || 'SANDBOX',
+          mode: cashfreeMode || 'PRODUCTION',
           onPaid: async () => {
             await verifyAndActivatePlan(planId, orderId);
           },
@@ -101,9 +105,8 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         return;
       }
 
-      // If Cashfree checkout didn't launch, show error
-      if (!paymentSessionId || !window.Cashfree) {
-        throw new Error('Cashfree checkout could not be loaded. Please refresh and try again.');
+      if (!window.Cashfree) {
+        throw new Error('Cashfree SDK could not be loaded. Please refresh the page and try again.');
       }
     } catch (err) {
       console.error('[PRICING MODAL] Error in handleSelectPlan:', err);
@@ -193,11 +196,10 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
             {plans.map((plan) => (
               <div
                 key={plan.id}
-                className={`relative flex flex-col justify-between p-6 rounded-3xl border transition-all duration-300 ${
-                  plan.popular
+                className={`relative flex flex-col justify-between p-6 rounded-3xl border transition-all duration-300 ${plan.popular
                     ? 'bg-gradient-to-b from-indigo-950/60 to-slate-900 border-indigo-500/50 shadow-xl shadow-indigo-500/10 scale-105'
                     : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-                }`}
+                  }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-indigo-500 text-black font-extrabold text-[10px] uppercase tracking-widest shadow-md">
@@ -233,13 +235,12 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
                 <button
                   disabled={plan.isCurrent || loadingPlan === plan.id}
                   onClick={() => handleSelectPlan(plan.id)}
-                  className={`w-full py-3 rounded-2xl font-bold text-xs transition-all shadow-lg ${
-                    plan.isCurrent
+                  className={`w-full py-3 rounded-2xl font-bold text-xs transition-all shadow-lg ${plan.isCurrent
                       ? 'bg-slate-800 text-slate-400 cursor-default'
                       : plan.popular
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/25'
-                      : 'bg-white hover:bg-slate-200 text-slate-900'
-                  }`}
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/25'
+                        : 'bg-white hover:bg-slate-200 text-slate-900'
+                    }`}
                 >
                   {loadingPlan === plan.id ? 'Processing...' : plan.isCurrent ? '✓ Current Active Plan' : plan.buttonText}
                 </button>

@@ -5,23 +5,27 @@ import { config } from '../../config/env.js';
  * Handles Order Session Creation, Signature Verification, and Webhooks.
  */
 
-const CASHFREE_ENV = process.env.CASHFREE_ENV || 'SANDBOX'; // 'SANDBOX' or 'PRODUCTION'
-const BASE_URL = CASHFREE_ENV === 'PRODUCTION'
-  ? 'https://api.cashfree.com/pg'
-  : 'https://sandbox.cashfree.com/pg';
-
-const APP_ID = process.env.CASHFREE_APP_ID || 'TEST1115862673d636a5e995532757f962685111';
-const SECRET_KEY = process.env.CASHFREE_SECRET_KEY || '';
+function getCashfreeCredentials() {
+  const env = process.env.CASHFREE_ENV || 'PRODUCTION';
+  const baseUrl = (env === 'PRODUCTION' || process.env.NODE_ENV === 'production')
+    ? 'https://api.cashfree.com/pg'
+    : 'https://sandbox.cashfree.com/pg';
+  const appId = process.env.CASHFREE_APP_ID || '1353108b98b98b751ede89142678013531';
+  const secretKey = process.env.CASHFREE_SECRET_KEY || 'cfsk_ma_prod_37a1f5ee7435caebffb90b8f411b95fa_9d8efbf1';
+  return { env, baseUrl, appId, secretKey };
+}
 
 /**
  * Creates a Cashfree Order & Returns payment_session_id
  */
 export async function createCashfreeOrder({ orderId, orderAmount, customerId, customerEmail, customerPhone, planName }) {
-  if (!APP_ID || !SECRET_KEY) {
-    console.warn('[CASHFREE WARN] Cashfree APP_ID or SECRET_KEY missing. Using fallback sandbox configuration.');
+  const { baseUrl, appId, secretKey } = getCashfreeCredentials();
+
+  if (!appId || !secretKey) {
+    console.warn('[CASHFREE WARN] Cashfree APP_ID or SECRET_KEY missing.');
   }
 
-  console.log(`[CASHFREE SERVICE] Creating Order ID: ${orderId} for ₹${orderAmount} (Plan: ${planName})...`);
+  console.log(`[CASHFREE SERVICE] Creating Order ID: ${orderId} for ₹${orderAmount} (Plan: ${planName}) via ${baseUrl}...`);
 
   const payload = {
     order_id: orderId,
@@ -40,14 +44,14 @@ export async function createCashfreeOrder({ orderId, orderAmount, customerId, cu
   };
 
   try {
-    const response = await fetch(`${BASE_URL}/orders`, {
+    const response = await fetch(`${baseUrl}/orders`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'x-api-version': '2023-08-01',
-        'x-client-id': APP_ID,
-        'x-client-secret': SECRET_KEY,
+        'x-client-id': appId,
+        'x-client-secret': secretKey,
       },
       body: JSON.stringify(payload),
     });
@@ -76,14 +80,15 @@ export async function createCashfreeOrder({ orderId, orderAmount, customerId, cu
  * Verifies Order Status from Cashfree
  */
 export async function getCashfreeOrderStatus(orderId) {
+  const { baseUrl, appId, secretKey } = getCashfreeCredentials();
   try {
-    const response = await fetch(`${BASE_URL}/orders/${orderId}`, {
+    const response = await fetch(`${baseUrl}/orders/${orderId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'x-api-version': '2023-08-01',
-        'x-client-id': APP_ID,
-        'x-client-secret': SECRET_KEY,
+        'x-client-id': appId,
+        'x-client-secret': secretKey,
       },
     });
 

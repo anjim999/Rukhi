@@ -57,35 +57,36 @@ export async function registerUser({ name, email, password }) {
 
   // Send Welcome Email
   try {
+    const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',')[0].trim() : 'https://rukhi.in';
     const welcomeHtml = `
       <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #09090b; color: #ffffff; border-radius: 16px; border: 1px solid #27272a;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #facc15; font-size: 32px; font-weight: 800; margin: 0;">Rocky Captions</h1>
-          <p style="color: #a1a1aa; font-size: 16px; margin-top: 8px;">Your AI Reel Studio</p>
+          <h1 style="color: #facc15; font-size: 32px; font-weight: 800; margin: 0;">rukhi.in</h1>
+          <p style="color: #a1a1aa; font-size: 16px; margin-top: 8px;">#1 AI Voice & Subtitle Studio</p>
         </div>
         <div style="background-color: #18181b; padding: 30px; border-radius: 12px; border: 1px solid #3f3f46;">
           <h2 style="font-size: 24px; margin-top: 0;">Welcome aboard, ${user.name}! 🚀</h2>
           <p style="font-size: 16px; line-height: 1.6; color: #d4d4d8;">
-            We're thrilled to have you! You now have access to the ultimate AI-powered captioning engine. 
-            Turn your raw videos into viral masterpieces in seconds.
+            We're thrilled to have you! You now have access to rukhi.in — the ultimate AI video studio.
+            Turn your raw videos into viral reels in seconds.
           </p>
           <ul style="color: #d4d4d8; font-size: 15px; line-height: 1.8; margin-top: 20px; padding-left: 20px;">
             <li>✨ <strong>100% Accurate Sync:</strong> Zero drift, sample-accurate timelines.</li>
-            <li>🎨 <strong>Viral Styles:</strong> Hormozi, MrBeast, and Gold Luxury presets.</li>
+            <li>🎨 <strong>70+ Fonts & Viral Styles:</strong> Hormozi, Submagic, and Gold presets.</li>
             <li>🌍 <strong>Multi-Lingual:</strong> English, Telugu, Hindi, and Teluglish support.</li>
           </ul>
           <div style="text-align: center; margin-top: 35px;">
-            <a href="${(process.env.FRONTEND_URL || '').split(',')[0].trim()}" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">Create Your First Reel</a>
+            <a href="${frontendUrl}" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">Create Your First Reel</a>
           </div>
         </div>
         <p style="text-align: center; color: #71717a; font-size: 13px; margin-top: 30px;">
-          © ${new Date().getFullYear()} Rocky Captions. All rights reserved.
+          © ${new Date().getFullYear()} rukhi.in. All rights reserved.
         </p>
       </div>
     `;
     await sendEmail({
       to: normalizedEmail,
-      subject: '🚀 Welcome to Rocky Captions! Your AI Studio is ready.',
+      subject: '🚀 Welcome to rukhi.in! Your AI Studio is ready.',
       html: welcomeHtml,
     });
   } catch (err) {
@@ -251,23 +252,25 @@ export async function forgotPassword(email) {
     [resetToken, expiry.toISOString(), user.id]
   );
 
-  const appFrontendUrl = (process.env.FRONTEND_URL || '').split(',')[0].trim();
+  const appFrontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',')[0].trim() : 'https://rukhi.in';
   const resetUrl = `${appFrontendUrl}/reset-password?token=${resetToken}`;
   const html = `
-    <div style="font-family: sans-serif; padding: 20px; background: #09090b; color: #fff; border-radius: 12px;">
-      <h2 style="color: #facc15;">Auto Captions — Password Reset Request</h2>
-      <p>Hello ${user.name || 'User'},</p>
-      <p>We received a request to reset your password for Auto Captions.</p>
-      <p>Click the button below to set a new password:</p>
-      <a href="${resetUrl}" style="display: inline-block; background: #facc15; color: #000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin: 16px 0;">Reset Password</a>
-      <p style="color: #a1a1aa; font-size: 12px;">This link is valid for 1 hour. If you did not request this, please ignore this email.</p>
+    <div style="font-family: sans-serif; padding: 25px; background: #09090b; color: #fff; border-radius: 16px; border: 1px solid #27272a; max-width: 550px; margin: 0 auto;">
+      <h2 style="color: #facc15; margin-top: 0;">rukhi.in — Password Reset Code</h2>
+      <p style="color: #d4d4d8; font-size: 15px;">Hello ${user.name || 'Creator'},</p>
+      <p style="color: #a1a1aa; font-size: 14px; line-height: 1.6;">We received a request to reset your password for your rukhi.in account.</p>
+      <p style="color: #a1a1aa; font-size: 14px;">Click the button below or copy the secure link to set your new password:</p>
+      <div style="text-align: center; margin: 25px 0;">
+        <a href="${resetUrl}" style="display: inline-block; background: #facc15; color: #000; font-weight: 800; font-size: 15px; padding: 14px 28px; border-radius: 10px; text-decoration: none;">Reset Password</a>
+      </div>
+      <p style="color: #71717a; font-size: 12px; line-height: 1.5; margin-bottom: 0;">This reset link is valid for 1 hour. If you did not request a password reset, you can safely ignore this email.</p>
     </div>
   `;
 
   try {
     await sendEmail({
       to: normalizedEmail,
-      subject: '🔑 Reset Your Auto Captions Password',
+      subject: '🔑 Reset Your rukhi.in Password',
       html,
     });
   } catch (mailErr) {

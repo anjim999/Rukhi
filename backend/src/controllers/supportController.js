@@ -23,14 +23,22 @@ export async function createSupportTicket(req, res, next) {
       [ticketId, ticketNumber, userId || null, name.trim(), email.trim().toLowerCase(), category, subject.trim(), message.trim()]
     );
 
-    // Send confirmation email via Hostinger SMTP
-    const confirmationText = `Hi ${name},\n\nThank you for reaching out to RoCaps Customer Support! We have received your request.\n\nTicket Number: ${ticketNumber}\nSubject: ${subject}\n\nOur team is reviewing your ticket and will respond shortly.\n\nBest regards,\nRoCaps Support Team`;
+    // Send confirmation email to customer via Hostinger SMTP
+    const confirmationText = `Hi ${name},\n\nThank you for reaching out to rukhi.in Technical Engineering Support!\n\nTicket Number: ${ticketNumber}\nSubject: ${subject}\n\nOur engineering team is reviewing your ticket and will respond shortly.\n\nBest regards,\nrukhi.in Engineering Support Team`;
     
     sendEmail({
       to: email,
-      subject: `[${ticketNumber}] Support Ticket Created — RoCaps`,
+      subject: `[${ticketNumber}] Support Ticket Received — rukhi.in`,
       text: confirmationText,
     }).catch((err) => console.error('[SUPPORT MAILER ERROR]:', err.message));
+
+    // Send copy to support@rukhi.in so engineering team receives the ticket!
+    const adminNotificationText = `NEW SUPPORT TICKET SUBMITTED\n\nTicket Number: ${ticketNumber}\nFrom: ${name} (${email})\nCategory: ${category}\nSubject: ${subject}\n\nMessage:\n${message}\n\nUser ID: ${userId || 'Guest'}`;
+    sendEmail({
+      to: 'support@rukhi.in',
+      subject: `🚨 [NEW TICKET ${ticketNumber}] ${subject}`,
+      text: adminNotificationText,
+    }).catch((err) => console.error('[ADMIN SUPPORT MAILER ERROR]:', err.message));
 
     return res.status(201).json({
       success: true,

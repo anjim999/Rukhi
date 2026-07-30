@@ -17,7 +17,9 @@ for (const envPath of envCandidatePaths) {
 }
 
 
-const isHostinger = process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
+import fs from 'fs';
+
+const isHostinger = fs.existsSync('/home/u209580425') || process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
 const persistentBase = '/home/u209580425/persistent_storage';
 
 const rawPort = process.env.PORT || '5000';

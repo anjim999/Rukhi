@@ -1,6 +1,6 @@
 # Auto Captions AI — Complete Project Overview & Technical Architecture Specification
 
-> **Auto Captions AI** is a production-grade, Submagic & Opus Clip-style SaaS web platform and media rendering engine. It automates high-converting, viral kinetic caption generation, multi-lingual transcription, video editing, and social media content creation for Instagram Reels, YouTube Shorts, and TikTok.
+> **Auto Captions AI (rukhi.in)** is a production-grade, Submagic & Opus Clip-style SaaS web platform and media rendering engine. It automates high-converting, viral kinetic caption generation, multi-lingual transcription, video editing, voice dubbing, and social media content creation for Instagram Reels, YouTube Shorts, and TikTok.
 
 ---
 
@@ -12,9 +12,16 @@
 4. [Backend Architecture & Data Pipelines](#4-backend-architecture--data-pipelines)
 5. [Frontend & HTML5 Canvas Render Engine](#5-frontend--html5-canvas-render-engine)
 6. [Database Schema & State Models](#6-database-schema--state-models)
-7. [API Endpoints & Contracts](#7-api-endpoints--contracts)
-8. [Complete File Directory & Module Map](#8-complete-file-directory--module-map)
-9. [Development Setup & Production Deployment](#9-development-setup--production-deployment)
+7. [Cashfree v3 Production Payment Gateway & Monetization Engine](#7-cashfree-v3-production-payment-gateway--monetization-engine)
+8. [API Endpoints & Contracts](#8-api-endpoints--contracts)
+9. [Complete File Directory & Module Map](#9-complete-file-directory--module-map)
+10. [Development Setup & Hostinger Production Deployment](#10-development-setup--hostinger-production-deployment)
+11. [Verbatim 1:1 Word Preservation Engine](#11-verbatim-11-word-preservation-engine)
+12. [Fail-Safe Local Telglish Transliteration Engine](#12-fail-safe-local-telglish-transliteration-engine)
+13. [Hostinger Container Media Pipeline & MPEG-4 Fast Remuxing](#13-hostinger-container-media-pipeline--mpeg-4-fast-remuxing)
+14. [Meta AI Demucs Single-Threaded Isolation Engine](#14-meta-ai-demucs-single-threaded-isolation-engine)
+15. [Single API Key Unified AI Architecture & Billing Breakdown](#15-single-api-key-unified-ai-architecture--billing-breakdown)
+16. [Comprehensive Root Cause Analysis & Fix History](#16-comprehensive-root-cause-analysis--fix-history)
 
 ---
 
@@ -33,7 +40,8 @@ Auto Captions AI automates this entire pipeline in seconds:
 - **70+ Multilingual Typography & Visual Font Studio Modal**: Full Google Fonts suite for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.
 - **Un-Clipped React Portal Dropdowns (`CustomFontSelect.jsx`)**: Floating `rounded-2xl` popovers rendered on `document.body` with built-in font search bar.
 - **Millisecond Audio Synchronization**: Enforces 100% frame-accurate word-level alignment matching actual audio playback.
-- **Multi-Tier Razorpay Subscription Engine**: Monetization architecture featuring Starter Creator (₹199) and Pro Unlimited (₹399) tiers, authentic REST API order creation (`/api/v1/orders`), and HMAC-SHA256 signature verification.
+- **Bank-Grade Cashfree v3 Production Payment Gateway**: Monetization architecture featuring Starter Creator (₹199 / 25 videos) and Pro Unlimited (₹399 / unlimited) tiers with Cashfree Popup Checkout modal (`redirectTarget: '_modal'`), real-time webhook listeners (`/api/payment/cashfree-webhook`), and automatic PostgreSQL subscription activation.
+- **Legal Compliance Suite**: Privacy Policy, Terms of Service with Anti-Deepfake/Zero-Abuse policies, Refund Policy (7-Day Money Back Guarantee), and Contact Us pages with live embedded interactive components.
 - **Admin Oversight Dashboard & Analytics**: System monitoring, user metrics, subscription logs, and admin management endpoints.
 - **Integrated Support Desk & Mailer**: Embedded support modal, issue ticket tracking, and direct email delivery using Hostinger SMTP.
 - **AI Social Copywriter**: Generates viral Instagram captions, hashtags, and YouTube Shorts titles directly from the video transcript.
@@ -45,7 +53,7 @@ Auto Captions AI automates this entire pipeline in seconds:
 ```
                                ┌──────────────────────────────────────────────┐
                                │           USER / WEB CLIENT                  │
-                               │      (React + Vite + HTML5 Canvas)          │
+                               │  (React 18 + Vite + Cashfree v3 Popup SDK)   │
                                └──────────────────────┬───────────────────────┘
                                                       │
                                            HTTP REST / Multipart API
@@ -53,14 +61,14 @@ Auto Captions AI automates this entire pipeline in seconds:
                                                       ▼
                                ┌──────────────────────────────────────────────┐
                                │         EXPRESS API BACKEND SERVER           │
-                               │   (Auth, Projects, Timeline, Controller)     │
+                               │   (Auth, Payments, Projects, Controller)     │
                                └──────────────┬────────────────┬──────────────┘
                                               │                │
                                       SQL Queries       Job Producer
                                               │                │
                                               ▼                ▼
                                ┌──────────────────┐    ┌──────────────────────┐
-                               │  PostgreSQL DB   │    │  Redis + BullMQ Queue│
+                               │  Neon PostgreSql │    │  Redis + BullMQ Queue│
                                └──────────────────┘    └──────────┬───────────┘
                                                                   │
                                                           Job Consumption
@@ -111,32 +119,20 @@ _validateAndRepairTimestamps(wordObjects, videoDuration) {
 }
 ```
 
-#### 3. Elimination of Artificial Gap Math
-- Removed legacy `* 90 / 100` math in fallback word generators that created a 10% gap (invisible captions) between every word.
-
-#### 4. Seamless Segment Chunking & Canvas Tolerance Buffer
+#### 3. Seamless Segment Chunking & Canvas Tolerance Buffer
 - Groups words into chunks of 3 while extending segment end times to eliminate visual gaps between adjacent chunks.
 - Adds a `0.05s` tolerance buffer in `CanvasVideoPlayer.jsx` so frame-rendered captions transition cleanly without micro-flickers.
 
 ---
-
-### 3.5 Demucs Vocal Separation, Overlapping Sliding Windows & Deepgram Enhancements
-
-- **Demucs AI Vocal Separator**: Integrated Meta's `htdemucs` model via a dedicated `demucsService`. Isolates vocal tracks from background music (BGM), drums, and beats before STT processing, ensuring high transcription accuracy on heavy-BGM videos.
-- **2.5s Overlapping Sliding Window Chunking Engine**: Replaced rigid 15s hard cuts with **2.5s overlapping sliding windows** (`0–15s`, `12.5–27.5s`, `25–40s`). Eliminates boundary speech slicing and prevents missing word gaps (resolving 9.97s silence gap issues) with built-in timestamp overlap deduplication.
-- **Preserved Natural Word Durations (`snapWordTimestamps`)**: Removed legacy `0.35s` artificial word truncation clamps in `STTProvider.js` to preserve full natural speech playback duration.
-- **Locked Single-Row Studio Header & Cyber-Gold Glass Glow (`TimelineEditor.jsx`)**: Locked timestamp badges (`22.63 → 23.01 s`) and action toolbars (✂️ 🔀 ⚙️) to a compact 263px single-row layout without scrollbars or border overflow. Features translucent Cyber-Gold Glass Glow badges (`bg-yellow-500/15 border-yellow-500/80 ring-2 ring-yellow-500/30`) for active word tracking.
-- **Deepgram Nova‑2 Settings**: Enabled `diarize=true`, `filler_words=true`, `paragraphs=true` in `DeepgramProvider`. Provides speaker diarization, filler‑word detection, and paragraph grouping for richer transcripts.
-- **Impact**: Caption sync accuracy improved from ~78‑83% to ~96‑99% on heavy background music reels with zero boundary clipping.
-
 
 ## 4. Backend Architecture & Data Pipelines
 
 ### Tech Stack
 - **Runtime**: Node.js (ES Modules)
 - **Framework**: Express.js
-- **Database**: PostgreSQL 15+ (`pg` connection pool)
+- **Database**: PostgreSQL (`pg` connection pool on Neon Cloud)
 - **Background Queue**: BullMQ + Redis
+- **Payment Engine**: Cashfree Payments REST API v3 (`2023-08-01`)
 - **AI Processing**: `@google/generative-ai` (Gemini 2.5 Flash)
 - **Media Engine**: FFmpeg + `ffprobe-static` + `ffmpeg-static`
 
@@ -155,27 +151,14 @@ _validateAndRepairTimestamps(wordObjects, videoDuration) {
 
 ### Tech Stack
 - **Framework**: React 18.3 + Vite
-- **Styling**: Tailwind CSS + Custom CSS Variables
+- **Styling**: Vanilla CSS + Tailwind CSS
 - **Icons**: Lucide React
 - **Notifications**: React Hot Toast
+- **Payment Modal**: Cashfree JS SDK v3 (`window.Cashfree`)
 
 ### Broadcast 60FPS Hardware-Synced Canvas Player (`CanvasVideoPlayer.jsx`)
 - Uses `requestVideoFrameCallback` (falling back to `requestAnimationFrame`) to synchronize canvas renders with the browser's video decoder hardware.
 - Throttles UI slider updates to `100ms` so React re-renders don't thrash playback performance.
-
-### Physics & Responsive Rendering Math
-- **Aspect Ratio Safe Zone**: Dynamically scales typography based on orientation:
-  - **9:16 Vertical Reel**: `baseFontSize = canvasWidth * 0.058`
-  - **16:9 Widescreen**: `baseFontSize = canvasHeight * 0.075`
-  - **1:1 Square**: `baseFontSize = canvasWidth * 0.065`
-- **15+ Animation Engines**:
-  - `pop`: Spring scale expansion.
-  - `bounce`: Sinusoidal Y-axis movement.
-  - `zoom_in` / `zoom_out`: Smooth scaling transitions.
-  - `slide_up` / `slide_left`: Linear positional interpolations.
-  - `shake_rumble`: Random jitter offsets.
-  - `flip_rotate`: Sinusoidal rotation angles.
-  - `glow_pulse`: Pulsing shadow blur effects.
 
 ---
 
@@ -185,69 +168,99 @@ _validateAndRepairTimestamps(wordObjects, videoDuration) {
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),
+  google_id VARCHAR(255),
   name VARCHAR(255) NOT NULL,
+  avatar_url TEXT,
+  role VARCHAR(20) DEFAULT 'user',
+  plan VARCHAR(50) DEFAULT 'free',
+  credits INTEGER DEFAULT 3,
+  reset_token VARCHAR(255),
+  reset_token_expiry TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  video_url VARCHAR(512) NOT NULL,
-  duration NUMERIC(10,2) DEFAULT 0,
-  status VARCHAR(50) DEFAULT 'processing', -- 'processing' | 'completed' | 'failed'
+  plan VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  gateway VARCHAR(20) NOT NULL,
+  gateway_order_id VARCHAR(255),
+  amount NUMERIC(10, 2) DEFAULT 0,
+  currency VARCHAR(10) DEFAULT 'INR',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS captions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  full_text TEXT,
-  language VARCHAR(10) DEFAULT 'te',
-  timeline_json JSONB NOT NULL,
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  amount NUMERIC(10, 2) NOT NULL,
+  currency VARCHAR(10) DEFAULT 'INR',
+  gateway VARCHAR(20) NOT NULL,
+  payment_id VARCHAR(255),
+  order_id VARCHAR(255),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ---
 
-## 7. API Endpoints & Contracts
+## 7. Cashfree v3 Production Payment Gateway & Monetization Engine
+
+### Production Configuration
+- **App ID**: `1353108b98b98b751ede89142678013531`
+- **Environment**: `PRODUCTION` (`https://api.cashfree.com/pg`)
+- **API Version**: `2023-08-01`
+- **Webhook Endpoint**: `https://rukhi.in/api/payment/cashfree-webhook`
+- **Subscribed Events**: `success payment`, `failed payment`, `payment verification update`, `user dropped payment`.
+
+### Flow of Execution:
+1. **Order Creation (`POST /api/payments/create-order`)**:
+   - Backend calls `createCashfreeOrder()` in `cashfreeService.js`.
+   - Sends REST API payload to Cashfree `/pg/orders`.
+   - Returns Cashfree `paymentSessionId` to frontend.
+2. **Popup Modal Execution (`PricingModal.jsx`)**:
+   - Frontend invokes `window.Cashfree({ mode: 'PRODUCTION' }).checkout({ paymentSessionId, redirectTarget: '_modal' })`.
+   - Seamless popover modal opens for UPI / Cards / NetBanking.
+3. **Verification & Subscription Activation (`POST /api/payments/verify`)**:
+   - Updates `users` table: `UPDATE users SET plan = $1, credits = $2 WHERE id = $3`.
+   - Logs completed transaction in `payments` and `subscriptions` table.
+   - Refreshes global `AuthContext` state so UI immediately displays **"Current Active Plan"**.
+
+---
+
+## 8. API Endpoints & Contracts
 
 ### Auth Routes (`/api/auth`)
 - `POST /api/auth/register` — Body: `{ name, email, password }`
 - `POST /api/auth/login` — Body: `{ email, password }` $\to$ Returns JWT token & user object.
-- `GET /api/auth/me` — Header: `Authorization: Bearer <token>` $\to$ Returns current user.
+- `GET /api/auth/me` — Header: `Authorization: Bearer <token>` $\to$ Returns user profile with `plan` and `credits`.
+
+### Payment Routes (`/api/payments` & `/api/payment`)
+- `POST /api/payments/create-order` — Body: `{ planId }` $\to$ Returns Cashfree `paymentSessionId`.
+- `POST /api/payments/verify` — Body: `{ orderId, planId }` $\to$ Activates plan & returns updated credits.
+- `POST /api/payment/cashfree-webhook` — Cashfree real-time webhook listener.
 
 ### Project & Caption Routes (`/api/projects`)
-- `POST /api/projects/upload` — Multipart form: `video` file + `targetStyle` (`auto`|`telugu`|`chatting`|`english`|`hindi`)
+- `POST /api/projects/upload` — Multipart form: `video` file + `targetStyle`
 - `GET /api/projects` — Paginated list of user projects.
-- `GET /api/projects/:id` — Get single project details & processing status.
 - `GET /api/projects/:id/timeline` — Fetch full timeline JSON.
 - `PUT /api/projects/:id/timeline` — Body: `{ timeline }` $\to$ Save timeline edits.
 - `POST /api/projects/:id/export` — Trigger server-side 60FPS FFmpeg MP4 render.
-- `POST /api/projects/:id/social-pack` — Generate AI Instagram & YouTube post captions.
-- `POST /api/projects/faceless/generate` — Body: `{ prompt, niche, duration }` $\to$ Instant automated faceless reel creation.
-- `DELETE /api/projects/:id` — Remove project and clean up files.
-
-### B-Roll Routes (`/api/broll`)
-- `GET /api/broll/search` — Search Pexels/Pixabay stock media by query string.
-- `POST /api/broll/auto-insert` — Body: `{ projectId, captions }` $\to$ AI auto-inserts matching video/image overlays.
-
-### Voice Dubbing Routes (`/api/dubbing`)
-- `GET /api/dubbing/voices` — Fetch list of available TTS voices and clone models.
-- `POST /api/dubbing/synthesize` — Body: `{ text, targetLanguage, voiceId }` $\to$ Generate multi-lingual AI voice dubbing track.
 
 ---
 
-## 8. Complete File Directory & Module Map
+## 9. Complete File Directory & Module Map
 
 ```
 auto_captions/
 ├── README.md                           # Quickstart & GitHub Overview
-├── PROJECT_OVERVIEW.md                 # Complete Exhaustive Technical Specification
-├── shared/
-│   └── constants/timeline.js          # Presets, Animations & Display Mode constants
+├── PROJECT_OVERVIEW.md                 # Exhaustive Technical Specification
+├── docs/
+│   └── fixes/
+│       └── HOSTINGER_PAYMENT_DEPLOYMENT_FIX.md # Hostinger Deployment & Payment Fix Log
 │
 ├── backend/
 │   ├── src/
@@ -255,162 +268,59 @@ auto_captions/
 │   │   ├── config/env.js              # Environment variable loader
 │   │   ├── controllers/
 │   │   │   ├── authController.js      # Auth request handlers
-│   │   │   ├── projectController.js   # Upload, Timeline & Export handlers
-│   │   │   ├── brollController.js     # Stock B-Roll search & auto-insertion
-│   │   │   └── dubbingController.js   # Voice dubbing & multi-lingual speech synthesis
+│   │   │   ├── paymentController.js   # Cashfree order creation & plan verification
+│   │   │   └── projectController.js   # Upload, Timeline & Export handlers
 │   │   ├── db/
 │   │   │   ├── pool.js                # PostgreSQL connection pool
 │   │   │   ├── initDb.js              # Database initialization & migrations
 │   │   │   └── schema.sql             # SQL Schema definition
 │   │   ├── middleware/
-│   │   │   ├── auth.js                # JWT verification middleware
+│   │   │   ├── auth.js                # JWT verification & optionalAuth middleware
 │   │   │   └── errorHandler.js        # Centralized error handler
 │   │   ├── routes/
 │   │   │   ├── auth.routes.js         # Auth routes
-│   │   │   ├── project.routes.js      # Project routes
-│   │   │   ├── broll.routes.js        # B-Roll stock media routes
-│   │   │   └── dubbing.routes.js      # Voice dubbing routes
+│   │   │   ├── payment.routes.js      # Payment & Cashfree webhook routes
+│   │   │   └── project.routes.js      # Project routes
 │   │   ├── services/
-│   │   │   ├── authService.js         # User registration & password hashing
-│   │   │   ├── projectService.js      # Project CRUD operations
-│   │   │   ├── llm/
-│   │   │   │   ├── LLMProvider.js     # Abstract LLM provider
-│   │   │   │   └── GeminiCaptionDirector.js # Gemini STT & Sync Engine
-│   │   │   ├── media/
-│   │   │   │   ├── ffmpegService.js   # FFmpeg audio extractor & prober
-│   │   │   │   ├── exportService.js   # 60FPS FFmpeg MP4 Exporter
-│   │   │   │   ├── brollService.js    # Stock Pexels/Pixabay visual search
-│   │   │   │   ├── dubbingService.js  # Voice clone & dubbing synthesizer
-│   │   │   │   ├── reframerService.js # Dynamic widescreen-to-vertical auto-reframer
-│   │   │   │   ├── videoGeneratorService.js # Faceless video generator
-│   │   │   │   └── tts/               # TTS providers
-│   │   │   ├── queue/
-│   │   │   │   └── queueService.js    # BullMQ Producer configuration
-│   │   │   └── stt/
-│   │   │       ├── STTProvider.js     # Abstract STT provider
-│   │   │       ├── DeepgramProvider.js # Deepgram Nova-2 STT provider
-│   │   │       ├── demucsService.js   # Meta htdemucs AI vocal separator
-│   │   │       └── LocalWhisperProvider.js # Whisper CLI fallback provider
-│   │   ├── workers/
-│   │   │   └── mediaWorker.js         # BullMQ consumer for async video processing
-│   │   └── utils/
-│   │       └── fileUpload.js          # Multer disk storage setup
-│   └── storage/                       # Storage directory (Auto-purged every 72h)
-│       ├── uploads/                   # Raw uploaded video files
-│       ├── exports/                   # Exported rendered 60FPS MP4 videos
-│       ├── processed/                 # Intermediate audio-isolated tracks
-│       ├── temp/                      # FFmpeg processing chunk buffers
-│       └── logs/                      # System audit & background worker logs
+│   │   │   ├── authService.js         # User registration & profile query with plan/credits
+│   │   │   ├── payment/
+│   │   │   │   └── cashfreeService.js # Cashfree v3 REST API order session service
+│   │   │   └── llm/
+│   │   │       └── GeminiCaptionDirector.js # Gemini STT & Sync Engine
 │
 └── frontend/
     ├── src/
     │   ├── api/
     │   │   └── axiosClient.js         # Axios client with JWT interceptors
     │   ├── components/
-    │   │   ├── common/                # Header, AuthModal, ProductTour
-    │   │   ├── editor/                # CanvasVideoPlayer, TimelineEditor, DubbingVoiceModal & FacelessGeneratorModal
-    │   │   └── upload/                # VideoDropzone component
+    │   │   ├── common/                # Header, AuthModal, Footer, Password Toggle
+    │   │   ├── editor/                # CanvasVideoPlayer, TimelineEditor
+    │   │   └── pricing/
+    │   │       └── PricingModal.jsx   # Cashfree Popup Modal trigger & plan switcher
     │   ├── context/
-    │   │   ├── AuthContext.jsx        # Global authentication state
-    │   │   └── ThemeContext.jsx       # Theme state provider
+    │   │   └── AuthContext.jsx        # Global user profile, plan, and credits state
     │   ├── pages/
-    │   │   ├── DashboardPage.jsx      # Projects dashboard & Faceless Generator launcher
-    │   │   └── auth/                  # LoginPage & RegisterPage
-    │   ├── services/
-    │   │   ├── authService.js         # Auth API calls
-    │   │   ├── projectService.js      # Project & Export API calls
-    │   │   ├── brollService.js        # Stock media B-Roll API calls
-    │   │   └── dubbingService.js      # Voice synthesis & dubbing API calls
-    │   ├── App.jsx                    # React Router configuration
-    │   ├── main.jsx                   # React root mount point
-    │   └── index.css                  # Tailwind styles & design tokens
-    └── vite.config.js                 # Vite configuration
+    │   │   ├── DashboardPage.jsx      # Projects dashboard
+    │   │   └── legal/                 # Privacy Policy, Terms, Refund, Contact Us
+    │   └── services/
+    │       └── paymentService.js      # Cashfree Checkout SDK modal launcher helper
 ```
 
 ---
 
-## 9. Development Setup & Production Deployment
+## 10. Hostinger Production Deployment
 
-### Local Development Commands
-
-```bash
-# 1. Start Backend API Server
-cd backend && npm run dev
-
-# 2. Start BullMQ Media Worker
-cd backend && npm run worker
-
-# 3. Start Frontend Vite Development Server
-cd frontend && npm run dev
-```
-
-### Production Hardening Guidelines
-1. **Object Storage**: Swap local `uploads/` and `outputs/` directories to AWS S3 or Cloudflare R2 for distributed storage.
-2. **Queue Scaling**: Scale `mediaWorker.js` across multiple worker pods for parallel video processing.
-3. **Database Indexing**: Indexes applied on `projects(user_id)` and `captions(project_id)`.
+- **Live URL**: `https://rukhi.in`
+- **Server Engine**: CloudLinux + Apache + Phusion Passenger Node.js 20.
+- **Build Deployment**: Compiled frontend `dist` tracked in Git and synced directly to `/public_html` and `.builds/current/nodejs/dist`.
 
 ---
 
-## 10. Verbatim 1:1 Word Preservation Engine
+## 16. Comprehensive Root Cause Analysis & Fix History
 
-To eliminate LLM word-summarization bugs where multi-word regional speech was condensed into short titles, `GeminiCaptionDirector.js` enforces a 1:1 word preservation mandate:
-
-* **Strict Negative Constraints**: Directives in `getStyleInstruction('chatting')` explicitly prohibit summarizing, truncating, or skipping words.
-* **Exact Word Count Equivalence**: If the acoustic speech input contains $N$ words (e.g. 22 words in Telugu), the generated timeline JSON is guaranteed to contain all $N$ words in exact chronological sequence.
-* **Deterministic Timing Bounds**: Each word preserves its microsecond audio start and end timestamps (`start_sec`, `end_sec`).
-
----
-
-## 11. Fail-Safe Local Telglish Transliteration Engine (`transliterateTeluguToRoman`)
-
-To guarantee that native Telugu script (`తమ్ముడు...`) NEVER bleeds onto the user's screen when `chatting` or `tel_eng` mode is selected:
-
-* **Zero-Network Engine**: Built-in deterministic Unicode character & word map (`transliterateTeluguToRoman`) handles phoneme mapping locally in JavaScript.
-* **Automatic Fallback Guard**: If Google Gemini API is rate-limited (`429`) or unavailable, the backend interceptor catches the exception and locally transliterates all native Telugu Unicode tokens into clean Romanized chat script (`tammudu okka nimisham...`).
-* **Complete User Guarantee**: Captions rendered on the frontend editor always honor the user's selected script style regardless of external API quota states.
-
----
-
-## 12. Hostinger Container Media Pipeline & MPEG-4 Fast Remuxing
-
-To achieve 100% export reliability on Hostinger Business Web Hosting:
-
-* **CloudLinux Security Restrictions**: Hostinger's Linux container kernel blocks POSIX shared-memory allocation within `libx264` precompiled static binaries.
-* **MPEG-4 High-Fidelity Encoder**: `exportService.js` automatically uses `-c:v mpeg4 -q:v 2` when executing under Hostinger container paths (`rukhi.in` / `u209580425`).
-* **Ultra-Fast Performance**: Video remuxing and subtitle burning complete in **2 to 4 seconds** with `+faststart` MP4 metadata for instant web streaming.
-* **Persistent Media Storage**: Uploads and rendered MP4 files are stored in `/home/u209580425/persistent_storage/uploads` and `/outputs`, ensuring app restarts and container redeployments never wipe user media.
-
----
-
-## 13. Meta AI Demucs Single-Threaded Isolation Engine
-
-* **Executable Path**: Runs via Python 3.11 (`/opt/alt/python311/bin/python3`) with PyTorch & Meta `htdemucs`.
-* **Single-Thread Bound**: Explicit environment variables (`OMP_NUM_THREADS=1`, `TORCH_NUM_THREADS=1`, `--jobs 1`) prevent PyTorch from attempting multi-core CPU thread spawning.
-* **Vocal Isolation**: Separates vocal frequencies from heavy background music (BGM), feeding pristine voice tracks into Deepgram Nova-3 to achieve 98%+ speech recognition accuracy.
-
----
-
-## 14. Single API Key Unified AI Architecture & Billing Breakdown
-
-A single Google API Key (`GEMINI_API_KEY`) powers the entire multi-modal AI stack across Node.js services:
-
-| Capability | Model / Engine | Purpose |
+| Incident | Root Cause | Engineering Solution |
 | :--- | :--- | :--- |
-| **Kinetic Captions & Styling** | Google `gemini-2.5-flash` | Script formatting, Telglish transliteration, timing alignment |
-| **AI B-Roll Overlays** | Google `imagen-3.0-generate-002` | Generates 9:16 HD AI visual overlay images matching transcript |
-| **Multilingual Voice Dubbing** | Google Cloud `te-IN-Chirp-HD` | Studio-grade neural voiceovers in Telugu, Hindi, English, etc. |
-| **AI Motion Video Clips** | Google `Veo` / `Vertex AI` | Synthesizes 5-10s cinematic motion video clips |
-
-### Google Cloud $300 USD Billing Credit Capacity:
-* **Gemini 2.5 Flash Token Rate**: $0.075 / 1M Input Tokens, $0.30 / 1M Output Tokens.
-* **Cost per 45s Reel**: ~$0.000225 USD (approx. **₹0.019 INR / 1.9 Paise** per reel).
-* **Credit Capacity**: $300 credit processes over **1.3 MILLION video reels** or **20,000+ minutes of neural voice dubbing** for 100% FREE.
-
----
-
-## 15. Production Deployment & Live Verification Summary
-
-* **Live Web Application**: **[https://rukhi.in](https://rukhi.in)** 🔒
-* **Database**: Neon Cloud PostgreSQL (SSL Encrypted)
-* **Storage**: Hostinger Persistent Storage (`/home/u209580425/persistent_storage`)
-* **Status**: Fully verified end-to-end for audio sync, vocal separation, verbatim word retention, and fast MP4 exports.
+| **`paymentSessionId: null`** | Hostinger `.builds/versions/<hash>/` folders lacked `.env` variables | Synchronized `CASHFREE_APP_ID`, `SECRET_KEY`, and `ENV=PRODUCTION` across all `.env` locations. |
+| **`Failed to create payment order session`** | Apache `.htaccess` redirected API errors to `index.html` (HTML instead of JSON) | Added explicit `RewriteCond %{REQUEST_URI} ^/api` bypass rules in `.htaccess`. |
+| **Old Razorpay Log Output** | Node process in RAM retained old module cache across disk edits | Issued hard process signal `pkill -9 -f node` and `touch tmp/restart.txt`. |
+| **UI Button Showed "Upgrade to Starter" after Payment** | `getUserById()` SQL query omitted `plan` and `credits` columns on profile refresh | Updated SQL query to `SELECT id, name, email, avatar_url, plan, credits, created_at FROM users`. |

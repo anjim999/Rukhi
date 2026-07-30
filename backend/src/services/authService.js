@@ -317,7 +317,7 @@ export async function resetPassword({ token, newPassword }) {
  */
 export async function getUserById(userId) {
   const res = await query(
-    `SELECT id, name, email, avatar_url, created_at FROM users WHERE id = $1`,
+    `SELECT id, name, email, avatar_url, plan, credits, created_at FROM users WHERE id = $1`,
     [userId]
   );
 

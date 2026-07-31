@@ -94,30 +94,11 @@ staticOutputDirs.forEach((dir) => {
   }
 });
 
-// Mount React Frontend Static Bundle & SPA Fallback (Prevents Hostinger 503s)
-const staticFrontendDirs = [
-  path.resolve(process.cwd(), '../frontend/dist'),
-  path.resolve(process.cwd(), 'frontend/dist'),
-  path.resolve(process.cwd(), 'dist'),
-  path.resolve(process.cwd(), 'public_html'),
-];
-
-let frontendDirFound = null;
-for (const dir of staticFrontendDirs) {
-  if (fs.existsSync(dir) && fs.existsSync(path.join(dir, 'index.html'))) {
-    frontendDirFound = dir;
-    app.use(express.static(dir));
-    break;
-  }
-}
-
-if (frontendDirFound) {
-  console.log(`[SERVER] Serving React Frontend from: ${frontendDirFound}`);
-}
-
-
 import { exec } from 'child_process';
 
+// -------------------------------------------------------------
+// 1. ALL API ROUTES (MUST BE REGISTERED BEFORE STATIC FALLBACKS)
+// -------------------------------------------------------------
 app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
@@ -148,6 +129,29 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payment', paymentRoutes);
+
+// -------------------------------------------------------------
+// 2. MOUNT REACT FRONTEND STATIC BUNDLE & SPA FALLBACK
+// -------------------------------------------------------------
+const staticFrontendDirs = [
+  path.resolve(process.cwd(), '../frontend/dist'),
+  path.resolve(process.cwd(), 'frontend/dist'),
+  path.resolve(process.cwd(), 'dist'),
+  path.resolve(process.cwd(), 'public_html'),
+];
+
+let frontendDirFound = null;
+for (const dir of staticFrontendDirs) {
+  if (fs.existsSync(dir) && fs.existsSync(path.join(dir, 'index.html'))) {
+    frontendDirFound = dir;
+    app.use(express.static(dir));
+    break;
+  }
+}
+
+if (frontendDirFound) {
+  console.log(`[SERVER] Serving React Frontend from: ${frontendDirFound}`);
+}
 
 // React SPA Route Fallback (Serves index.html for frontend routes like /dashboard, /editor, /login)
 if (frontendDirFound) {

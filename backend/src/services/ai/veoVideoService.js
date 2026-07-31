@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
 import fs from 'fs';
 import { config } from '../../config/env.js';
+import { runFFmpeg } from '../media/ffmpegService.js';
 
 /**
  * Veo & Vertex AI Video Generation Service
@@ -16,7 +17,8 @@ export async function generateVeoVideoClip({
   aspectRatio = '9:16',
   durationSeconds = 5.0,
 }) {
-  if (!config.geminiApiKey && !config.gcpProjectId) {
+  const apiKey = config.gcpApiKey || config.geminiApiKey;
+  if (!apiKey && !config.gcpProjectId) {
     throw new Error('Gemini API Key or GCP Project ID is required for Veo Video Generation.');
   }
 
@@ -66,11 +68,17 @@ export async function generateVeoVideoClip({
  * Calls Google Cloud Vertex AI Veo 2 / Veo 3 REST Endpoint
  */
 async function callVertexAiVeoApi({ scenePrompt, startImageBase64, aspectRatio, durationSeconds }) {
-  const apiKey = config.geminiApiKey;
+  const apiKey = config.gcpApiKey || config.geminiApiKey;
   const veoModel = config.veoModel || 'veo-2.0-generate-001';
-  
-  // Endpoint URL for Vertex AI / Generative AI Veo model
-  const endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/${veoModel}:predictVideo?key=${apiKey}`;
+  const gcpProjectId = config.gcpProjectId || 'ai-quiz-generator-479518';
+  const gcpLocation = config.gcpLocation || 'us-central1';
+
+  // Candidate endpoint URLs for Vertex AI / Generative Language API
+  const candidateEndpoints = [
+    `https://${gcpLocation}-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/${gcpLocation}/publishers/google/models/${veoModel}:predict?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${veoModel}:predict?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/veo-2.0-generate-001:predict?key=${apiKey}`,
+  ];
   
   const payload = {
     instances: [
@@ -88,34 +96,44 @@ async function callVertexAiVeoApi({ scenePrompt, startImageBase64, aspectRatio, 
     },
   };
 
-  const response = await fetch(endpointUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  let lastError = null;
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`HTTP ${response.status}: ${errText.substring(0, 150)}`);
+  for (const endpointUrl of candidateEndpoints) {
+    try {
+      const response = await fetch(endpointUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        lastError = new Error(`HTTP ${response.status}: ${errText.substring(0, 150)}`);
+        continue;
+      }
+
+      const data = await response.json();
+
+      // If long-running operation returned
+      if (data.name && data.name.startsWith('operations/')) {
+        return await pollVeoOperation(data.name, apiKey);
+      }
+
+      // If direct predictions with base64 video returned
+      if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
+        return {
+          videoBuffer: Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64'),
+        };
+      }
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  const data = await response.json();
-
-  // If long-running operation returned
-  if (data.name && data.name.startsWith('operations/')) {
-    return pollVeoOperation(data.name, apiKey);
-  }
-
-  // If direct predictions with base64 video returned
-  if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
-    return {
-      videoBuffer: Buffer.from(data.predictions[0].bytesBase64Encoded, 'base64'),
-    };
-  }
-
-  throw new Error('Unexpected Veo API response format.');
+  throw lastError || new Error('Unexpected Veo API response format.');
 }
 
 /**
@@ -130,7 +148,11 @@ async function pollVeoOperation(operationName, apiKey) {
     attempts++;
     await new Promise((resolve) => setTimeout(resolve, 4000));
 
-    const response = await fetch(pollUrl);
+    const response = await fetch(pollUrl, {
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+      },
+    });
     if (!response.ok) continue;
 
     const statusData = await response.json();
@@ -153,18 +175,24 @@ async function pollVeoOperation(operationName, apiKey) {
 
 /**
  * Synthesizes dynamic high-grade vertical motion clip for video assembly
+ * Uses prebuilt static FFmpeg binary (ffmpeg-static) guaranteed to work on Linux / Hostinger!
  */
 async function generateHighQualitySyntheticClip(outputPath, durationSeconds = 5.0) {
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync = promisify(exec);
-
-  const ffmpegBin = process.platform === 'win32' ? 'ffmpeg' : 'ffmpeg';
-  const cmd = `${ffmpegBin} -f lavfi -i testsrc=size=1080x1920:rate=30 -t ${durationSeconds} -c:v mpeg4 -q:v 2 -y "${outputPath}"`;
+  const isHostinger = process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
+  const encoderArgs = isHostinger
+    ? ['-c:v', 'mpeg4', '-q:v', '2']
+    : ['-c:v', 'libx264', '-preset', 'superfast', '-crf', '18', '-pix_fmt', 'yuv420p'];
 
   try {
-    await execAsync(cmd);
-    console.log(`[VEO VERTEX AI SERVICE] ✅ Rendered 5s dynamic scene clip: ${outputPath}`);
+    await runFFmpeg([
+      '-f', 'lavfi',
+      '-i', 'testsrc=size=1080x1920:rate=30',
+      '-t', String(durationSeconds),
+      ...encoderArgs,
+      '-y',
+      outputPath,
+    ]);
+    console.log(`[VEO VERTEX AI SERVICE] ✅ Rendered ${durationSeconds}s dynamic scene clip using static FFmpeg: ${outputPath}`);
     return outputPath;
   } catch (err) {
     console.error(`[VEO VERTEX AI SERVICE ERROR] Failed to generate clip: ${err.message}`);

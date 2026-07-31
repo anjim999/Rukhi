@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContentViaVertexAi } from '../ai/vertexAiGeminiService.js';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
@@ -88,10 +89,25 @@ export class GeminiCaptionDirector extends LLMProvider {
   }
 
   /**
-   * Robust Gemini API caller with automatic model fallback (2.5-flash -> 2.0-flash -> 1.5-flash -> 1.5-pro)
-   * on 429 Quota Exceeded / Rate Limit errors.
+   * Robust Gemini API caller with automatic model fallback.
+   * Priority #1: Google Vertex AI (aiplatform.googleapis.com) - Covered 100% by GCP $300 Credits.
+   * Priority #2: Google AI Studio fallback.
    */
   async _generateContentWithFallback(contents, generationConfig = {}) {
+    // 1. Attempt Primary Google Vertex AI REST Endpoint (100% Covered by GCP $300 Credits)
+    try {
+      const vertexResult = await generateContentViaVertexAi({
+        model: this.modelName || 'gemini-2.5-flash',
+        contents,
+        generationConfig,
+      });
+      if (vertexResult && vertexResult.trim().length > 0) {
+        return vertexResult;
+      }
+    } catch (vertexErr) {
+      console.warn('[VERTEX AI GEMINI PRIMARY WARN] Fallback to AI Studio:', vertexErr.message);
+    }
+
     if (!this.ai) throw new Error('Gemini API key not configured.');
 
     let lastError = null;

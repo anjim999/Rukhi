@@ -53,3 +53,5 @@ export const config = {
   tempDir: isHostinger ? path.join(persistentBase, 'temp') : path.resolve(process.cwd(), process.env.TEMP_DIR || 'storage/temp'),
   logsDir: isHostinger ? path.join(persistentBase, 'logs') : path.resolve(process.cwd(), process.env.LOGS_DIR || 'storage/logs'),
 };
+
+export default config;

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import config from '../config/env.js';
+import { config } from '../config/env.js';
 import * as projectService from '../services/projectService.js';
 import { AppError } from '../middleware/errorHandler.js';
 

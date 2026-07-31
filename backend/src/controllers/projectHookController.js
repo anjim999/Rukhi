@@ -1,5 +1,5 @@
 import * as projectService from '../services/projectService.js';
-import AppError from '../utils/AppError.js';
+import { AppError } from '../middleware/errorHandler.js';
 
 export async function autoAddEmojisToProjectTimeline(req, res, next) {
   try {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Palette, Type, Move, Wand2, Loader2, CaseUpper, CaseLower, RotateCcw, Lightbulb, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { THEME_PRESETS } from '../../../../shared/constants/timeline';
+import { THEME_PRESETS } from '../../../../shared/constants/timeline.js';
 import FontPickerModal from './FontPickerModal';
 import CustomFontSelect from './CustomFontSelect';
 import PresetOptionsList from './PresetOptionsList';

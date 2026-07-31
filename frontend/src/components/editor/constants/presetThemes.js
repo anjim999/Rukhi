@@ -1,4 +1,4 @@
-import { THEME_PRESETS } from '../../../../shared/constants/timeline';
+import { THEME_PRESETS } from '../../../../../shared/constants/timeline.js';
 
 export const PRESET_OPTIONS = [
   // 1. Creator & Influencer Viral Boxes

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Play, Pause, Volume2, VolumeX, Download, Loader2, Gauge, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
+import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline.js';
 import { exportProjectMP4, remuxRecordedBlob, getFullMediaUrl } from '../../services/projectService';
 
 /**

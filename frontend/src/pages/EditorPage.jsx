@@ -395,10 +395,8 @@ export default function EditorPage({ projectId, onBack }) {
   return (
     <div className="space-y-4 sm:space-y-6 pb-16 sm:pb-12 w-full max-w-full overflow-x-hidden">
       {/* Editor Top Navigation Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 bg-white/80 dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800/80 p-3 sm:p-4 rounded-2xl backdrop-blur-md transition-colors shadow-sm w-full max-w-full overflow-x-hidden">
-        {/* Left: Back & Project Title */}
-        <EditorHeaderBar
-          project={project}
+      <EditorHeaderBar
+        project={project}
           isEditingTitle={isEditingTitle}
           titleInput={titleInput}
           setTitleInput={setTitleInput}

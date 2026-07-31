@@ -1,4 +1,4 @@
-import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
+import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../../shared/constants/timeline.js';
 
 const SOLID_BOX_PRESETS = {
   [THEME_PRESETS.HORMOZI]: '#22C55E',

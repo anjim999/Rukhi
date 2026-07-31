@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Clock, Edit3, Settings2, ChevronDown, ChevronUp, Scissors, GitMerge, Undo2, Redo2, Zap, MoveLeft, MoveRight, SlidersHorizontal, Sparkles, Plus, Minus, Languages, Tag, Loader2, X } from 'lucide-react';
-import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
+import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline.js';
 import { translateProjectTimeline, autoAddEmojisToTimeline, generateHookBannersForProject } from '../../services/projectService';
 import { attachClientSideEmojis } from './utils/timelineEmojiAttacher';
 import FontPickerModal from './FontPickerModal';

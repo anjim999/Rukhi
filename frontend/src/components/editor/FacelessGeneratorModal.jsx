@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, Video, Wand2, Globe, Volume2, Check, Loader2, Play, UserCheck, Layers, Clock, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { generateFacelessReel } from '../../services/brollService';
@@ -52,7 +53,8 @@ const DURATION_OPTIONS = [
   { value: 60, label: '⏱️ 60s Story', subtitle: '12 Scenes • Deep Topic' },
 ];
 
-export default function FacelessGeneratorModal({ isOpen, onClose, onProjectCreated }) {
+export default function FacelessGeneratorModal({ isOpen, onClose, onProjectCreated, onSuccess }) {
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
   const [characterStyle, setCharacterStyle] = useState('ENTREPRENEUR');
   const [targetLanguage, setTargetLanguage] = useState('chatting');
@@ -121,8 +123,15 @@ export default function FacelessGeneratorModal({ isOpen, onClose, onProjectCreat
       setProgressStage('✅ AI Reel Ready!');
       toast.success('🎉 Consistent Character AI Reel Generated Successfully!');
 
-      if (onProjectCreated) {
-        onProjectCreated(result);
+      const targetId = result?.reelId || result?.project?.id || result?.id;
+      if (typeof onProjectCreated === 'function') {
+        onProjectCreated(targetId || result);
+      }
+      if (typeof onSuccess === 'function') {
+        onSuccess(targetId || result);
+      }
+      if (typeof onProjectCreated !== 'function' && typeof onSuccess !== 'function' && targetId) {
+        navigate(`/editor/${targetId}`);
       }
       onClose();
     } catch (err) {

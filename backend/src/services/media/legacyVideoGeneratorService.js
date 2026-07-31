@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
 import util from 'util';
+import ffmpegPath from 'ffmpeg-static';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { config } from '../../config/env.js';
 import { generateDubbedVoiceoverAudio } from './dubbingService.js';
@@ -11,7 +12,7 @@ import { saveTimeline } from '../projectService.js';
 import { query } from '../../db/pool.js';
 
 const execPromise = util.promisify(exec);
-const ffmpegBin = ffmpegInstaller.path || 'ffmpeg';
+const ffmpegBin = ffmpegPath || ffmpegInstaller.path || 'ffmpeg';
 
 import { getExactAudioDuration } from './utils/audioDurationHelper.js';
 

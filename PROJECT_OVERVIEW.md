@@ -324,3 +324,18 @@ auto_captions/
 | **`Failed to create payment order session`** | Apache `.htaccess` redirected API errors to `index.html` (HTML instead of JSON) | Added explicit `RewriteCond %{REQUEST_URI} ^/api` bypass rules in `.htaccess`. |
 | **Old Razorpay Log Output** | Node process in RAM retained old module cache across disk edits | Issued hard process signal `pkill -9 -f node` and `touch tmp/restart.txt`. |
 | **UI Button Showed "Upgrade to Starter" after Payment** | `getUserById()` SQL query omitted `plan` and `credits` columns on profile refresh | Updated SQL query to `SELECT id, name, email, avatar_url, plan, credits, created_at FROM users`. |
+| **Veo HTTP 404 Model Not Found** | Veo 2.0 & Veo 3.0 deprecated by Google Cloud | Updated candidate endpoints and default model in `veoVideoService.js` to `veo-3.1-lite-generate-001:predictLongRunning`. |
+| **Veo HTTP 400 Image MimeType Empty** | Veo 3.1 Image-to-Video requires explicit image mimeType | Added `mimeType: "image/jpeg"` alongside `bytesBase64Encoded` in request payload. |
+| **Veo Code 3 Duration Error** | Veo 3.1 strictly enforces `[4, 6, 8]` duration seconds | Configured `durationSeconds: 6` in `veoVideoService.js` request parameters. |
+| **Audio Playing During Export** | `audioSource` was connected to `audioCtx.destination` (speakers) | Disconnected `audioCtx.destination` during canvas export capture so recording is silent. |
+| **Video Replay Required Page Refresh** | Video `currentTime` remained stuck at end after video ended | Updated `togglePlay` and `onEnded` in `CanvasVideoPlayer.jsx` to reset `currentTime = 0`. |
+
+---
+
+## 17. Google Vertex AI Veo 3.1 GA Video Generation Engine
+
+- **Service Endpoint**: `https://us-central1-aiplatform.googleapis.com/v1/projects/ai-quiz-generator-479518/locations/us-central1/publishers/google/models/veo-3.1-lite-generate-001:predictLongRunning`
+- **Polling Method**: `POST https://us-central1-aiplatform.googleapis.com/v1/projects/ai-quiz-generator-479518/locations/us-central1/publishers/google/models/veo-3.1-lite-generate-001:fetchPredictOperation`
+- **Output Storage Bucket**: `gs://rukhi-bucket`
+- **Authentication**: GCP OAuth 2.0 Bearer Access Token minted from Service Account JSON (`rukhi-video@ai-quiz-generator-479518.iam.gserviceaccount.com`).
+- **Master Video Export**: FFmpeg 20 Mbps H.264 Ultra-HD video & 320 kbps studio-grade audio remuxing.

@@ -1,6 +1,7 @@
 import { config } from '../../../config/env.js';
 import fs from 'fs';
 import path from 'path';
+import { runFFmpeg } from '../ffmpegService.js';
 
 /**
  * Google Cloud Chirp v2 HD Neural Voiceover Dubbing Service
@@ -38,14 +39,17 @@ export async function synthesizeChirpVoiceover(options = {}) {
 
   console.log(`[CHIRP TTS] Synthesizing voiceover (${voicePreset}) for script: "${text.substring(0, 40)}..."`);
 
-  // Direct REST API synthesis using GEMINI_API_KEY / Google Cloud API
   const voiceSpec = CHIRP_VOICE_PRESETS[voicePreset] || CHIRP_VOICE_PRESETS.TE_MALE;
+  const apiKey = config.gcpApiKey || config.geminiApiKey;
 
   try {
-    const apiUrl = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${config.geminiApiKey}`;
+    const apiUrl = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+      },
       body: JSON.stringify({
         input: { text },
         voice: {
@@ -70,14 +74,23 @@ export async function synthesizeChirpVoiceover(options = {}) {
       }
     }
   } catch (err) {
-    console.warn(`[CHIRP TTS WARN] Cloud REST TTS failed (${err.message}). Using local highpass synth fallback.`);
+    console.warn(`[CHIRP TTS WARN] Cloud REST TTS failed (${err.message}). Using local static FFmpeg synth fallback.`);
   }
 
-  // Fallback synthetic silent/beep audio buffer for 100% continuous flow
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync = promisify(exec);
-  const ffmpegBin = 'ffmpeg';
-  await execAsync(`${ffmpegBin} -f lavfi -i anullsrc=r=44100:cl=mono -t 5 -c:a mp3 -y "${outputPath}"`);
-  return outputPath;
+  // Fallback synthetic silent/beep audio buffer using prebuilt static FFmpeg binary
+  try {
+    await runFFmpeg([
+      '-f', 'lavfi',
+      '-i', 'anullsrc=r=44100:cl=mono',
+      '-t', '5',
+      '-c:a', 'mp3',
+      '-y',
+      outputPath,
+    ]);
+    console.log(`[CHIRP TTS] ✅ Rendered fallback audio clip using static FFmpeg: ${outputPath}`);
+    return outputPath;
+  } catch (synthErr) {
+    console.error(`[CHIRP TTS ERROR] Failed to synthesize fallback audio: ${synthErr.message}`);
+    throw synthErr;
+  }
 }

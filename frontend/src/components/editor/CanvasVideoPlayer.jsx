@@ -640,7 +640,6 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
           try {
             const audioSource = audioCtx.createMediaElementSource(dubbedAudioRef.current);
             audioSource.connect(dest);
-            audioSource.connect(audioCtx.destination);
             hasAudioSource = true;
           } catch (_) {}
         }
@@ -649,7 +648,6 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
           try {
             const videoSource = audioCtx.createMediaElementSource(video);
             videoSource.connect(dest);
-            videoSource.connect(audioCtx.destination);
             hasAudioSource = true;
           } catch (_) {}
         }

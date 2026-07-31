@@ -24,4 +24,7 @@ backend/outputs/*
 *.log
 .DS_Store
 *.zip
+backend/gcp_key.json
+backend/storage/
+
 

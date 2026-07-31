@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   getProject,
@@ -39,6 +40,7 @@ const TARGET_STYLE_MAP = {
 };
 
 export default function EditorPage({ projectId, onBack }) {
+  const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [timeline, setTimelineState] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -267,6 +269,21 @@ export default function EditorPage({ projectId, onBack }) {
       setCancelling(false);
     }
   };
+
+  const handleRestartGeneration = async () => {
+    if (!project) return;
+    toast.loading('Restarting AI caption generation...', { id: 'restart-toast' });
+    try {
+      await resumeProject(projectId);
+      setProject((p) => (p ? { ...p, status: 'transcribing' } : p));
+      setLoading(true);
+      setError(null);
+      toast.success('Generation restarted!', { id: 'restart-toast' });
+    } catch (err) {
+      toast.error(`Restart failed: ${err.message}`, { id: 'restart-toast' });
+    }
+  };
+
 
   const handlePauseResumeToggle = async () => {
     if (!project) return;

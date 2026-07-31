@@ -5,12 +5,13 @@ import util from 'util';
 import https from 'https';
 import http from 'http';
 import dotenv from 'dotenv';
+import ffmpegPath from 'ffmpeg-static';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { config } from '../../config/env.js';
 import { generateViaFalAI, generateViaColabGPU } from './utils/aiVideoProviders.js';
 
 const execPromise = util.promisify(exec);
-const ffmpegBin = ffmpegInstaller?.path || 'ffmpeg';
+const ffmpegBin = ffmpegPath || ffmpegInstaller?.path || 'ffmpeg';
 
 function getUploadDir() {
   const dir = path.resolve(process.cwd(), 'uploads');

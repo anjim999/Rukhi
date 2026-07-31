@@ -18,6 +18,7 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 
 ### Core Features
 
+* 🎬 **Google Vertex AI Veo 3.1 GA Video Generation Engine**: Powered by Google Cloud's `veo-3.1-lite-generate-001` & `veo-3.1-generate-001` with long-running operation polling (`:predictLongRunning` & `:fetchPredictOperation`), direct GCS bucket storage (`gs://rukhi-bucket`), and last-frame continuation (`mimeType: "image/jpeg"`).
 * 🎙️ **Direct Audio Speech-to-Text & Transcribing Director**: Powered by Google Gemini 2.5 Flash & Deepgram Nova-3 Multilingual, directly processing audio waveforms to handle Telugu, Hinglish, Teluglish, Hindi, English, and code-switched speech.
 * 💯 **100% Verbatim 1:1 Word Preservation Constraint**: Strict negative prompt rules in `GeminiCaptionDirector.js` prevent LLMs from dropping or summarizing words. If spoken audio has 22 words, the output timeline contains all 22 words in exact 1:1 sequence!
 * 🌐 **Fail-Safe Local Telglish Transliteration Engine (`transliterateTeluguToRoman`)**: Built-in deterministic Unicode transliterator converts native Telugu script (`తమ్ముడు...`) into clean Romanized chat script (`tammudu okka nimisham...`) if Gemini is rate-limited, guaranteeing native script **NEVER** bleeds onto screen when `chatting` / `tel_eng` mode is selected.
@@ -28,16 +29,17 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 * 📜 **Legal Compliance Suite**: Fully compliant Privacy Policy, Terms of Service with Anti-Deepfake/Zero-Abuse policies, Refund Policy (7-Day Money Back Guarantee), and Contact Us pages with live interactive UI components.
 * 🌐 **70+ Multilingual Typography Suite & Font Studio Modal**: Native Google Fonts for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.
 * ⚛️ **Un-Clipped React Portal Dropdowns (`CustomFontSelect.jsx`)**: Floating `rounded-2xl` popovers rendered on `document.body` with built-in font search bar.
-* 🎨 **Interactive 60FPS Hardware-Synced Canvas Editor**: Built using React & HTML5 Canvas with `requestVideoFrameCallback` rendering for 1:1 stutter-free playback and frame-accurate seeking.
+* 🎨 **Interactive 60FPS Hardware-Synced Canvas Editor**: Built using React & HTML5 Canvas with `requestVideoFrameCallback` rendering, silent background canvas recording, and auto-reset replay engine.
 * 📐 **Aspect-Ratio & Responsive Math**: Supports 9:16 Vertical Reels, 16:9 Widescreen, and 1:1 Square videos with dynamic font scaling and viewport safe-zone calculations.
 * 🎭 **15+ Kinetic Animation Physics Engines**: Pop, Bounce, Zoom In/Out, Slide Up/Left, Shake Rumble, Flip Rotate, and Glow Pulse animations.
-* 🎬 **100% WYSIWYG Pixel-Perfect Export & Remux Engine**: Uses `-c:v mpeg4 -q:v 2` on Hostinger container environments to bypass Linux `libx264` shared-memory kernel restrictions, completing exports in **2 to 4 seconds**.
+* 🎬 **20 Mbps Ultra-HD Master Export & Remux Engine**: Master H.264 20Mbps Ultra-HD video & 320kbps audio remuxing pipeline with `-movflags +faststart`.
 
 ---
 
 ## 🛠️ Deployment & Fix Documentation
 
 - 📚 **Exhaustive Technical Architecture**: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
+- 🎬 **Google Veo 3.1 Vertex AI Integration Fix**: [docs/fixes/VEO_3.1_VERTEX_AI_INTEGRATION_FIX.md](docs/fixes/VEO_3.1_VERTEX_AI_INTEGRATION_FIX.md)
 - 🔧 **Hostinger Deployment & Payment Fix Log**: [docs/fixes/HOSTINGER_PAYMENT_DEPLOYMENT_FIX.md](docs/fixes/HOSTINGER_PAYMENT_DEPLOYMENT_FIX.md)
 
 ---

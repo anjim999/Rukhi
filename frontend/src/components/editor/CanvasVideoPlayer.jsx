@@ -31,6 +31,9 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   const [isSpeedOpen, setIsSpeedOpen] = useState(false);
   const [exportQuality, setExportQuality] = useState('1080p');
   const [isQualityOpen, setIsQualityOpen] = useState(false);
+  const [hoverTime, setHoverTime] = useState(0);
+  const [hoverX, setHoverX] = useState(0);
+  const [isHoveringSlider, setIsHoveringSlider] = useState(false);
 
   const handleRateChange = (rate) => {
     setPlaybackRate(rate);
@@ -273,8 +276,19 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
       }
 
       if (!drawnOverlay) {
-        if (video && video.readyState >= 2 && video.videoWidth > 0) {
+        if (video && (video.readyState >= 1 || video.currentTime >= 0 || video.videoWidth > 0)) {
           try {
+            if (isPlaying && video.paused && !video.seeking) {
+              video.play().catch(() => {});
+            }
+            if (isPlaying && dubbedAudioRef.current && dubbedAudioRef.current.paused) {
+              dubbedAudioRef.current.play().catch(() => {});
+            }
+            if (dubbedAudioRef.current && !dubbedAudioRef.current.paused) {
+              if (Math.abs(video.currentTime - dubbedAudioRef.current.currentTime) > 0.1 && !video.seeking) {
+                video.currentTime = dubbedAudioRef.current.currentTime;
+              }
+            }
             drawCover(ctx, video, width, height);
             drawnOverlay = true;
           } catch (_e) {}
@@ -484,9 +498,29 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
     const isVideoPlaying = video && !video.paused;
 
     if (!isAudioPlaying && !isVideoPlaying && !isPlaying) {
+      const totalDur = duration || timeline?.duration || (dubbedAudioRef.current && dubbedAudioRef.current.duration) || (video && video.duration) || 180;
+      
+      const isNearEnd = (currentTime >= totalDur - 0.3) || (video && (video.ended || video.currentTime >= totalDur - 0.3)) || (dubbedAudioRef.current && (dubbedAudioRef.current.ended || dubbedAudioRef.current.currentTime >= totalDur - 0.3));
+      
+      if (isNearEnd) {
+        if (video) {
+          try { video.currentTime = 0; } catch (_) {}
+        }
+        if (dubbedAudioRef.current) {
+          try { dubbedAudioRef.current.currentTime = 0; } catch (_) {}
+        }
+        setCurrentTime(0);
+      }
+
+      setIsPlaying(true);
+
       if (dubbedAudioRef.current) {
         if (video) video.muted = true;
-        if (video) dubbedAudioRef.current.currentTime = video.currentTime;
+        try {
+          if (video && Math.abs(dubbedAudioRef.current.currentTime - video.currentTime) > 0.1) {
+            dubbedAudioRef.current.currentTime = video.currentTime;
+          }
+        } catch (_) {}
         dubbedAudioRef.current.play().catch((err) => console.warn('[PLAYBACK] Audio play warning:', err));
       }
 
@@ -495,8 +529,6 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
           console.warn('[PLAYBACK] Base video element play warning:', err);
         });
       }
-
-      setIsPlaying(true);
     } else {
       if (dubbedAudioRef.current) {
         try { dubbedAudioRef.current.pause(); } catch (_) {}
@@ -528,11 +560,23 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   // Direct manual seek slider handler
   const handleSeek = (e) => {
     const targetTime = parseFloat(e.target.value);
+    const wasPlaying = isPlaying || (dubbedAudioRef.current && !dubbedAudioRef.current.paused) || (videoRef.current && !videoRef.current.paused);
+
     if (dubbedAudioRef.current) {
       try { dubbedAudioRef.current.currentTime = targetTime; } catch (_) {}
     }
     if (videoRef.current && videoRef.current.src) {
       try { videoRef.current.currentTime = targetTime; } catch (_) {}
+    }
+
+    if (wasPlaying) {
+      if (dubbedAudioRef.current) {
+        try { dubbedAudioRef.current.play().catch(() => {}); } catch (_) {}
+      }
+      if (videoRef.current && videoRef.current.src) {
+        try { videoRef.current.play().catch(() => {}); } catch (_) {}
+      }
+      setIsPlaying(true);
     }
 
     if (timeline?.brollOverlays && Array.isArray(timeline.brollOverlays) && brollElementsRef.current) {
@@ -547,6 +591,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
           try {
             const relTime = (targetTime - activeOverlay.start) % el.duration;
             el.currentTime = Math.max(0, relTime);
+            if (wasPlaying && el.paused) el.play().catch(() => {});
           } catch (_) {}
         }
       }
@@ -887,6 +932,9 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
               }
             } else {
               setIsPlaying(false);
+              if (videoRef.current) try { videoRef.current.currentTime = 0; } catch(_) {}
+              if (dubbedAudioRef.current) try { dubbedAudioRef.current.currentTime = 0; } catch(_) {}
+              setCurrentTime(0);
             }
           }}
           className="absolute top-0 left-0 opacity-0 pointer-events-none w-1 h-1"
@@ -940,8 +988,30 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
       </div>
 
       <div className="w-full max-w-md flex flex-col gap-2.5 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl transition-colors mx-auto">
-        <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek} disabled={isRecording}
-          className="w-full h-2.5 sm:h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
+        <div 
+          className="relative w-full group/slider"
+          onMouseMove={(e) => {
+            if (isRecording) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const totalD = duration || 100;
+            setHoverTime(pos * totalD);
+            setHoverX(e.clientX - rect.left);
+            setIsHoveringSlider(true);
+          }}
+          onMouseLeave={() => setIsHoveringSlider(false)}
+        >
+          {isHoveringSlider && !isRecording && (
+            <div 
+              className="absolute -top-8 transform -translate-x-1/2 bg-yellow-500 text-black text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg shadow-xl pointer-events-none z-30 transition-all border border-yellow-400"
+              style={{ left: `${hoverX}px` }}
+            >
+              {formatTime(hoverTime)}
+            </div>
+          )}
+          <input type="range" min="0" max={duration || 100} step="0.01" value={currentTime} onChange={handleSeek} disabled={isRecording}
+            className="w-full h-2.5 sm:h-1.5 bg-slate-200 dark:bg-zinc-800 accent-yellow-500 dark:accent-yellow-400 rounded-lg cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
+        </div>
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button onClick={togglePlay} disabled={isRecording}

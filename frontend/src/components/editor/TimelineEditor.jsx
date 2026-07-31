@@ -599,7 +599,17 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
     toast.success(`Applied ${presetId.replace('_', ' ').toUpperCase()} preset theme!`, { id: 'preset-quick-toast', duration: 1500 });
   };
 
-  if (!timeline || !timeline.segments) return null;
+  if (!timeline || !Array.isArray(timeline.segments) || timeline.segments.length === 0) {
+    return (
+      <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-3 min-h-[360px] shadow-xl">
+        <Sparkles className="w-8 h-8 text-yellow-500 animate-pulse" />
+        <p className="text-sm font-bold text-slate-800 dark:text-zinc-200">Subtitles & Timing Studio</p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-xs leading-relaxed">
+          No subtitles found for this timeline. Generate an AI Reel or transcribe audio to edit kinetic captions.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 sm:p-5 space-y-4 max-h-[85vh] flex flex-col transition-colors overflow-x-hidden">

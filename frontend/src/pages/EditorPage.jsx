@@ -222,22 +222,31 @@ export default function EditorPage({ projectId, onBack }) {
     const fetchProjectAndTimeline = async () => {
       try {
         const projRes = await getProject(projectId);
-        if (projRes.success) {
+        if (projRes.success && projRes.data) {
           setProject(projRes.data);
           setInitialFetch(false);
 
-          if (projRes.data.status === 'completed') {
-            const timeRes = await getProjectTimeline(projectId);
-            if (timeRes.success) {
-              setTimeline(timeRes.data);
-              if (timeRes.data?.aspectRatio) {
-                setAspectRatio(timeRes.data.aspectRatio);
+          let activeTimeline = projRes.data.timeline || projRes.data.caption_timeline || null;
+          if (typeof activeTimeline === 'string') {
+            try { activeTimeline = JSON.parse(activeTimeline); } catch (_) {}
+          }
+
+          if (!activeTimeline || !activeTimeline.segments || activeTimeline.segments.length === 0) {
+            try {
+              const timeRes = await getProjectTimeline(projectId);
+              if (timeRes.success && timeRes.data) {
+                activeTimeline = timeRes.data;
               }
-              setLoading(false);
-              if (intervalId) clearInterval(intervalId);
-            }
-          } else if (projRes.data.status === 'failed' || projRes.data.status === 'cancelled') {
-            setError(projRes.data.error_message || 'Media processing failed or was cancelled.');
+            } catch (_) {}
+          }
+
+          if (activeTimeline) {
+            setTimeline(activeTimeline);
+            if (activeTimeline.aspectRatio) setAspectRatio(activeTimeline.aspectRatio);
+          }
+
+          const isDoneOrHasData = activeTimeline || ['completed', 'failed', 'cancelled', 'ready', 'draft'].includes(projRes.data.status);
+          if (isDoneOrHasData) {
             setLoading(false);
             if (intervalId) clearInterval(intervalId);
           }
@@ -441,13 +450,8 @@ export default function EditorPage({ projectId, onBack }) {
 
       {/* 3-Column Studio Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start w-full max-w-full overflow-x-hidden">
-        {/* Left Column: Preset & Style Sidebar */}
-        <div className={`lg:col-span-4 ${mobileTab === 'presets' ? 'block' : 'hidden lg:block'}`}>
-          <PresetSidebar timeline={timeline} setTimeline={setTimeline} />
-        </div>
-
-        {/* Middle Column: 60fps Canvas Video Player */}
-        <div className={`lg:col-span-4 flex justify-center ${mobileTab === 'player' ? 'block' : 'hidden lg:block'}`}>
+        {/* Canvas Video Player (Top on Mobile, Middle on Desktop) */}
+        <div className="order-1 lg:order-2 lg:col-span-4 flex justify-center w-full">
           <CanvasVideoPlayer
             projectId={projectId}
             videoUrl={videoFullUrl}
@@ -461,8 +465,8 @@ export default function EditorPage({ projectId, onBack }) {
           />
         </div>
 
-        {/* Right Column: Time-Frame Granular Editor */}
-        <div className={`lg:col-span-4 ${mobileTab === 'editor' ? 'block' : 'hidden lg:block'}`}>
+        {/* Timeline Granular Subtitle Editor (2nd on Mobile, Right on Desktop) */}
+        <div className="order-2 lg:order-3 lg:col-span-4 w-full">
           <TimelineEditor
             projectId={projectId}
             timeline={timeline}
@@ -474,6 +478,11 @@ export default function EditorPage({ projectId, onBack }) {
             canUndo={canUndo}
             canRedo={canRedo}
           />
+        </div>
+
+        {/* Preset & Style Sidebar (3rd on Mobile, Left on Desktop) */}
+        <div className="order-3 lg:order-1 lg:col-span-4 w-full">
+          <PresetSidebar timeline={timeline} setTimeline={setTimeline} />
         </div>
       </div>
 

@@ -119,12 +119,20 @@ export async function getProjectTimeline(req, res, next) {
  */
 export async function updateProjectTimeline(req, res, next) {
   try {
-    const { timeline } = req.body;
-    if (!timeline || !timeline.segments) {
+    let timelineData = req.body.timeline || req.body.data?.timeline || req.body;
+    if (typeof timelineData === 'string') {
+      try { timelineData = JSON.parse(timelineData); } catch (_) {}
+    }
+
+    if (Array.isArray(timelineData)) {
+      timelineData = { segments: timelineData };
+    }
+
+    if (!timelineData || !Array.isArray(timelineData.segments)) {
       throw new AppError('Invalid timeline data. Must include segments array.', 400);
     }
 
-    await projectService.updateTimeline(req.params.id, timeline);
+    await projectService.updateTimeline(req.params.id, timelineData);
 
     res.json({
       success: true,

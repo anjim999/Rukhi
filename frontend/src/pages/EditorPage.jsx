@@ -318,7 +318,10 @@ export default function EditorPage({ projectId, onBack }) {
   };
 
   const handleSaveTimeline = async () => {
-    if (!timeline) return;
+    if (!timeline || !Array.isArray(timeline.segments)) {
+      toast.error('Cannot save empty or loading timeline.', { id: 'save-toast' });
+      return;
+    }
     setSaving(true);
     setSaveSuccess(false);
     toast.loading('Saving timeline...', { id: 'save-toast' });

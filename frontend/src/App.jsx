@@ -88,6 +88,7 @@ function MainApp() {
       </main>
 
       <Footer />
+      <AuthModal />
       <ProductTour
         isOpen={tourOpen}
         onClose={() => setTourOpen(false)}

@@ -33,7 +33,12 @@ export async function purgeOldFiles(dirPath, maxAgeMs = THREE_DAYS_MS) {
       } else if (file.isFile()) {
         try {
           const stats = await fs.stat(fullPath);
-          const ageMs = now - stats.mtimeMs;
+          const creationMs = Math.min(
+            stats.birthtimeMs || Date.now(),
+            stats.ctimeMs || Date.now(),
+            stats.mtimeMs || Date.now()
+          );
+          const ageMs = now - creationMs;
 
           if (ageMs > maxAgeMs) {
             const ageHours = (ageMs / (1000 * 60 * 60)).toFixed(1);

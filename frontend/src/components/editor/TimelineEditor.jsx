@@ -174,8 +174,8 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
   };
 
   const handleTopBannerChange = (key, value) => {
-    const currentBanner = timeline.topBanner || {
-      enabled: true,
+    const currentBanner = timeline?.topBanner || {
+      enabled: false,
       text: 'STOP DOING THIS IN 2026 🚨',
       backgroundColor: '#FFE600',
       textColor: '#000000',
@@ -852,18 +852,22 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const currentBanner = timeline.topBanner || { enabled: false, text: 'STOP DOING THIS IN 2026 🚨' };
-                    handleTopBannerChange('enabled', !currentBanner.enabled);
+                    const nextShow = !showTopBannerMenu;
+                    setShowTopBannerMenu(nextShow);
+                    
+                    if (nextShow && !timeline?.topBanner?.enabled) {
+                      handleTopBannerChange('enabled', true);
+                    }
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                    timeline.topBanner?.enabled
+                    timeline?.topBanner?.enabled || showTopBannerMenu
                       ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/40 shadow-sm shadow-purple-500/10'
                       : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 hover:bg-slate-200 dark:hover:bg-zinc-700'
                   }`}
                   title="Top Viral Hook Banner Overlay"
                 >
                   <Tag className="w-3.5 h-3.5 text-purple-500" />
-                  <span>Hook Banner {timeline.topBanner?.enabled ? 'ON' : 'OFF'}</span>
+                  <span>Hook Banner {timeline?.topBanner?.enabled ? 'ON' : 'OFF'}</span>
                 </button>
               </div>
             </div>
@@ -937,7 +941,7 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
         )}
 
         {/* Top Viral Hook Banner AI & Customization Control Panel */}
-        {timeline.topBanner?.enabled && (
+        {(showTopBannerMenu || timeline?.topBanner?.enabled) && (
           <div ref={hookBannerRef} className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 space-y-3 text-xs animate-fadeIn">
             {/* Top Row: AI Generator & Live Title Editing Input */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -946,7 +950,7 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
                 <span className="font-bold text-purple-600 dark:text-purple-400 shrink-0">Hook Banner Text:</span>
                 <input
                   type="text"
-                  value={timeline.topBanner?.text || ''}
+                  value={timeline?.topBanner?.text || ''}
                   onChange={(e) => handleTopBannerChange('text', e.target.value)}
                   className="flex-1 bg-white dark:bg-zinc-900 border border-purple-500/40 rounded-xl px-3 py-1.5 font-extrabold text-slate-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-purple-500/50"
                   placeholder="STOP DOING THIS IN 2026 🚨"
@@ -955,6 +959,19 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
 
               {/* Gemini AI Re-Generate Button & Close X Button */}
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleTopBannerChange('enabled', !timeline?.topBanner?.enabled)}
+                  className={`px-2.5 py-1.5 rounded-xl font-black text-[11px] transition border cursor-pointer ${
+                    timeline?.topBanner?.enabled
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                      : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                  }`}
+                  title="Toggle Canvas Overlay"
+                >
+                  {timeline?.topBanner?.enabled ? 'OVERLAY ON' : 'OVERLAY OFF'}
+                </button>
+
                 <button
                   type="button"
                   disabled={isGeneratingHooks}
@@ -968,7 +985,7 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
 
                 <button
                   type="button"
-                  onClick={() => handleTopBannerChange('enabled', false)}
+                  onClick={() => setShowTopBannerMenu(false)}
                   className="p-1.5 text-purple-600 dark:text-purple-400 hover:text-slate-900 dark:hover:text-white hover:bg-purple-500/20 rounded-xl transition cursor-pointer"
                   title="Close Hook Banner Panel"
                 >

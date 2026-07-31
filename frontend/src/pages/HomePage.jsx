@@ -30,10 +30,6 @@ export default function HomePage() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen text-slate-900 dark:text-zinc-100 transition-colors duration-300">
-      
-import HomePageHero from '../components/home/HomePageHero';
-
-// ... inside render
       <HomePageHero handleStartCreating={handleStartCreating} />
 
       {/* LIVE STUDIO DEMO PREVIEW CARD */}

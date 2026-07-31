@@ -3,12 +3,18 @@ import { query } from '../db/pool.js';
 import { createCashfreeOrder, getCashfreeOrderStatus } from '../services/payment/cashfreeService.js';
 
 export const SUBSCRIPTION_PLANS = {
-  starter: { id: 'starter', name: 'Starter Creator', amount: 199, credits: 30, durationDays: 30 },
-  STARTER: { id: 'starter', name: 'Starter Creator', amount: 199, credits: 30, durationDays: 30 },
-  pro: { id: 'pro', name: 'Pro Unlimited', amount: 399, credits: 100, durationDays: 30 },
-  PRO: { id: 'pro', name: 'Pro Unlimited', amount: 399, credits: 100, durationDays: 30 },
-  studio: { id: 'studio', name: 'Studio Agency', amount: 799, credits: 300, durationDays: 30 },
-  STUDIO: { id: 'studio', name: 'Studio Agency', amount: 799, credits: 300, durationDays: 30 },
+  free: { id: 'free', name: 'Free Tier', amount: 0, credits: 3, durationDays: 30 },
+  FREE: { id: 'free', name: 'Free Tier', amount: 0, credits: 3, durationDays: 30 },
+  basic: { id: 'basic', name: 'Basic Captions', amount: 79, credits: 9999, durationDays: 30 },
+  BASIC: { id: 'basic', name: 'Basic Captions', amount: 79, credits: 9999, durationDays: 30 },
+  starter: { id: 'starter', name: 'Plus 30s Reel', amount: 199, credits: 10, durationDays: 30 },
+  STARTER: { id: 'starter', name: 'Plus 30s Reel', amount: 199, credits: 10, durationDays: 30 },
+  plus: { id: 'plus', name: 'Plus 30s Reel', amount: 199, credits: 10, durationDays: 30 },
+  PLUS: { id: 'plus', name: 'Plus 30s Reel', amount: 199, credits: 10, durationDays: 30 },
+  pro: { id: 'pro', name: 'Pro 60s Reel', amount: 299, credits: 30, durationDays: 30 },
+  PRO: { id: 'pro', name: 'Pro 60s Reel', amount: 299, credits: 30, durationDays: 30 },
+  dubbing_studio: { id: 'dubbing_studio', name: 'Dubbing Studio', amount: 399, credits: 100, durationDays: 30 },
+  DUBBING_STUDIO: { id: 'dubbing_studio', name: 'Dubbing Studio', amount: 399, credits: 100, durationDays: 30 },
 };
 
 /**
@@ -24,7 +30,7 @@ export async function createPaymentOrder(req, res, next) {
     const userId = req.user?.id || req.body.userId || 'guest_user';
     const gateway = req.body.gateway || 'cashfree';
 
-    console.log(`[PAYMENT CONTROLLER] Creating ${plan.name} Order (${orderId}) via ${gateway} for user ${userId}...`);
+    console.log(`[PAYMENT CONTROLLER] Creating ${plan.name} Order (${orderId}, ₹${plan.amount}) via ${gateway} for user ${userId}...`);
 
     let cfOrder = null;
     let cfError = null;
@@ -62,64 +68,52 @@ export async function createPaymentOrder(req, res, next) {
 }
 
 /**
- * Verifies Payment Order Status & Unlocks Subscription Credits
+ * Verify Payment Session and Activate Plan in Database
  */
-export async function verifyPaymentOrder(req, res, next) {
+export async function verifyPayment(req, res, next) {
   try {
-    const { orderId, planId = 'pro' } = req.body;
-    if (!orderId) {
-      return res.status(400).json({ success: false, error: 'Order ID is required' });
-    }
-
-    console.log(`[PAYMENT CONTROLLER] Verifying Payment Order: ${orderId}...`);
-    const cleanPlanKey = planId.toString().toLowerCase();
+    const { userId, orderId, planId } = req.body;
+    const cleanPlanKey = (planId || 'pro').toString().toLowerCase();
     const plan = SUBSCRIPTION_PLANS[cleanPlanKey] || SUBSCRIPTION_PLANS.pro;
 
-    const targetUserId = req.user?.id || req.body.userId;
-    console.log(`[PAYMENT CONTROLLER] Updating plan for userId: ${targetUserId}, plan: ${plan.id}, credits: ${plan.credits}`);
-    if (targetUserId) {
+    console.log(`[PAYMENT VERIFY] Activating ${plan.name} for user ${userId}...`);
+
+    if (userId && typeof userId === 'string' && userId.length === 36) {
       try {
-        const result = await query(
-          `UPDATE users SET plan = $1, credits = $2 WHERE id = $3`,
-          [plan.id, plan.credits, targetUserId]
+        await query(
+          `UPDATE users SET plan = $1, credits = credits + $2 WHERE id = $3`,
+          [plan.id, plan.credits, userId]
         );
-        console.log(`[PAYMENT CONTROLLER] DB Update result: ${result?.rowCount || 0} row(s) affected`);
+        console.log(`[PAYMENT VERIFY] ✅ Updated database user ${userId} plan to '${plan.id}' with +${plan.credits} credits.`);
       } catch (dbErr) {
-        console.error('[PAYMENT CONTROLLER] ❌ DB UPDATE ERROR:', dbErr.message);
+        console.warn(`[PAYMENT VERIFY WARN] User table update notice: ${dbErr.message}`);
       }
-    } else {
-      console.warn('[PAYMENT CONTROLLER] ⚠️ No userId found — plan NOT saved to DB');
     }
 
-    console.log(`[PAYMENT CONTROLLER] 🎉 PAYMENT VERIFIED PAID for order: ${orderId}`);
     return res.json({
       success: true,
-      orderStatus: 'PAID',
-      message: `Payment verified! You are now subscribed to ${plan.name}.`,
-      orderId,
       plan: plan.id,
+      planName: plan.name,
       credits: plan.credits,
+      message: `Successfully activated ${plan.name}!`,
     });
   } catch (err) {
+    console.error('[PAYMENT VERIFY ERROR]', err.message);
     next(err);
   }
 }
 
-export async function verifyPayment(req, res, next) {
-  return verifyPaymentOrder(req, res, next);
-}
-
-export async function getPricingPlans(_req, res) {
-  return res.json({
-    success: true,
-    plans: Object.values(SUBSCRIPTION_PLANS),
-  });
-}
+export const verifyPaymentOrder = verifyPayment;
 
 /**
- * Cashfree Real-Time Webhook Listener
+ * Cashfree Webhook Handler
  */
-export async function handleCashfreeWebhook(req, res) {
-  console.log(`[CASHFREE WEBHOOK] 📥 Event received:`, req.body);
-  return res.status(200).send('OK');
+export async function handleCashfreeWebhook(req, res, next) {
+  try {
+    console.log('[CASHFREE WEBHOOK] Received webhook event:', req.body?.type || 'PAYMENT_SUCCESS');
+    return res.json({ success: true, received: true });
+  } catch (err) {
+    console.error('[CASHFREE WEBHOOK ERROR]', err.message);
+    next(err);
+  }
 }

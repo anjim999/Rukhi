@@ -101,7 +101,16 @@ export async function getProjectTimeline(req, res, next) {
     const timeline = await projectService.getTimeline(req.params.id);
 
     if (!timeline) {
-      throw new AppError('Timeline not yet generated. Please wait for processing to complete.', 404);
+      const project = await projectService.getProjectById(req.params.id);
+      if (!project) {
+        throw new AppError('Project not found', 404);
+      }
+
+      return res.json({
+        success: true,
+        data: null,
+        message: 'Timeline not yet generated. Please wait for processing to complete.',
+      });
     }
 
     res.json({

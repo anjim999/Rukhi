@@ -2,10 +2,12 @@ import { config } from '../../../config/env.js';
 import fs from 'fs';
 import path from 'path';
 import { runFFmpeg } from '../ffmpegService.js';
+import { getGcpAccessToken } from '../../ai/veoVideoService.js';
 
 /**
  * Google Cloud Chirp v2 HD Neural Voiceover Dubbing Service
  * Synthesizes studio-grade neural voiceovers in Telugu, Hindi, English, Tamil, etc.
+ * Uses GCP Cloud Credits via OAuth Service Account Token (gcp_key.json).
  */
 
 export const CHIRP_VOICE_PRESETS = {
@@ -18,7 +20,7 @@ export const CHIRP_VOICE_PRESETS = {
 };
 
 /**
- * Synthesizes neural audio speech from text script.
+ * Synthesizes neural audio speech from text script using GCP Cloud Credits or API Key fallback.
  * @param {Object} options
  * @param {string} options.text - Speech text to synthesize
  * @param {string} [options.voicePreset='TE_MALE'] - Key from CHIRP_VOICE_PRESETS
@@ -40,16 +42,25 @@ export async function synthesizeChirpVoiceover(options = {}) {
   console.log(`[CHIRP TTS] Synthesizing voiceover (${voicePreset}) for script: "${text.substring(0, 40)}..."`);
 
   const voiceSpec = CHIRP_VOICE_PRESETS[voicePreset] || CHIRP_VOICE_PRESETS.TE_MALE;
+  const gcpAccessToken = await getGcpAccessToken();
   const apiKey = config.gcpApiKey || config.geminiApiKey;
 
   try {
-    const apiUrl = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+    const apiUrl = gcpAccessToken
+      ? `https://texttospeech.googleapis.com/v1/text:synthesize`
+      : `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (gcpAccessToken) {
+      headers['Authorization'] = `Bearer ${gcpAccessToken}`;
+      console.log(`[CHIRP TTS] 🔑 Using GCP OAuth 2.0 Access Token (GCP Cloud Credits) for Chirp dubbing...`);
+    } else if (apiKey) {
+      headers['X-Goog-Api-Key'] = apiKey;
+    }
+
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-      },
+      headers,
       body: JSON.stringify({
         input: { text },
         voice: {
@@ -72,6 +83,9 @@ export async function synthesizeChirpVoiceover(options = {}) {
         console.log(`[CHIRP TTS] ✅ Synthesized HD neural audio voiceover: ${outputPath}`);
         return outputPath;
       }
+    } else {
+      const errTxt = await response.text();
+      console.warn(`[CHIRP TTS WARN] HTTP ${response.status} from Google Cloud TTS:\n${errTxt}`);
     }
   } catch (err) {
     console.warn(`[CHIRP TTS WARN] Cloud REST TTS failed (${err.message}). Using local static FFmpeg synth fallback.`);

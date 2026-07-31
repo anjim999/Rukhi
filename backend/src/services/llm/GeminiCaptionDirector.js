@@ -79,9 +79,9 @@ export class GeminiCaptionDirector extends LLMProvider {
     }
 
     this.ai = config.geminiApiKey ? new GoogleGenerativeAI(config.geminiApiKey) : null;
-    const baseModel = config.geminiModel || 'gemini-2.5-flash';
+    const baseModel = config.geminiModel || 'gemini-3.5-flash';
     this.modelName = baseModel;
-    this.fallbackModels = Array.from(new Set([baseModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro']));
+    this.fallbackModels = Array.from(new Set([baseModel, 'gemini-3.5-flash', 'gemini-3.1-pro-preview', 'gemini-2.5-flash']));
   }
 
   async isAvailable() {

@@ -601,12 +601,46 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
 
   if (!timeline || !Array.isArray(timeline.segments) || timeline.segments.length === 0) {
     return (
-      <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-3 min-h-[360px] shadow-xl">
-        <Sparkles className="w-8 h-8 text-yellow-500 animate-pulse" />
-        <p className="text-sm font-bold text-slate-800 dark:text-zinc-200">Subtitles & Timing Studio</p>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-xs leading-relaxed">
-          No subtitles found for this timeline. Generate an AI Reel or transcribe audio to edit kinetic captions.
-        </p>
+      <div className="w-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-4 min-h-[320px] shadow-xl">
+        <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 flex items-center justify-center">
+          <Sparkles className="w-7 h-7" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Subtitles & Kinetic Reel Studio</h3>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto mt-1 leading-relaxed">
+            Add custom animated subtitles, word-level kinetic captions, or AI hooks to your video.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const initialTimeline = {
+              version: '1.0',
+              aspectRatio: '9:16',
+              tracks: [{ id: 'track-video-1', type: 'video', clips: [] }],
+              segments: [
+                {
+                  id: `seg_${Date.now()}`,
+                  start: 0,
+                  end: 5.0,
+                  text: 'Add your AI caption text here',
+                  words: [
+                    { id: `w1_${Date.now()}`, start: 0, end: 2.5, word: 'Add' },
+                    { id: `w2_${Date.now()}`, start: 2.5, end: 5.0, word: 'Captions' }
+                  ],
+                  fontStyle: { preset: 'HORMOZI', fontSize: 52, primaryColor: '#FFFFFF', highlightColor: '#FACC15' }
+                }
+              ],
+              globalTheme: { preset: 'HORMOZI', fontFamily: 'Inter', fontSize: 52, primaryColor: '#FFFFFF', highlightColor: '#FACC15' }
+            };
+            setTimeline(initialTimeline);
+            toast.success('Kinetic Subtitle Track initialized! Edit your captions below.');
+          }}
+          className="px-5 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-yellow-500/20 cursor-pointer active:scale-95"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Add Kinetic Captions & Subtitle Track</span>
+        </button>
       </div>
     );
   }
@@ -1549,16 +1583,16 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
                   </div>
                 </div>
 
-                {/* 5. Silence Gap Indicator & 1-Click Silence Snapper */}
+                {/* 5. Silence Gap Indicator (Only shown for major long silences > 10.0s) */}
                 {segIdx < timeline.segments.length - 1 && (() => {
                   const nextSeg = timeline.segments[segIdx + 1];
                   const gap = (parseFloat(nextSeg.start || 0) - parseFloat(segment.end || 0)).toFixed(2);
-                  if (parseFloat(gap) >= 0.25) {
+                  if (parseFloat(gap) >= 10.0) {
                     return (
                       <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-mono my-2 shadow-2xs">
                         <div className="flex items-center gap-1.5 font-bold">
                           <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
-                          <span>{gap}s Audio Silence Gap</span>
+                          <span>{gap}s Long Audio Silence</span>
                         </div>
                         <button
                           type="button"

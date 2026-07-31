@@ -34,9 +34,9 @@ export async function searchStockBroll(query = '') {
 }
 
 /**
- * Generate a complete AI Faceless Reel Project from a text prompt or approved script ($0 Cost)
+ * Generate a complete AI Faceless Reel Project from a text prompt or approved script
  */
-export async function generateFacelessReel({ prompt, stylePreset = 'ENTREPRENEUR', targetLanguage = 'chatting', durationSec = 30 }) {
+export async function generateFacelessReel({ prompt, stylePreset = 'CINEMATIC', targetLanguage = 'chatting', durationSec = 30, aspectRatio = '9:16' }) {
   const data = await axiosClient.post(
     '/broll/generate-faceless',
     {
@@ -44,6 +44,7 @@ export async function generateFacelessReel({ prompt, stylePreset = 'ENTREPRENEUR
       stylePreset,
       targetLanguage,
       durationSec,
+      aspectRatio,
     },
     { timeout: 0 }
   );

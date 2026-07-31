@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { getGcpAccessToken } from '../../ai/veoVideoService.js';
 
 const GOOGLE_VOICE_MAP = {
   te: { languageCode: 'te-IN', name: 'te-IN-Standard-A', ssmlGender: 'FEMALE' },
@@ -8,24 +9,36 @@ const GOOGLE_VOICE_MAP = {
 
 /**
  * Synthesize speech using Google Cloud TTS (Neural2 / Journey voices)
- * Uses REST API directly via fetch to avoid requiring heavy SDK setup if credentials are in ENV.
+ * Prefers GCP OAuth 2.0 Access Token (Service Account Key / GCP Cloud Credits),
+ * falling back to API Key if unavailable.
  */
 export async function synthesizeWithGoogleTTS({ text, targetLanguage = 'te', outputPath, voiceId }) {
+  const gcpAccessToken = await getGcpAccessToken();
   const apiKey = process.env.GOOGLE_TTS_API_KEY || process.env.GEMINI_API_KEY;
 
-  if (!apiKey) {
-    throw new Error('[Google-TTS] Neither GOOGLE_TTS_API_KEY nor GEMINI_API_KEY is configured');
+  if (!gcpAccessToken && !apiKey) {
+    throw new Error('[Google-TTS] Neither GCP OAuth Access Token (gcp_key.json) nor GOOGLE_TTS_API_KEY is configured');
   }
 
   const voiceConfig = voiceId 
     ? { languageCode: targetLanguage || 'en-US', name: voiceId }
     : (GOOGLE_VOICE_MAP[targetLanguage] || GOOGLE_VOICE_MAP.en);
 
-  const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+  const url = gcpAccessToken
+    ? `https://texttospeech.googleapis.com/v1/text:synthesize`
+    : `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (gcpAccessToken) {
+    headers['Authorization'] = `Bearer ${gcpAccessToken}`;
+    console.log(`[Google-TTS] 🔑 Using GCP OAuth 2.0 Access Token (GCP Cloud Credits) for voice synthesis...`);
+  } else if (apiKey) {
+    headers['X-Goog-Api-Key'] = apiKey;
+  }
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       input: { text },
       voice: {

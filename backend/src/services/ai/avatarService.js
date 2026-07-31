@@ -7,6 +7,7 @@ import { config } from '../../config/env.js';
  */
 
 export const AVATAR_STYLE_PRESETS = {
+  CINEMATIC: 'Photorealistic, 8k resolution, IMAX 65mm lens, natural physics, dynamic volumetric depth of field, hyper-detailed textures, fluid camera motion, 24fps moody cinematic film lighting',
   ENTREPRENEUR: 'young professional Indian male entrepreneur in navy blue blazer, clean-shaven, short black hair, modern office backdrop',
   FEMALE_VLOGGER: 'stylish young Indian female content creator in casual smart outfit, warm natural lighting, cozy studio background',
   ANIME_HERO: 'cinematic 3D anime style hero character, vibrant lighting, highly detailed 8k render, hyper-realistic anime aesthetic',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Zap, Check, ShieldCheck, Sparkles, X, AlertCircle } from 'lucide-react';
+import { Zap, Check, ShieldCheck, Sparkles, X, AlertCircle, Crown, Video, Mic, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../context/AuthContext';
@@ -16,49 +16,97 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
 
   if (!isOpen) return null;
 
+  const currentPlan = (user?.plan || 'free').toLowerCase();
+
   const plans = [
     {
       id: 'free',
       name: 'Free Tier',
       price: '₹0',
       period: 'forever',
-      description: 'Ideal for trying out rukhi.in captioning',
-      exports: '3 Videos / month',
-      features: ['720p HD Video Export', 'Watermark Included', 'Standard Fonts Suite', 'Manual Subtitle Sync'],
+      description: 'Ideal for trying out rukhi.in subtitle editor',
+      exports: '3 Free Captions',
+      features: [
+        '3 Free Auto-Caption Generations',
+        'Submagic Kinetic Subtitle Editor',
+        'Viral Hook Badges Preview',
+        '720p HD Exports',
+      ],
       buttonText: 'Included (Free Tier)',
-      isCurrent: user?.plan === 'free' || !user?.plan,
+      isCurrent: currentPlan === 'free',
+      popular: false,
+    },
+    {
+      id: 'basic',
+      name: 'Basic Captions',
+      price: '₹79',
+      period: '/ month',
+      description: 'Unlimited Auto-Captions & Subtitle Studio',
+      exports: 'Unlimited Captions',
+      features: [
+        'Unlimited Auto-Captions & Subtitles',
+        '70+ Typography & Font Studio',
+        'Submagic Kinetic Subtitle Styles',
+        'NO Watermark on Captions',
+        '720p HD Video Export',
+      ],
+      buttonText: 'Upgrade to Basic (₹79)',
+      isCurrent: currentPlan === 'basic',
       popular: false,
     },
     {
       id: 'starter',
-      name: 'Starter Creator',
+      name: 'Plus 30s Reels',
       price: '₹199',
       period: '/ month',
-      description: 'Perfect for social media creators & reel editors',
-      exports: '25 Videos / month',
-      features: ['1080p Full HD Export', 'NO Watermark', '70+ Typography & Font Studio', 'Ripple Sync & Nudge Controls', 'Email Support'],
-      buttonText: 'Upgrade to Starter',
-      isCurrent: user?.plan === 'starter',
-      popular: false,
+      description: '30-Second AI Video Reels Generator (Veo 3.1)',
+      exports: '10 AI Reels / month',
+      features: [
+        'Includes Everything in Basic',
+        '30-Second AI Video Reels (Veo 3.1)',
+        '9:16 Vertical Reel Format',
+        'Small Sleek "rukhi" Corner Logo',
+        '720p HD Video Export',
+      ],
+      buttonText: 'Upgrade to Plus (₹199)',
+      isCurrent: currentPlan === 'starter' || currentPlan === 'plus',
+      popular: true,
     },
     {
       id: 'pro',
-      name: 'Pro Unlimited',
+      name: 'Pro 60s Reels',
+      price: '₹299',
+      period: '/ month',
+      description: '60-Second AI Video Reels & Multi-Format Switcher',
+      exports: '30 AI Reels / month',
+      features: [
+        'Includes Everything in Plus',
+        '60-Second AI Video Reels (Veo 3.1)',
+        'Multi-Format Switcher (9:16, 16:9, 1:1)',
+        'NO Watermark / Custom Logo Upload',
+        '720p HD Video Export',
+      ],
+      buttonText: 'Upgrade to Pro (₹299)',
+      isCurrent: currentPlan === 'pro',
+      popular: false,
+    },
+    {
+      id: 'dubbing_studio',
+      name: 'Dubbing Studio',
       price: '₹399',
       period: '/ month',
-      description: 'Built for agencies, viral reel creators & power users',
-      exports: 'Unlimited Videos',
+      description: 'Full Multilingual AI Voice Dubbing & Translation',
+      exports: '100 AI Reels / month',
       features: [
-        '4K 60FPS Ultra-HD Export',
-        'Multilingual AI Voice Dubbing Studio',
-        'AI B-Roll Engine (Stock Clips)',
-        'Meta Demucs Vocal Separator',
-        'VIP Priority Rendering Queue',
-        '24/7 Priority Support',
+        'Includes Everything in Pro',
+        'Full AI Voice Dubbing Studio',
+        'Multilingual Translation (Telugu, Hindi, English, Tamil)',
+        'AI Voice Cloning & Voice Matching',
+        '1080p Full HD Video Export',
       ],
-      buttonText: 'Upgrade to Pro Unlimited',
-      isCurrent: user?.plan === 'pro',
-      popular: true,
+      buttonText: 'Upgrade to Dubbing Studio (₹399)',
+      isCurrent: currentPlan === 'dubbing_studio',
+      popular: false,
     },
   ];
 
@@ -70,7 +118,6 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
       setError(null);
       console.log(`[PRICING MODAL] Initiating plan selection: ${planId}`);
 
-      // 1. Create Payment Order on Backend
       const orderRes = await axiosClient.post('/payments/create-order', {
         planId: planId.toUpperCase(),
         customerEmail: user?.email || 'user@rukhi.in',
@@ -89,9 +136,8 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         throw new Error(cfError || 'Cashfree payment session missing. Please refresh and try again.');
       }
 
-      // 2. Launch Cashfree Popup Modal if paymentSessionId exists
       if (paymentSessionId && window.Cashfree) {
-        console.log('[PRICING MODAL] Launching Cashfree Popup Modal with Session ID:', paymentSessionId);
+        console.log('[PRICING MODAL] Launching Cashfree Checkout for Session ID:', paymentSessionId);
         await launchCashfreeCheckout({
           paymentSessionId,
           mode: cashfreeMode || 'PRODUCTION',
@@ -127,7 +173,6 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         planId,
       });
 
-      console.log('[PRICING MODAL] Verify response from backend:', verifyRes);
       const verifyData = verifyRes?.data || verifyRes;
 
       if (verifyData?.success) {
@@ -135,7 +180,6 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         const successText = `🎉 Successfully upgraded to ${planObj?.name || planId}!`;
         setSuccessMessage(successText);
         toast.success(successText);
-        console.log('[PRICING MODAL] Plan successfully activated:', verifyData);
 
         if (setUser) {
           setUser((prev) => (prev ? { ...prev, plan: planId, credits: verifyData?.credits ?? prev.credits } : prev));
@@ -145,7 +189,6 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         }
         if (onPlanUpgraded) onPlanUpgraded(planId);
       } else {
-        console.error('[PRICING MODAL] Payment verification returned failure:', verifyData);
         setError(verifyData?.error || 'Payment verification failed');
       }
     } catch (err) {
@@ -155,8 +198,8 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/80 backdrop-blur-md p-4 sm:p-6 md:p-10 flex items-center justify-center min-h-screen">
-      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[88vh] my-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/80 backdrop-blur-md p-4 sm:p-6 md:p-8 flex items-center justify-center min-h-screen">
+      <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[92vh] my-auto">
         {/* Top Header */}
         <div className="shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-800 bg-slate-950/80">
           <div className="flex items-center gap-3">
@@ -164,8 +207,8 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
               <Sparkles className="w-6 h-6 fill-amber-400" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-white">Choose Your rukhi.in Plan</h2>
-              <p className="text-xs text-slate-400">Unlock 4K 60FPS Export, AI Voice Dubbing, and Priority Queues</p>
+              <h2 className="text-xl font-extrabold text-white">Choose Your rukhi.in Startup Plan</h2>
+              <p className="text-xs text-slate-400">Unlock Auto-Captions, AI Video Reels (Veo 3.1), Multi-Format Switcher, and Voice Dubbing</p>
             </div>
           </div>
           <button
@@ -192,39 +235,40 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {plans.map((plan) => (
               <div
                 key={plan.id}
-                className={`relative flex flex-col justify-between p-6 rounded-3xl border transition-all duration-300 ${plan.popular
-                    ? 'bg-gradient-to-b from-indigo-950/60 to-slate-900 border-indigo-500/50 shadow-xl shadow-indigo-500/10 scale-105'
+                className={`relative flex flex-col justify-between p-5 rounded-3xl border transition-all duration-300 ${
+                  plan.popular
+                    ? 'bg-gradient-to-b from-indigo-950/70 to-slate-900 border-indigo-500/50 shadow-xl shadow-indigo-500/10 scale-[1.02]'
                     : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-                  }`}
+                }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-indigo-500 text-black font-extrabold text-[10px] uppercase tracking-widest shadow-md">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-indigo-500 text-black font-extrabold text-[9px] uppercase tracking-widest shadow-md whitespace-nowrap">
                     Most Popular
                   </div>
                 )}
 
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
-                  <p className="text-xs text-slate-400 mb-4 min-h-[32px]">{plan.description}</p>
+                  <h3 className="text-base font-bold text-white mb-1">{plan.name}</h3>
+                  <p className="text-[11px] text-slate-400 mb-3 min-h-[30px] leading-snug">{plan.description}</p>
 
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="text-3xl font-extrabold text-white">{plan.price}</span>
-                    <span className="text-xs text-slate-400 font-medium">{plan.period}</span>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-2xl font-extrabold text-white">{plan.price}</span>
+                    <span className="text-[11px] text-slate-400 font-medium">{plan.period}</span>
                   </div>
 
-                  <div className="py-2 px-3 rounded-xl bg-slate-900 border border-slate-800/80 mb-6 inline-block">
-                    <span className="text-xs font-bold text-indigo-400">Quota: {plan.exports}</span>
+                  <div className="py-1.5 px-2.5 rounded-xl bg-slate-900 border border-slate-800 mb-4 inline-block">
+                    <span className="text-[11px] font-bold text-indigo-400">{plan.exports}</span>
                   </div>
 
-                  <div className="space-y-3 mb-6">
+                  <div className="space-y-2.5 mb-5">
                     {plan.features.map((feat, idx) => (
-                      <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-300">
+                      <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 leading-tight">
                         <div className="mt-0.5 p-0.5 rounded-full bg-emerald-500/20 text-emerald-400 shrink-0">
-                          <Check className="w-3 h-3" />
+                          <Check className="w-2.5 h-2.5" />
                         </div>
                         <span>{feat}</span>
                       </div>
@@ -235,27 +279,28 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
                 <button
                   disabled={plan.isCurrent || loadingPlan === plan.id}
                   onClick={() => handleSelectPlan(plan.id)}
-                  className={`w-full py-3 rounded-2xl font-bold text-xs transition-all shadow-lg ${plan.isCurrent
+                  className={`w-full py-2.5 rounded-xl font-bold text-[11px] transition-all shadow-md ${
+                    plan.isCurrent
                       ? 'bg-slate-800 text-slate-400 cursor-default'
                       : plan.popular
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/25'
-                        : 'bg-white hover:bg-slate-200 text-slate-900'
-                    }`}
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/25'
+                      : 'bg-white hover:bg-slate-200 text-slate-900'
+                  }`}
                 >
-                  {loadingPlan === plan.id ? 'Processing...' : plan.isCurrent ? '✓ Current Active Plan' : plan.buttonText}
+                  {loadingPlan === plan.id ? 'Processing...' : plan.isCurrent ? '✓ Current Plan' : plan.buttonText}
                 </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Footer info */}
+        {/* Footer Info */}
         <div className="shrink-0 px-8 py-4 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Secure 256-bit Encrypted Checkout via Cashfree</span>
+            <span>Secure Cashfree Encrypted Checkout</span>
           </div>
-          <span>Cancel or switch plans anytime</span>
+          <span>Switch or upgrade plans anytime</span>
         </div>
       </div>
     </div>,

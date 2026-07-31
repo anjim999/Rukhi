@@ -15,8 +15,21 @@ async function getGcpAccessToken() {
     return cachedToken;
   }
 
-  const keyPath = path.resolve(process.cwd(), 'gcp_key.json');
-  if (!fs.existsSync(keyPath)) {
+  const keyCandidatePaths = [
+    path.resolve(process.cwd(), 'gcp_key.json'),
+    path.resolve(process.cwd(), 'backend/gcp_key.json'),
+    '/home/u209580425/gcp_key.json',
+  ];
+
+  let keyPath = null;
+  for (const p of keyCandidatePaths) {
+    if (fs.existsSync(p)) {
+      keyPath = p;
+      break;
+    }
+  }
+
+  if (!keyPath) {
     return null;
   }
 
@@ -65,15 +78,23 @@ export async function generateContentViaVertexAi({ model = 'gemini-2.5-flash', c
   if (!token) return null;
 
   let projectId = 'ai-quiz-generator-479518';
-  try {
-    const keyPath = path.resolve(process.cwd(), 'gcp_key.json');
-    if (fs.existsSync(keyPath)) {
-      const key = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-      if (key.project_id) projectId = key.project_id;
+  const keyCandidatePaths = [
+    path.resolve(process.cwd(), 'gcp_key.json'),
+    path.resolve(process.cwd(), 'backend/gcp_key.json'),
+    '/home/u209580425/gcp_key.json',
+  ];
+  for (const p of keyCandidatePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const key = JSON.parse(fs.readFileSync(p, 'utf8'));
+        if (key.project_id) projectId = key.project_id;
+      } catch (_) {}
+      break;
     }
-  } catch (_) {}
+  }
 
-  const location = 'us-central1';
+  const isGlobalModel = model.includes('3.1') || model.includes('preview') || model.includes('thinking');
+  const location = isGlobalModel ? 'global' : 'us-central1';
 
   // Format parts array for Vertex AI REST API
   const formattedParts = [];
@@ -96,10 +117,10 @@ export async function generateContentViaVertexAi({ model = 'gemini-2.5-flash', c
     formattedParts.push({ text: contents });
   }
 
-  const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
+  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
 
   try {
-    console.log(`[VERTEX AI GEMINI] 🚀 Executing ${model} via Vertex AI REST (Free Trial Credits)...`);
+    console.log(`[VERTEX AI GEMINI] 🚀 Executing ${model} via Vertex AI REST (${location} endpoint, GCP Cloud Credits)...`);
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -117,7 +138,7 @@ export async function generateContentViaVertexAi({ model = 'gemini-2.5-flash', c
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.warn(`[VERTEX AI GEMINI WARN] Status ${response.status}: ${errorText}`);
+      console.warn(`[VERTEX AI GEMINI WARN] Status ${response.status}: ${errorText.substring(0, 250)}`);
       return null;
     }
 

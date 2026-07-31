@@ -204,7 +204,22 @@ export async function resumeProject(projectId) {
     relativePath = relativePath.substring(uploadsIdx);
   }
   const filename = path.basename(relativePath);
-  const inputVideoPath = path.join(config.uploadDir, filename);
+
+  const candidatePaths = [
+    path.join(config.uploadDir, filename),
+    path.resolve(process.cwd(), 'uploads', filename),
+    path.resolve(process.cwd(), 'backend/uploads', filename),
+    path.resolve(process.cwd(), 'storage/uploads', filename),
+    path.resolve(process.cwd(), '../uploads', filename),
+  ];
+
+  let inputVideoPath = candidatePaths[0];
+  for (const candidate of candidatePaths) {
+    if (fs.existsSync(candidate)) {
+      inputVideoPath = candidate;
+      break;
+    }
+  }
 
   await updateProjectStatus(projectId, PROJECT_STATUSES.PENDING, { errorMessage: null });
   await addMediaProcessingJob({
@@ -214,7 +229,7 @@ export async function resumeProject(projectId) {
     targetStyle: project.target_style || 'auto',
   });
 
-  console.log(`[PROJECT] Resumed generation for project ${projectId} and queued for processing.`);
+  console.log(`[PROJECT] Resumed generation for project ${projectId} (File: ${inputVideoPath}) and queued for processing.`);
   return { id: projectId, status: PROJECT_STATUSES.PENDING };
 }
 

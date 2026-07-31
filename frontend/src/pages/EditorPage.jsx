@@ -240,12 +240,54 @@ export default function EditorPage({ projectId, onBack }) {
             } catch (_) {}
           }
 
+          // Guaranteed fallback timeline for completed AI Reel videos
+          if ((!activeTimeline || (!activeTimeline.segments && !activeTimeline.words)) && projRes.data.video_url && ['completed', 'ready'].includes(projRes.data.status)) {
+            activeTimeline = {
+              version: '1.0',
+              videoUrl: projRes.data.video_url,
+              duration: projRes.data.duration || 30,
+              aspectRatio: '9:16',
+              tracks: [
+                {
+                  id: 'track-video-1',
+                  type: 'video',
+                  label: 'AI Reel Video',
+                  clips: [
+                    {
+                      id: 'clip-video-1',
+                      startTime: 0,
+                      endTime: projRes.data.duration || 30,
+                      src: projRes.data.video_url,
+                      type: 'video',
+                    },
+                  ],
+                },
+              ],
+              words: [],
+              segments: [
+                {
+                  id: 'seg-0',
+                  start: 0,
+                  end: projRes.data.duration || 30,
+                  text: projRes.data.title || 'AI Reel',
+                  words: [],
+                },
+              ],
+              style: {
+                preset: 'HORMOZI',
+                textColor: '#FFFFFF',
+                highlightColor: '#00FFFF',
+                fontSize: 48,
+              },
+            };
+          }
+
           if (activeTimeline) {
             setTimeline(activeTimeline);
             if (activeTimeline.aspectRatio) setAspectRatio(activeTimeline.aspectRatio);
           }
 
-          const isDoneOrHasData = activeTimeline || ['completed', 'failed', 'cancelled', 'ready', 'draft'].includes(projRes.data.status);
+          const isDoneOrHasData = activeTimeline || ['completed', 'failed', 'cancelled', 'ready'].includes(projRes.data.status);
           if (isDoneOrHasData) {
             setLoading(false);
             if (intervalId) clearInterval(intervalId);
@@ -451,10 +493,15 @@ export default function EditorPage({ projectId, onBack }) {
           saveSuccess={saveSuccess}
         />
 
-      {/* 3-Column Studio Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start w-full max-w-full overflow-x-hidden">
-        {/* Canvas Video Player (Top on Mobile, Middle on Desktop) */}
-        <div className="order-1 lg:order-2 lg:col-span-4 flex justify-center w-full">
+      {/* 3-Column Studio Grid Layout (Side-by-Side Left-to-Right) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 items-start w-full max-w-full overflow-x-hidden">
+        {/* 1. Preset & Style Sidebar (Left Column - 4 cols) */}
+        <div className="order-1 md:col-span-4 w-full">
+          <PresetSidebar timeline={timeline} setTimeline={setTimeline} />
+        </div>
+
+        {/* 2. Canvas Video Player Studio (Middle Column - 4 cols) */}
+        <div className="order-2 md:col-span-4 flex justify-center w-full">
           <CanvasVideoPlayer
             projectId={projectId}
             videoUrl={videoFullUrl}
@@ -468,8 +515,8 @@ export default function EditorPage({ projectId, onBack }) {
           />
         </div>
 
-        {/* Timeline Granular Subtitle Editor (2nd on Mobile, Right on Desktop) */}
-        <div className="order-2 lg:order-3 lg:col-span-4 w-full">
+        {/* 3. Subtitles & Timing Studio (Right Column - 4 cols) */}
+        <div className="order-3 md:col-span-4 w-full">
           <TimelineEditor
             projectId={projectId}
             timeline={timeline}
@@ -481,11 +528,6 @@ export default function EditorPage({ projectId, onBack }) {
             canUndo={canUndo}
             canRedo={canRedo}
           />
-        </div>
-
-        {/* Preset & Style Sidebar (3rd on Mobile, Left on Desktop) */}
-        <div className="order-3 lg:order-1 lg:col-span-4 w-full">
-          <PresetSidebar timeline={timeline} setTimeline={setTimeline} />
         </div>
       </div>
 

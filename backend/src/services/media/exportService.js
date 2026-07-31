@@ -24,7 +24,7 @@ function runFFmpeg(args) {
       } else {
         console.error(`[FFMPEG EXPORT ERROR STDOUT]:\n${stderr}`);
         const errTail = stderr.length > 800 ? stderr.slice(-800) : stderr;
-        reject(new Error(`FFmpeg 60fps Export failed (code ${code}): ${errTail}`));
+        reject(new Error(`FFmpeg 30fps H.264 Export failed (code ${code}): ${errTail}`));
       }
     });
 
@@ -76,13 +76,24 @@ function getSanitizedFilename(title) {
   return `${clean}.mp4`;
 }
 
-export async function renderProjectVideoMP4(projectId, quality = '1080p') {
+export async function renderProjectVideoMP4(projectId, requestedQuality = '720p') {
   // Fetch project details
   const projRes = await query(`SELECT * FROM projects WHERE id = $1`, [projectId]);
   if (projRes.rows.length === 0) {
     throw new AppError('Project not found.', 404);
   }
   const project = projRes.rows[0];
+
+  // Check owner user plan to cap resolution
+  let effectiveQuality = '720p';
+  if (project.user_id) {
+    const userRes = await query(`SELECT plan, role FROM users WHERE id = $1`, [project.user_id]);
+    const uPlan = (userRes.rows[0]?.plan || 'free').toLowerCase();
+    const uRole = userRes.rows[0]?.role;
+    if (uPlan === 'dubbing_studio' || uRole === 'admin' || requestedQuality === '1080p') {
+      effectiveQuality = (uPlan === 'dubbing_studio' || uRole === 'admin') ? '1080p' : '720p';
+    }
+  }
 
   // Fetch timeline JSON
   const capRes = await query(`SELECT timeline_json FROM captions WHERE project_id = $1`, [projectId]);
@@ -116,7 +127,7 @@ export async function renderProjectVideoMP4(projectId, quality = '1080p') {
   fs.writeFileSync(srtFilePath, srtData, 'utf-8');
 
   // Output MP4 file
-  const outputFileName = `export_${projectId}_${quality}.mp4`;
+  const outputFileName = `export_${projectId}_${effectiveQuality}.mp4`;
   const outputFilePath = path.join(config.outputDir, outputFileName);
 
   const userDownloadName = getSanitizedFilename(project.title);
@@ -129,30 +140,28 @@ export async function renderProjectVideoMP4(projectId, quality = '1080p') {
     '480p': { scale: 'scale=-2:854', font: 18, maxrate: '5M', bufsize: '10M' },
     '720p': { scale: 'scale=-2:1280', font: 22, maxrate: '10M', bufsize: '20M' },
     '1080p': { scale: 'scale=-2:1920', font: 26, maxrate: '20M', bufsize: '40M' },
-    '2K': { scale: 'scale=-2:2560', font: 36, maxrate: '35M', bufsize: '70M' },
-    '4K': { scale: 'scale=-2:3840', font: 52, maxrate: '60M', bufsize: '120M' },
   };
-  const spec = qualitySpecs[quality] || qualitySpecs['1080p'];
+  const spec = qualitySpecs[effectiveQuality] || qualitySpecs['720p'];
   
-  // Multiply resolution base font size by user's custom font size setting in editor (default 52)
   const userChosenFontSize = timeline.globalTheme?.fontSize || 52;
   const userScaleRatio = userChosenFontSize / 52;
   const finalFontSize = Math.max(12, Math.round(spec.font * userScaleRatio));
 
   const forceStyle = `FontName=${targetFont},FontSize=${finalFontSize},PrimaryColour=&H0005FACC,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=45,Alignment=2,Bold=1`;
 
-  console.log(`[FFMPEG EXPORT ${quality}] Burning subtitles into Ultra-HD ${quality} video for project ${projectId} (${userDownloadName})...`);
-
-  const isHostinger = process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
-  const videoEncoderArgs = isHostinger
-    ? ['-c:v', 'mpeg4', '-q:v', '2']
-    : ['-c:v', 'libx264', '-preset', 'superfast', '-crf', '18', '-pix_fmt', 'yuv420p'];
+  console.log(`[FFMPEG EXPORT ${effectiveQuality}] Burning subtitles into ${effectiveQuality} 30fps H.264 video for project ${projectId} (${userDownloadName})...`);
 
   await runFFmpeg([
     '-i', inputVideoPath,
     '-vf', `${spec.scale}:flags=bicubic,subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
+    '-c:v', 'libx264',
+    '-preset', 'medium',
+    '-crf', '18',
     '-r', '30',
-    ...videoEncoderArgs,
+    '-g', '30',
+    '-keyint_min', '30',
+    '-sc_threshold', '0',
+    '-pix_fmt', 'yuv420p',
     '-maxrate', spec.maxrate,
     '-bufsize', spec.bufsize,
     '-c:a', 'aac',
@@ -164,7 +173,7 @@ export async function renderProjectVideoMP4(projectId, quality = '1080p') {
     outputFilePath,
   ]);
 
-  console.log(`[FFMPEG EXPORT ${quality}] ✅ Render complete: ${outputFilePath}`);
+  console.log(`[FFMPEG EXPORT ${effectiveQuality}] ✅ Render complete: ${outputFilePath}`);
 
   const outputUrl = `/outputs/${outputFileName}`;
   return {
@@ -178,13 +187,11 @@ export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 're
   const outputFilePath = path.join(config.outputDir, outputFileName);
   const userDownloadName = getSanitizedFilename(userTitle);
 
-  // Ensure output directory exists with proper permissions
   const outputDir = path.dirname(outputFilePath);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // Resolve absolute path to input file
   const resolvedInputPath = path.isAbsolute(inputFilePath)
     ? inputFilePath
     : path.resolve(process.cwd(), inputFilePath);
@@ -196,17 +203,19 @@ export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 're
 
   console.log(`[FFMPEG INSTA REMUX] Packaging recorded stream for Instagram Reels (+faststart): ${resolvedInputPath}`);
 
-  const isHostinger = process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
-  const videoEncoderArgs = isHostinger
-    ? ['-c:v', 'mpeg4', '-q:v', '2']
-    : ['-c:v', 'libx264', '-preset', 'superfast', '-crf', '18', '-pix_fmt', 'yuv420p'];
-
   await runFFmpeg([
     '-analyzeduration', '20M',
     '-probesize', '20M',
     '-i', resolvedInputPath,
-    '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-    ...videoEncoderArgs,
+    '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p',
+    '-c:v', 'libx264',
+    '-preset', 'medium',
+    '-crf', '18',
+    '-r', '30',
+    '-g', '30',
+    '-keyint_min', '30',
+    '-sc_threshold', '0',
+    '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
     '-b:a', '192k',
     '-ar', '44100',
@@ -226,4 +235,3 @@ export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 're
     filename: userDownloadName,
   };
 }
-

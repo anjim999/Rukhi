@@ -36,7 +36,7 @@ export const config = {
   },
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   gcpApiKey: process.env.GCP_API_KEY || process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
   gcpProjectId: process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || 'ai-quiz-generator-479518',
   gcpLocation: process.env.GCP_LOCATION || 'us-central1',
   veoModel: process.env.VEO_MODEL || 'veo-3.1-lite-generate-001',

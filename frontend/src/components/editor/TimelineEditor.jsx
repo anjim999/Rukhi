@@ -3,127 +3,14 @@ import toast from 'react-hot-toast';
 import { Clock, Edit3, Settings2, ChevronDown, ChevronUp, Scissors, GitMerge, Undo2, Redo2, Zap, MoveLeft, MoveRight, SlidersHorizontal, Sparkles, Plus, Minus, Languages, Tag, Loader2, X } from 'lucide-react';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline';
 import { translateProjectTimeline, autoAddEmojisToTimeline, generateHookBannersForProject } from '../../services/projectService';
+import { attachClientSideEmojis } from './utils/timelineEmojiAttacher';
 import FontPickerModal from './FontPickerModal';
 import CustomFontSelect from './CustomFontSelect';
 import CustomSelect from './CustomSelect';
 
-const EMOJI_PALETTE = ['⚡', '💸', '🚀', '✨', '🤖', '👑', '💥', '❤️', '🎯', '💡', '💎'];
+import { EMOJI_PALETTE, ANIMATION_OPTIONS_15 } from './constants/timelineOptions';
 
-const ANIMATION_OPTIONS_15 = [
-  { id: ANIMATION_TYPES.POP, name: 'Pop Scale' },
-  { id: ANIMATION_TYPES.BOUNCE, name: 'Spring Bounce' },
-  { id: ANIMATION_TYPES.STREAMING, name: 'Karaoke Streaming' },
-  { id: ANIMATION_TYPES.KARAOKE_SWEEP, name: 'Gradient Sweep Fill' },
-  { id: ANIMATION_TYPES.TYPEWRITER, name: 'Typewriter Letter Reveal' },
-  { id: ANIMATION_TYPES.ELASTIC_SPRING, name: 'Elastic Spring Rebound' },
-  { id: ANIMATION_TYPES.CHROMATIC_GLITCH, name: 'RGB 3D Channel Glitch' },
-  { id: ANIMATION_TYPES.ZOOM_IN, name: 'Rapid Zoom In (0.3x -> 1.3x)' },
-  { id: ANIMATION_TYPES.ZOOM_OUT, name: 'Elastic Zoom Out' },
-  { id: ANIMATION_TYPES.SLIDE_UP, name: 'Velocity Slide Up' },
-  { id: ANIMATION_TYPES.SLIDE_DOWN, name: 'Velocity Slide Down' },
-  { id: ANIMATION_TYPES.SLIDE_LEFT, name: 'Horizontal Slide Left' },
-  { id: ANIMATION_TYPES.SLIDE_RIGHT, name: 'Horizontal Slide Right' },
-  { id: ANIMATION_TYPES.SPIN_REVEAL, name: '360° Spin Reveal' },
-  { id: ANIMATION_TYPES.FLIP_ROTATE, name: '3D Tilt Angle Flip' },
-  { id: ANIMATION_TYPES.NEON_AURA, name: 'Pulsating Neon Aura' },
-  { id: ANIMATION_TYPES.SHAKE_RUMBLE, name: 'Earthquake Jitter' },
-  { id: ANIMATION_TYPES.FLOATING, name: 'Sinusoidal Floating Wave' },
-  { id: ANIMATION_TYPES.WAVE, name: 'Sine Wave Oscillation' },
-  { id: ANIMATION_TYPES.GLOW_PULSE, name: 'Soft Glow Pulse' },
-  { id: ANIMATION_TYPES.SINGLE_FLASH, name: 'Strobe Flash Onset' },
-  { id: ANIMATION_TYPES.EXPAND_BLUR, name: 'Focus Blur-to-Sharp' },
-  { id: ANIMATION_TYPES.SPIRAL_IN, name: 'Vortex Spiral Entrance' },
-  { id: ANIMATION_TYPES.DROP_BOUNCE, name: 'Gravity Drop Bounce' },
-  { id: ANIMATION_TYPES.HEARTBEAT, name: 'Rhythm Heartbeat Pulse' },
-  { id: ANIMATION_TYPES.RUBBER_BAND, name: 'Rubberband Stretch Squeeze' },
-  { id: ANIMATION_TYPES.SWING_PENDULUM, name: 'Pendulum Swing' },
-  { id: ANIMATION_TYPES.JELLO_WOBBLE, name: 'Jello Wobble' },
-  { id: ANIMATION_TYPES.FADE_GLIDE, name: 'Smooth Opacity Glide' },
-  { id: ANIMATION_TYPES.OVERSHOOT_SCALE, name: 'Explosive Overshoot Scale' },
-  { id: ANIMATION_TYPES.SKEDADDLE, name: 'Slanted Fast Glide' },
-  { id: ANIMATION_TYPES.ORBIT_ROTATION, name: 'Elliptical Orbit Sway' },
-  { id: ANIMATION_TYPES.LIGHT_BEAM, name: 'Laser Beam Sweep' },
-  { id: ANIMATION_TYPES.DUAL_BOUNCE, name: 'Double Impact Bounce' },
-  { id: ANIMATION_TYPES.FLOAT_UP, name: 'Gentle Float Drift' },
-  { id: ANIMATION_TYPES.SLANTED_SHAKE, name: 'Diagonal Slant Jitter' },
-  { id: ANIMATION_TYPES.PULSE_ZOOM, name: 'Rhythm Pulse Zoom' },
-  { id: ANIMATION_TYPES.SPLIT_FLIP, name: 'Horizontal Split Flip' },
-  { id: ANIMATION_TYPES.WOBBLE_TOP, name: 'Top Pin Wobble' },
-  { id: ANIMATION_TYPES.SPRING_REBOUND, name: 'Tight Mechanical Spring' },
-  { id: ANIMATION_TYPES.MAGNIFY_POP, name: 'Lens Magnifier Pop' },
-  { id: ANIMATION_TYPES.STAGGER_DROP, name: 'Cascading Stagger Drop' },
-  { id: ANIMATION_TYPES.RIPPLE_WAVE, name: 'Concentric Ripple Wave' },
-  { id: ANIMATION_TYPES.SHADOW_BURST, name: 'Shadow Burst Explosion' },
-  { id: ANIMATION_TYPES.SHUTTER_SNAP, name: 'Shutter Snap Zoom' },
-  { id: ANIMATION_TYPES.ELEVATOR_RISE, name: 'High-Speed Elevator Rise' },
-  { id: ANIMATION_TYPES.CYBER_PULSE, name: 'Cyberpunk Strobe Pulse' },
-  { id: ANIMATION_TYPES.TILT_SWAY, name: 'Dynamic Tilt Sway' },
-  { id: ANIMATION_TYPES.BOUNCE_IN_UP, name: 'Spring Bounce In Up' },
-  { id: ANIMATION_TYPES.FLICKER_GLOW, name: 'Neon Lamp Flicker' },
-  { id: ANIMATION_TYPES.NONE, name: 'Static Clean' },
-];
-
-const FONT_CATEGORIES = [
-  {
-    label: '🇬🇧 English / Universal Sans & Serif',
-    fonts: [
-      'Inter', 'Montserrat', 'Outfit', 'Roboto', 'Poppins', 'Oswald', 'Bebas Neue', 'Anton',
-      'Playfair Display', 'Space Grotesk', 'Syne', 'Kanit', 'Rubik Glitch', 'Cinzel',
-      'Righteous', 'Fredoka', 'Staatliches', 'Russo One', 'Ultra', 'Black Ops One'
-    ],
-  },
-  {
-    label: '✨ English Display & Kinetic Styles',
-    fonts: [
-      'Pacifico', 'Dancing Script', 'Caveat', 'Great Vibes', 'Satisfy', 'Lobster',
-      'Permanent Marker', 'Abril Fatface', 'Bungee', 'Press Start 2P',
-      'Cinzel Decorative', 'Marck Script', 'Sacramento', 'Yellowtail', 'Alex Brush',
-      'Parisienne', 'Shadows Into Light', 'Indie Flower', 'Amatic SC', 'Chewy',
-      'Luckiest Guy', 'Bangers', 'Special Elite', 'Orbitron', 'Shrikhand', 'Changa One'
-    ],
-  },
-  {
-    label: '🇮🇳 Hindi (Devanagari) Fonts',
-    fonts: [
-      'Yatra One', 'Rozha One', 'Hind', 'Teko', 'Mukta', 'Gotu', 'Modak', 'Rajdhani',
-      'Kalam', 'Amita', 'Eczar', 'Karma', 'Martel', 'Ranga', 'Sarala', 'Tillana', 'Vesper Libre'
-    ],
-  },
-  {
-    label: '🇮🇳 Telugu Fonts',
-    fonts: [
-      'Ramabhadra', 'Gidugu', 'NTR', 'Suranna', 'Lakki Reddy', 'Peddana', 'Chathura', 'Ponnala',
-      'Dhurjati', 'Gurajada', 'Mallanna', 'Ravi Prakash', 'Tenali Ramakrishna', 'Sree Krushnadevaraya', 'Timmana'
-    ],
-  },
-];
-
-const PRESET_OPTIONS = [
-  { id: THEME_PRESETS.HORMOZI, name: 'Hormozi Green Box' },
-  { id: THEME_PRESETS.HORMOZI_YELLOW, name: 'Hormozi Yellow Box' },
-  { id: THEME_PRESETS.FIRE_RED, name: 'Fire Red Box' },
-  { id: THEME_PRESETS.ELECTRIC_CYAN, name: 'Cyan Box' },
-  { id: THEME_PRESETS.HOT_PINK, name: 'Hot Pink Box' },
-  { id: THEME_PRESETS.VIOLET_DREAM, name: 'Violet Dream Box' },
-  { id: THEME_PRESETS.ROYAL_BLUE, name: 'Royal Blue Box' },
-  { id: THEME_PRESETS.TEAL_BREEZE, name: 'Teal Breeze Box' },
-  { id: THEME_PRESETS.ELECTRIC_LIME, name: 'Electric Lime Box' },
-  { id: THEME_PRESETS.INDIGO_SKY, name: 'Indigo Sky Box' },
-  { id: THEME_PRESETS.MINT_FRESH, name: 'Mint Fresh Box' },
-  { id: THEME_PRESETS.TANGERINE_POP, name: 'Tangerine Box' },
-  { id: THEME_PRESETS.COMIC_YELLOW, name: 'Comic Yellow Box' },
-  { id: THEME_PRESETS.NEON_GLOW, name: 'Neon Cyan Glow' },
-  { id: THEME_PRESETS.CYBER_PURPLE, name: 'Magenta Haze Glow' },
-  { id: THEME_PRESETS.MATRIX_GREEN, name: 'Matrix Green Glow' },
-  { id: THEME_PRESETS.ICE_BLUE, name: 'Ice Blue Glow' },
-  { id: THEME_PRESETS.AMBER_GLOW, name: 'Amber Glow' },
-  { id: THEME_PRESETS.RUBY_GLOW, name: 'Ruby Red Glow' },
-  { id: THEME_PRESETS.NEON_LEMON, name: 'Neon Lemon Glow' },
-  { id: THEME_PRESETS.ROSE_GOLD, name: 'Rose Gold Glow' },
-  { id: THEME_PRESETS.GOLD_LUXURY, name: 'Gold Luxury' },
-  { id: THEME_PRESETS.BOLD_VIRAL, name: 'Bold Yellow Pop' },
-  { id: THEME_PRESETS.MINIMAL_CLEAN, name: 'Minimal White' },
-];
+import { FONT_CATEGORIES, TIMELINE_PRESET_OPTIONS as PRESET_OPTIONS } from './constants/fontCategories';
 
 export default function TimelineEditor({ projectId, timeline, setTimeline, currentTime, setCurrentTime, onUndo, onRedo, canUndo, canRedo }) {
   const [selectedSegId, setSelectedSegId] = useState(null);
@@ -248,46 +135,8 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
       console.warn('[EMOJI API FALLBACK]', err);
     }
 
-    // Bulletproof Instant Client-Side Emoji Attacher
-    const PALETTE_EMOJIS = ['⚡', '💸', '🚀', '🔥', '🤖', '💡', '👑', '❤️', '🎯', '✨', '🚨', '🎬', '🎵', '🇮🇳'];
-    let appliedCount = 0;
-
-    const updatedSegments = timeline.segments.map((seg, sIdx) => ({
-      ...seg,
-      words: (seg.words || []).map((w, wIdx) => {
-        let text = w.word || '';
-        let emoji = w.emoji;
-        if (!emoji) {
-          const lower = text.toLowerCase();
-          if (lower.includes('money') || lower.includes('cash') || lower.includes('rich') || lower.includes('earn') || lower.includes('rupee')) emoji = '💸';
-          else if (lower.includes('fire') || lower.includes('hot') || lower.includes('viral') || lower.includes('trend')) emoji = '🔥';
-          else if (lower.includes('fast') || lower.includes('quick') || lower.includes('speed') || lower.includes('power')) emoji = '⚡';
-          else if (lower.includes('launch') || lower.includes('grow') || lower.includes('rocket') || lower.includes('start')) emoji = '🚀';
-          else if (lower.includes('ai') || lower.includes('bot') || lower.includes('tech') || lower.includes('code')) emoji = '🤖';
-          else if (lower.includes('idea') || lower.includes('truth') || lower.includes('mind') || lower.includes('secret')) emoji = '💡';
-          else if (lower.includes('king') || lower.includes('win') || lower.includes('top') || lower.includes('boss')) emoji = '👑';
-          else if (lower.includes('love') || lower.includes('heart') || lower.includes('feel')) emoji = '❤️';
-          else if (lower.includes('target') || lower.includes('goal') || lower.includes('focus')) emoji = '🎯';
-          else if (lower.includes('magic') || lower.includes('star') || lower.includes('best')) emoji = '✨';
-          else if (lower.includes('stop') || lower.includes('warn') || lower.includes('alert')) emoji = '🚨';
-          else if (lower.includes('movie') || lower.includes('film') || lower.includes('cinema') || lower.includes('trailer') || lower.includes('raja saab')) emoji = '🎬';
-          else if (lower.includes('song') || lower.includes('music') || lower.includes('dance') || lower.includes('lulu')) emoji = '🎵';
-          else if (lower.includes('hyderabad') || lower.includes('telugu') || lower.includes('hindi') || lower.includes('india')) emoji = '🇮🇳';
-          else if ((sIdx * 3 + wIdx) % 7 === 0) {
-            // Attach strategic viral emoji to periodic key words
-            emoji = PALETTE_EMOJIS[(sIdx + wIdx) % PALETTE_EMOJIS.length];
-          }
-        }
-        if (emoji) appliedCount++;
-        return {
-          ...w,
-          emoji,
-          isHighlighted: w.isHighlighted || !!emoji,
-          highlightColor: w.highlightColor || (emoji ? '#FACC15' : w.highlightColor),
-        };
-      }),
-    }));
-
+    // Instant Client-Side Emoji Attacher
+    const { updatedSegments, appliedCount } = attachClientSideEmojis(timeline.segments);
     setTimeline({ ...timeline, segments: updatedSegments });
     toast.success(`Attached viral emojis to ${appliedCount} words!`, { id: 'emoji-toast' });
     setIsAddingEmojis(false);

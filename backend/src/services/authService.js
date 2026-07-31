@@ -18,7 +18,7 @@ function generateToken(user) {
       name: user.name,
     },
     config.jwtSecret,
-    { expiresIn: '7d' }
+    { expiresIn: '60d' }
   );
 }
 

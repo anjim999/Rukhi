@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, FileText, RefreshCw, Mail, Sparkles } from 'lucide-react';
+import { Shield, FileText, RefreshCw, Mail, Sparkles, Instagram } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -15,10 +15,10 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center text-white shadow-md">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span>Auto Captions AI</span>
+              <span>rukhi.in AI Studio</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Professional video subtitle editor, kinetic captioning, and content creator productivity SaaS.
+              #1 AI Voice & Subtitle Studio featuring 60FPS kinetic captioning and multi-lingual speech synthesis.
             </p>
           </div>
 
@@ -50,29 +50,39 @@ export default function Footer() {
           {/* Support & Social Links */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Support & Social</h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <Link to="/contact" className="hover:text-cyan-400 transition-colors flex items-center space-x-1.5">
-                  <Mail className="w-3.5 h-3.5 text-cyan-500" />
+            <div className="flex flex-col space-y-2 text-xs">
+              <div>
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white font-bold transition-all shadow-sm hover:border-slate-600"
+                >
+                  <Mail className="w-4 h-4 text-cyan-400" />
                   <span>Contact Us</span>
                 </Link>
-              </li>
-              <li>
-                <a href="mailto:support@rukhi.in" className="hover:text-cyan-400 transition-colors">
-                  support@rukhi.in
+              </div>
+
+              <div>
+                <a
+                  href="mailto:support@rukhi.in"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white font-bold transition-all shadow-sm hover:border-slate-600"
+                >
+                  <Mail className="w-4 h-4 text-yellow-400" />
+                  <span>support@rukhi.in</span>
                 </a>
-              </li>
-              <li>
+              </div>
+
+              <div>
                 <a
                   href="https://www.instagram.com/rukhi.in/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-pink-400 transition-colors flex items-center space-x-1.5 font-bold text-pink-400"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-pink-950/40 border border-pink-500/40 text-pink-400 hover:text-pink-300 font-bold transition-all shadow-sm hover:border-pink-500/70"
                 >
-                  <span>📸 Instagram: @rukhi.in</span>
+                  <Instagram className="w-4 h-4 text-pink-400" />
+                  <span>Instagram: @rukhi.in</span>
                 </a>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
 
           {/* Business Info */}

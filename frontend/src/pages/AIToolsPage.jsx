@@ -25,6 +25,8 @@ import DemucsIsolatorModal from '../components/editor/DemucsIsolatorModal';
 import VoiceCloningModal from '../components/editor/VoiceCloningModal';
 import { searchStockBroll } from '../services/brollService';
 import { uploadVideo } from '../services/projectService';
+import AIToolCardGrid from '../components/tools/AIToolCardGrid';
+import AIToolsHeroSection from '../components/tools/AIToolsHeroSection';
 
 export default function AIToolsPage() {
   const navigate = useNavigate();
@@ -103,156 +105,17 @@ export default function AIToolsPage() {
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen text-slate-900 dark:text-zinc-100 transition-colors duration-300">
       
-      {/* PAGE HEADER HERO */}
-      <section className="relative pt-10 pb-12 px-4 max-w-7xl mx-auto text-center">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-tr from-yellow-500/15 via-amber-500/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
+import AIToolsHeroSection from '../components/tools/AIToolsHeroSection';
 
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 text-xs font-extrabold mb-6 backdrop-blur">
-          <Wand2 className="w-4 h-4 text-yellow-500" />
-          <span>AI POWER SUITE & MEDIA GENERATORS</span>
-        </div>
-
-        <h1 className="text-3xl sm:text-5xl font-black tracking-tight max-w-4xl mx-auto leading-tight mb-4">
-          Launch Top-Grade <span className="bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">AI Video & Voice Tools</span> Instantly
-        </h1>
-
-        <p className="text-slate-600 dark:text-zinc-400 max-w-2xl mx-auto font-medium text-sm sm:text-base mb-8">
-          Access all standalone AI generators without waiting to upload a video first. Generate faceless reels, synthesize voice dubs, search stock B-Roll overlays, and isolate audio vocals.
-        </p>
-
-        {/* Quick Launch Action Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-3 max-w-3xl mx-auto">
-          <button
-            onClick={() => setFacelessModalOpen(true)}
-            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-xs shadow-lg shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 fill-black" />
-            <span>Faceless Reel Generator</span>
-          </button>
-
-          <button
-            onClick={() => setDubbingModalOpen(true)}
-            className="px-5 py-3 rounded-2xl bg-slate-900 dark:bg-zinc-800 border border-slate-700 dark:border-zinc-700 text-white font-extrabold text-xs hover:border-yellow-500/50 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Languages className="w-4 h-4 text-yellow-400" />
-            <span>Voice Dubbing Studio</span>
-          </button>
-
-          <button
-            onClick={() => setVoiceCloningModalOpen(true)}
-            className="px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 font-extrabold text-xs hover:bg-amber-500/20 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Volume2 className="w-4 h-4 text-amber-500" />
-            <span>1-2 Min AI Voice Cloning</span>
-          </button>
-
-          <button
-            onClick={() => {
-              const el = document.getElementById('broll-search-section');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="px-5 py-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 font-extrabold text-xs hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Film className="w-4 h-4 text-yellow-500" />
-            <span>Stock B-Roll Explorer</span>
-          </button>
-        </div>
-      </section>
+// ... inside render
+      <AIToolsHeroSection
+        setFacelessModalOpen={setFacelessModalOpen}
+        setDubbingModalOpen={setDubbingModalOpen}
+        setVoiceCloningModalOpen={setVoiceCloningModalOpen}
+      />
 
       {/* FEATURE GENERATOR SUITE GRID */}
       <section className="px-4 max-w-7xl mx-auto pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-          {/* TOOL 1: FACELESS REEL GENERATOR */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl hover:border-yellow-500/50 transition-all flex flex-col justify-between group">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6 fill-yellow-500" />
-                </div>
-                <span className="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[10px] font-black uppercase tracking-wider">
-                  Top Rated AI
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                Faceless Video Reel Generator
-              </h3>
-              <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm leading-relaxed">
-                Generate complete viral shorts from a single topic prompt. Auto-creates AI scripts, selects stock video footage, synthesizes voiceover audio, and syncs kinetic subtitles.
-              </p>
-            </div>
-            <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 mt-6">
-              <button
-                onClick={() => setFacelessModalOpen(true)}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-xs shadow-md shadow-yellow-500/20 hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Launch Generator Modal</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* TOOL 2: MULTILINGUAL VOICE DUBBING STUDIO */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl hover:border-yellow-500/50 transition-all flex flex-col justify-between group">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-                  <Languages className="w-6 h-6" />
-                </div>
-                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-black uppercase tracking-wider">
-                  Voice Synth
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                Multilingual Voice Dubbing Studio
-              </h3>
-              <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm leading-relaxed">
-                Type text or record your voice to generate neural voice dubs in Telugu, Hindi, English, Spanish, Tamil, and Kannada using EdgeTTS, ElevenLabs, or Google TTS models.
-              </p>
-            </div>
-            <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 mt-6">
-              <button
-                onClick={() => setDubbingModalOpen(true)}
-                className="w-full py-3.5 rounded-2xl bg-slate-900 dark:bg-zinc-800 border border-slate-700 dark:border-zinc-700 text-white font-extrabold text-xs hover:border-yellow-500/50 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Open Dubbing Studio</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* TOOL 3: DEMUCS VOCAL SEPARATOR & TRANSCRIBER */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl hover:border-yellow-500/50 transition-all flex flex-col justify-between group">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 group-hover:scale-110 transition-transform">
-                  <Mic className="w-6 h-6" />
-                </div>
-                <span className="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[10px] font-black uppercase tracking-wider">
-                  Demucs AI
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                Audio Vocal Isolation & Transcriber
-              </h3>
-              <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm leading-relaxed">
-                Upload raw video or audio files up to 1GB. Meta Demucs strips background music while Deepgram Nova-2 & Gemini 2.5 Flash transcribe speech with 100% sync precision.
-              </p>
-            </div>
-            <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 mt-6 space-y-2">
-              <button
-                onClick={() => setDemucsModalOpen(true)}
-                className="w-full py-3 rounded-2xl bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-xs shadow-md shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Mic className="w-4 h-4" />
-                <span>Open Demucs Isolator</span>
-              </button>
-
-              <label className="w-full py-2.5 rounded-2xl bg-white dark:bg-zinc-800/80 border border-slate-300 dark:border-zinc-700 text-slate-800 dark:text-zinc-200 font-bold text-xs hover:border-yellow-500 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-500" />
-                    <span>Uploading... ({uploadProgress}%)</span>
                   </>
                 ) : (
                   <>

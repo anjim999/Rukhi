@@ -13,36 +13,7 @@ import { query } from '../../db/pool.js';
 const execPromise = util.promisify(exec);
 const ffmpegBin = ffmpegInstaller.path || 'ffmpeg';
 
-/**
- * Measure exact audio duration in seconds using ffprobe with pure JS fallback
- */
-async function getExactAudioDuration(filePath) {
-  try {
-    const cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`;
-    const { stdout } = await execPromise(cmd);
-    const dur = parseFloat(stdout.trim());
-    if (!isNaN(dur) && dur > 0) {
-      return Number(dur.toFixed(2));
-    }
-  } catch (_err) {
-    // ffprobe not installed or failed, fall back to pure JS calculation below
-  }
-
-  // Pure JS fallback MP3 duration estimation (Edge-TTS 24kHz @ ~48-64kbps = ~6000 bytes/sec)
-  try {
-    if (fs.existsSync(filePath)) {
-      const stats = fs.statSync(filePath);
-      const estSec = stats.size / 6000;
-      if (estSec > 0) {
-        console.log(`[FACELESS GEN] ⏱️ Pure JS calculated exact audio duration: ${estSec.toFixed(2)}s`);
-        return Number(estSec.toFixed(2));
-      }
-    }
-  } catch (err) {
-    console.warn(`[FACELESS GEN] Pure JS audio duration check warning: ${err.message}`);
-  }
-  return null;
-}
+import { getExactAudioDuration } from './utils/audioDurationHelper.js';
 
 /**
  * Standalone script generator for script preview and editing ($0 Cost)
@@ -56,96 +27,7 @@ export async function generateScriptForPrompt({ prompt, targetLanguage = 'te', d
 /**
  * Multi-model Gemini script generator with automatic rate-limit protection ($0 Cost)
  */
-async function generateViralScriptWithFallback({ genAI, prompt, targetLanguage, durationSec = 30 }) {
-  const targetWordCount = Math.min(2500, Math.max(30, Math.round(Number(durationSec) * 2.3)));
-  const langName = targetLanguage === 'te' ? 'Telugu (తెలుగు)' : targetLanguage === 'hi' ? 'Hindi (हिंदी)' : 'English';
-  const scriptConstraint = targetLanguage === 'te' 
-    ? '100% PURE TELUGU SCRIPT (తెలుగు లిపి). Do NOT use English characters in output.' 
-    : targetLanguage === 'hi' 
-    ? '100% PURE HINDI SCRIPT (हिंदी देवनागरी). Do NOT use English characters in output.' 
-    : 'Pure English Script';
-
-  if (genAI) {
-    const scriptPrompt = `You are an elite ${langName} Video Scriptwriter and Translator.
-Task: Translate or write a full high-retention spoken video story script in ${scriptConstraint} for the following story topic:
-
-User Story Topic: "${prompt}"
-
-Target Video Duration: ${durationSec} seconds (${targetWordCount} spoken words).
-
-STRICT MANDATES:
-1. Write ONLY in ${scriptConstraint}. If user topic is in English, translate the story completely into ${langName} script!
-2. Match target length: Write approximately ${targetWordCount} spoken words so speech lasts full ${durationSec} seconds.
-3. Do NOT output speaker labels, title headers, or markdown formatting. Output pure spoken narrative script text only.`;
-
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`[FACELESS GEN] 🎙️ Generating ${targetWordCount}-word ${targetLanguage.toUpperCase()} script with '${modelName}' for ${durationSec}s target...`);
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: { maxOutputTokens: 4096 }
-        });
-        const result = await model.generateContent(scriptPrompt);
-        let text = result.response.text().trim().replace(/^["'`]|["'`]$/g, '');
-        text = text.replace(/^(?:Create|Write|Generate|Translate)\s+an?\s+[^\n.]+[.\n]\s*/i, '').trim();
-
-        if (text && text.length > 20) {
-          return text;
-        }
-      } catch (err) {
-        console.warn(`[FACELESS GEN] Gemini model '${modelName}' warning: ${err.message}`);
-      }
-    }
-  }
-
-  // Fallback script generator matching target language
-  console.warn('[FACELESS GEN] ⚡ Gemini API unavailable or rate-limited. Using topic-aware template fallback.');
-  return getTemplateScriptFallback(prompt, targetLanguage, durationSec);
-}
-
-/**
- * Universal Topic-Aware Script Generator for ANY Topic (Comedy, Friendship, Motivation, Tech, Space, Love)
- */
-function getTemplateScriptFallback(prompt = '', targetLanguage, durationSec = 30) {
-  const isTelugu = targetLanguage === 'te';
-  const isHindi = targetLanguage === 'hi';
-  const lowerP = prompt.toLowerCase();
-
-  // If prompt already contains Telugu or Hindi script matching target language, return prompt
-  if (isTelugu && /[\u0C00-\u0C7F]/.test(prompt)) {
-    return prompt.trim();
-  }
-  if (isHindi && /[\u0900-\u097F]/.test(prompt)) {
-    return prompt.trim();
-  }
-
-  // 1. Comedy / Funny / Friends Topic
-  if (lowerP.includes('funny') || lowerP.includes('friend') || lowerP.includes('laugh') || lowerP.includes('joke') || lowerP.includes('comedy') || lowerP.includes('prank') || lowerP.includes('3 friend')) {
-    if (isTelugu) {
-      return `ముగ్గురు క్రేజీ స్నేహితులు ఒకే చోట చేరితే అక్కడ జరిగే నవ్వుల రచ్చ మామూలుగా ఉండదు! ప్రతీ చిన్న విషయానికి పడి పడి నవ్వుకోవడం, ఒకరినొకరు ఆటపట్టించుకోవడం మరియు సరదా ప్రాంక్స్‌తో గడిపే సమయం ఎంతో అద్భుతమైనది. 
-
-జీవితంలో ఎంతున్నా లేకపోయినా, మన బాధలను మర్చిపోయేలా నవ్వించే నిజమైన స్నేహితులు ఉండడం ఒక గొప్ప వరం. ఆ క్రేజీ జ్ఞాపకాలు, నవ్వులు ఎప్పటికీ మన మనసులో నిలిచిపోతాయి. మీ ముగ్గురి గ్యాంగ్‌లో అత్యంత ఫన్నీ ఫ్రెండ్ ఎవరో కామెంట్స్ లో చెప్పండి!`;
-    }
-    if (isHindi) {
-      return `जब 3 क्रेजी दोस्त एक साथ मिलते हैं, तो हंसी का धमाका होना तय है! एक-दूसरे की टांग खींचना, फनी हरकते करना और बेवकूफी भरी बातों पर हंसना ही असली दोस्ती है। जिंदगी में सच्चे दोस्त होना एक सबसे बड़ा वरदान है। आपके गैंग में सबसे फनी दोस्त कौन है?`;
-    }
-    return `When 3 crazy best friends get together, non-stop laughter is guaranteed! Pulling pranks, cracking silly jokes, and laughing until your stomach hurts are the best memories of life. Having true friends who make you laugh every single day is a true blessing. Who is the funniest friend in your trio group?`;
-  }
-
-  // 2. Space / Universe Topic
-  if (lowerP.includes('space') || lowerP.includes('universe') || lowerP.includes('star') || lowerP.includes('galaxy') || lowerP.includes('planet') || lowerP.includes('black hole') || lowerP.includes('moon')) {
-    if (isTelugu) {
-      return `విశ్వం ఒక అనంతమైన రసవత్తర అద్భుత ప్రపంచం. కోట్ల కొద్దీ నక్షత్రాలు, అనంతమైన గెలాక్సీలు మరియు గురుత్వాకర్షణ శక్తితో కూడిన రహస్యాలు మనల్ని ఎప్పుడూ ఆశ్చర్యపరుస్తాయి. అంతరిక్ష పరిశోధనలు మానవాళి ఆకాంక్షలకు సరిహద్దులు లేవని నిరూపిస్తున్నాయి. విశ్వంలో దాగి ఉన్న రహస్యాలను శోధిస్తూ ముందుకెళ్దాం.`;
-    }
-    return `The universe is an infinite world of breathtaking mysteries. Billions of stars, galaxies, and black holes continue to amaze science every single day. Outer space proves that human exploration has no limits. Let's explore the secrets hidden deep within the cosmos.`;
-  }
-
-  // 3. Tech & AI & Founder Startup Topic
-  if (lowerP.includes('tech') || lowerP.includes('ai') || lowerP.includes('future') || lowerP.includes('code') || lowerP.includes('robot') || lowerP.includes('digital') || lowerP.includes('founder') || lowerP.includes('startup') || lowerP.includes('vikram') || lowerP.includes('విక్రమ్')) {
-    if (isTelugu) {
-      return `అర్ధరాత్రి దాటిన వేళ, నిశ్శబ్దంగా ఉన్న ఆ గదిలో, ఇరవై ఎనిమిదేళ్ల యువ టెక్ వ్యవస్థాపకుడు విక్రమ్ తన కలల ప్రాజెక్ట్‌ను పూర్తి చేయడానికి అహర్నిశలు శ్రమిస్తున్నాడు. ఎన్నో ఓటములు, ఎంతోమంది హేళనలు ఎదురైనా ఏనాడూ ధైర్యాన్ని కోల్పోలేదు. ప్రతీ కోడ్ లైన్ వెనుక అతని కఠిన శ్రమ దాగి ఉంది. భవిష్యత్తును మార్చే కొత్త సాంకేతిక విప్లవం ఇప్పుడు అతని చేతుల్లోనే ఉద్భవిస్తోంది.`;
+import { generateViralScriptWithFallback } from './utils/viralScriptGenerator.js';��్రమ దాగి ఉంది. భవిష్యత్తును మార్చే కొత్త సాంకేతిక విప్లవం ఇప్పుడు అతని చేతుల్లోనే ఉద్భవిస్తోంది.`;
     }
     return `Late at night in a silent workshop, 28-year-old tech entrepreneur Vikram works relentlessly to build his dream startup. Through every obstacle and failure, he never lost courage. The future of technology is being born right in his hands today.`;
   }

@@ -3,6 +3,8 @@ import toast from 'react-hot-toast';
 import VideoDropzone from '../components/upload/VideoDropzone';
 import FacelessGeneratorModal from '../components/editor/FacelessGeneratorModal';
 import ProjectCardItem from '../components/dashboard/ProjectCardItem';
+import DashboardHeroSection from '../components/dashboard/DashboardHeroSection';
+import DashboardModals from '../components/dashboard/DashboardModals';
 import { listProjects, deleteProject, renameProject } from '../services/projectService';
 import { Film, Clock, Sparkles, Volume2, CheckCircle2, ArrowRight, Trash2, Pencil, Check, X, Video, Wand2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -173,98 +175,13 @@ export default function DashboardPage({ onSelectProject }) {
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-8 sm:space-y-12 w-full max-w-full overflow-x-hidden">
       
-      {/* Telugu Creators Hero Showcase */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-amber-500/10 via-yellow-500/5 to-transparent border border-yellow-500/20 p-5 sm:p-8 md:p-12 text-center space-y-4 sm:space-y-6 shadow-2xl">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 text-xs font-extrabold shadow-sm">
-          <Sparkles className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-          Built for Telugu creators
-        </div>
-
-        <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-            For Telugu creators
-          </h1>
-          <h2 className="text-lg sm:text-2xl font-extrabold text-yellow-600 dark:text-yellow-400">
-            Word-by-word Telugu captions for Reels and Shorts.
-          </h2>
-          <p className="text-xs sm:text-base text-slate-600 dark:text-zinc-300 max-w-2xl mx-auto leading-relaxed">
-            Telugu captions that don't look like a robot wrote them, burned into your export in under a minute.
-          </p>
-        </div>
-
-        {/* Word-by-word Kinetic Caption Preview */}
-        <div className="max-w-md mx-auto my-4 sm:my-6 p-4 sm:p-6 rounded-2xl bg-black/80 border border-zinc-800 shadow-2xl space-y-3 sm:space-y-4 backdrop-blur">
-          <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 border-b border-zinc-800 pb-2">
-            <span className="flex items-center gap-1.5 text-yellow-400 font-bold">
-              <Volume2 className="w-3.5 h-3.5 animate-pulse" /> Audio Sync
-            </span>
-            <span>Tanglish & Telugu AI</span>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 py-2 sm:py-4 min-h-[60px] sm:min-h-[70px]">
-            {TELUGU_CAPTION_WORDS.map((w, index) => {
-              const isActive = index === activeWordIndex;
-              return (
-                <span
-                  key={index}
-                  className={`text-xl sm:text-3xl font-black tracking-wide transition-all duration-300 ${
-                    isActive
-                      ? 'scale-110 text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]'
-                      : w.highlight
-                      ? 'text-yellow-500/90'
-                      : 'text-zinc-400'
-                  }`}
-                >
-                  {w.text}
-                </span>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-semibold text-zinc-400 pt-2 border-t border-zinc-800">
-            <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">
-              Tanglish
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-              Actual export · word-by-word
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">
-              Audio
-            </span>
-          </div>
-        </div>
-
-        {/* CTA Actions */}
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-1 sm:pt-2">
-          <button
-            onClick={() => setShowFacelessModal(true)}
-            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-purple-600/30 hover:brightness-110 active:scale-95 transition cursor-pointer border border-purple-400/30"
-          >
-            <Video className="w-4 h-4 text-purple-200" />
-            <span>🎬 Generate AI Faceless Reel ($0)</span>
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                openAuthModal('register');
-              } else {
-                scrollToUpload();
-              }
-            }}
-            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-xs sm:text-sm shadow-xl shadow-yellow-500/30 hover:brightness-105 active:scale-95 transition cursor-pointer"
-          >
-            Upload Video <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Creator Attribution Credit */}
-        <div className="pt-2 text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center justify-center gap-2">
-          <span>Built for Telugu creators</span>
-          <span>•</span>
-          <span className="text-yellow-600 dark:text-yellow-400 font-bold">Built by @ssktechy</span>
-        </div>
-      </div>
+      <DashboardHeroSection
+          activeWordIndex={activeWordIndex}
+          setShowFacelessModal={setShowFacelessModal}
+          user={user}
+          openAuthModal={openAuthModal}
+          scrollToUpload={scrollToUpload}
+        />
 
       {/* Video Dropzone Section */}
       <div id="upload-section" className="space-y-4 pt-4">
@@ -375,129 +292,25 @@ export default function DashboardPage({ onSelectProject }) {
         )}
       </div>
 
-      {/* Bulk Delete Confirmation Modal */}
-      {showBulkDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400">
-              <Trash2 className="w-7 h-7" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Delete Selected Projects?</h3>
-              <p className="text-sm text-slate-500 dark:text-zinc-400">
-                Are you sure you want to permanently delete <span className="text-slate-900 dark:text-white font-extrabold">{selectedProjectIds.size} selected projects</span>? This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => setShowBulkDeleteModal(false)}
-                disabled={bulkDeleting}
-                className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-semibold text-xs transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmBulkDelete}
-                disabled={bulkDeleting}
-                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-lg shadow-red-600/20 disabled:opacity-50 cursor-pointer"
-              >
-                {bulkDeleting ? 'Deleting...' : `Yes, Delete ${selectedProjectIds.size} Projects`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400">
-              <Trash2 className="w-7 h-7" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Delete Project?</h3>
-              <p className="text-sm text-slate-500 dark:text-zinc-400">
-                Are you sure you want to delete <span className="text-slate-900 dark:text-white font-semibold">"{deleteTarget.title}"</span>? This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                disabled={deleting}
-                className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-semibold text-xs transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteProject}
-                disabled={deleting}
-                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-lg shadow-red-600/20 disabled:opacity-50"
-              >
-                {deleting ? 'Deleting...' : 'Yes, Delete Project'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rename Confirmation Modal */}
-      {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-6 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 dark:text-yellow-400">
-              <Pencil className="w-7 h-7" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Rename Video Project</h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">Enter a new name for your reel project.</p>
-            </div>
-
-            <input
-              type="text"
-              value={renameInput}
-              onChange={(e) => setRenameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') confirmRenameProject();
-                if (e.key === 'Escape') setRenameTarget(null);
-              }}
-              autoFocus
-              placeholder="Enter project name..."
-              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 focus:border-yellow-500 dark:focus:border-yellow-400 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:outline-none"
-            />
-
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => setRenameTarget(null)}
-                disabled={renaming}
-                className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-semibold text-xs transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmRenameProject}
-                disabled={renaming || !renameInput.trim()}
-                className="flex-1 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs transition shadow-lg shadow-yellow-500/10 disabled:opacity-50"
-              >
-                {renaming ? 'Saving...' : 'Save Title'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Faceless AI Generator Modal */}
-      <FacelessGeneratorModal
-        isOpen={showFacelessModal}
-        onClose={() => setShowFacelessModal(false)}
-        onProjectCreated={(projectId) => {
-          onSelectProject(projectId);
-        }}
+      <DashboardModals
+        showBulkDeleteModal={showBulkDeleteModal}
+        setShowBulkDeleteModal={setShowBulkDeleteModal}
+        selectedProjectIds={selectedProjectIds}
+        bulkDeleting={bulkDeleting}
+        confirmBulkDelete={confirmBulkDelete}
+        deleteTarget={deleteTarget}
+        setDeleteTarget={setDeleteTarget}
+        deleting={deleting}
+        confirmDeleteProject={confirmDeleteProject}
+        renameTarget={renameTarget}
+        setRenameTarget={setRenameTarget}
+        renameInput={renameInput}
+        setRenameInput={setRenameInput}
+        renaming={renaming}
+        confirmRenameProject={confirmRenameProject}
+        showFacelessModal={showFacelessModal}
+        setShowFacelessModal={setShowFacelessModal}
+        onSelectProject={onSelectProject}
       />
 
     </div>

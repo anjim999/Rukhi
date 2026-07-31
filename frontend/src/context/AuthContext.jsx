@@ -26,11 +26,15 @@ export function AuthProvider({ children }) {
           setUser(res.data.user);
         }
       } catch (err) {
-        console.error('Failed to load user profile:', err);
-        // Clear invalid token
-        localStorage.removeItem('auto_captions_token');
-        setToken(null);
-        setUser(null);
+        console.error('Failed to load user profile during startup:', err);
+        const status = err.response?.status;
+        // Only log out if token is explicitly invalid or expired (401 / 403)
+        // If server is restarting (502 / 503 / 504 / network drop), retain token so user stays logged in for 60 days!
+        if (status === 401 || status === 403) {
+          localStorage.removeItem('auto_captions_token');
+          setToken(null);
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }

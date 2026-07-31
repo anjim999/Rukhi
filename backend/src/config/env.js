@@ -35,7 +35,11 @@ export const config = {
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
   geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+  gcpApiKey: process.env.GCP_API_KEY || process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  gcpProjectId: process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || 'ai-quiz-generator-479518',
+  gcpLocation: process.env.GCP_LOCATION || 'us-central1',
+  veoModel: process.env.VEO_MODEL || 'veo-2.0-generate-001',
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
   jwtSecret: process.env.JWT_SECRET || process.env.JWT_SECREATE || 'auto_captions_super_secret_key_2026',
   smtp: {

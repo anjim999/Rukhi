@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from 'react-hot-toast';
@@ -8,6 +8,7 @@ import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import AuthModal from './components/common/AuthModal';
 import ProductTour from './components/common/ProductTour';
+import CreatorGuideModal from './components/common/CreatorGuideModal';
 import DashboardPage from './pages/DashboardPage';
 import EditorPage from './pages/EditorPage';
 import HomePage from './pages/HomePage';
@@ -49,9 +50,15 @@ function DashboardRouteWrapper() {
 
 function MainApp() {
   const { theme } = useTheme();
-  const [tourOpen, setTourOpen] = useState(() => {
-    return !localStorage.getItem('auto_captions_tour_seen');
-  });
+  const [tourOpen, setTourOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('auto_captions_tour_seen');
+    if (!hasSeenTour) {
+      setTourOpen(true);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-300 w-full">
@@ -81,8 +88,15 @@ function MainApp() {
       </main>
 
       <Footer />
-      <AuthModal />
-      <ProductTour isOpen={tourOpen} onClose={() => setTourOpen(false)} />
+      <ProductTour
+        isOpen={tourOpen}
+        onClose={() => setTourOpen(false)}
+        onOpenGuide={() => setGuideOpen(true)}
+      />
+      <CreatorGuideModal
+        isOpen={guideOpen}
+        onClose={() => setGuideOpen(false)}
+      />
 
       <Toaster
         position="bottom-right"

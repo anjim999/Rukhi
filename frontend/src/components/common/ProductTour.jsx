@@ -32,7 +32,7 @@ const TOUR_STEPS = [
   },
 ];
 
-export default function ProductTour({ isOpen, onClose }) {
+export default function ProductTour({ isOpen, onClose, onOpenGuide }) {
   const [currentStep, setCurrentStep] = useState(0);
 
   if (!isOpen) return null;
@@ -119,18 +119,34 @@ export default function ProductTour({ isOpen, onClose }) {
         </div>
 
         {/* Action Footer */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-zinc-900/60 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between">
-          <button
-            onClick={handleBack}
-            disabled={currentStep === 0}
-            className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition"
-          >
-            <ChevronLeft className="w-4 h-4" /> Back
-          </button>
+        <div className="px-6 py-4 bg-slate-50 dark:bg-zinc-900/60 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBack}
+              disabled={currentStep === 0}
+              className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition"
+            >
+              <ChevronLeft className="w-4 h-4" /> Back
+            </button>
+
+            {onOpenGuide && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenGuide();
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-extrabold text-[11px] hover:bg-yellow-500/20 transition cursor-pointer"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Know More</span>
+              </button>
+            )}
+          </div>
 
           <button
             onClick={handleNext}
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-xs shadow-md shadow-yellow-500/20 hover:brightness-105 transition"
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold text-xs shadow-md shadow-yellow-500/20 hover:brightness-105 transition cursor-pointer"
           >
             {isLastStep ? (
               'Start Creating'

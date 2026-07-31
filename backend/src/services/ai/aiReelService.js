@@ -54,6 +54,25 @@ export async function generateConsistentAIReel({
     });
     generatedClips.push(clipPath);
 
+    // Extract end frame of generated clip for last-frame continuation into scene N+1
+    try {
+      const nextLastFramePath = path.join(config.tempDir, `reel_${reelId}_lastframe_${i}.jpg`);
+      await runFFmpeg([
+        '-sseof', '-0.5',
+        '-i', clipPath,
+        '-update', '1',
+        '-q:v', '2',
+        '-y',
+        nextLastFramePath,
+      ]);
+      if (fs.existsSync(nextLastFramePath)) {
+        lastFramePath = nextLastFramePath;
+        console.log(`[AI REEL STAGE 3/6] 📸 Extracted last-frame image for scene ${i}: ${lastFramePath}`);
+      }
+    } catch (frameErr) {
+      console.warn(`[AI REEL STAGE 3/6 WARN] Last-frame extraction notice for scene ${i}: ${frameErr.message}`);
+    }
+
     // Synthesize Voiceover Speech
     await synthesizeChirpVoiceover({
       text: scene.speechNarration,

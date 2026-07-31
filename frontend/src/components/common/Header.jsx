@@ -7,6 +7,11 @@ import { useAuth } from '../../context/AuthContext';
 import SupportModal from './SupportModal';
 import PricingModal from '../pricing/PricingModal';
 import LogoutConfirmModal from './LogoutConfirmModal';
+import CreatorGuideModal from './CreatorGuideModal';
+import FeedbackModal from './FeedbackModal';
+import UserProfileDropdown from './UserProfileDropdown';
+import HeaderNavLinks from './HeaderNavLinks';
+import HeaderMobileDrawer from './HeaderMobileDrawer';
 
 export default function Header({ activeProject, onOpenTour }) {
   const navigate = useNavigate();
@@ -18,6 +23,8 @@ export default function Header({ activeProject, onOpenTour }) {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const userDropdownRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -69,122 +76,48 @@ export default function Header({ activeProject, onOpenTour }) {
   };
 
   return (
-    <header className="border-b border-slate-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-50 transition-colors duration-300 w-full">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between w-full">
+    <header className="border-b border-slate-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md sticky top-0 z-50 transition-colors duration-300 w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between w-full">
+        {/* Brand Logo & Title */}
         <Link 
           to="/"
           onClick={() => setMobileMenuOpen(false)}
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
           <img
             src="/favicon.svg"
             alt="rukhi.in logo"
-            className="w-9 h-9 rounded-xl shadow-lg shadow-yellow-500/20 group-hover:scale-105 transition-transform object-cover"
+            className="w-11 h-11 rounded-2xl shadow-lg shadow-yellow-500/20 group-hover:scale-105 transition-transform object-cover"
           />
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              rukhi<span className="text-yellow-500">.in</span>
-              <span className="text-[10px] uppercase font-extrabold tracking-widest px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-                PRO STUDIO
-              </span>
-            </h1>
-          </div>
+          <h1 className="font-black text-2xl sm:text-3xl tracking-tight text-slate-900 dark:text-white flex items-center">
+            rukhi<span className="text-yellow-500">.in</span>
+          </h1>
         </Link>
 
-        {/* Desktop Controls */}
-        <div className="hidden md:flex items-center gap-3">
-          {activeProject && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/50 text-xs text-slate-700 dark:text-zinc-300">
-              <Video className="w-3.5 h-3.5 text-yellow-500" />
-              <span className="max-w-[180px] truncate font-medium">{activeProject.title}</span>
-            </div>
-          )}
+        <HeaderNavLinks
+          isDashboard={isDashboard}
+          isAITools={isAITools}
+          navigate={navigate}
+          setShowPricingModal={setShowPricingModal}
+          setShowGuideModal={setShowGuideModal}
+        />
 
-          <button
-            onClick={() => navigate('/')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
-              isHome
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 font-bold hover:bg-amber-500/20 hover:border-amber-500/50'
-                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
-            }`}
-          >
-            Home
-          </button>
-
-          <button
-            onClick={() => navigate('/dashboard')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
-              isDashboard
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 font-bold hover:bg-amber-500/20 hover:border-amber-500/50'
-                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
-            }`}
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-yellow-500" />
-            Studio Dashboard
-          </button>
-
-          <button
-            onClick={() => navigate('/ai-studio')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
-              isAITools
-                ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-bold border-yellow-500/30 hover:bg-yellow-500/30'
-                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
-            }`}
-          >
-            <Wand2 className="w-3.5 h-3.5 text-yellow-500" />
-            <span>AI Studio Hub</span>
-            <span className="bg-yellow-500 text-black text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full">NEW</span>
-          </button>
-
-          {/* Product Tour Trigger */}
-          <button
-            onClick={onOpenTour}
-            title="Product Tour"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-transparent text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-yellow-500" />
-            Tour
-          </button>
-
-          {/* Pricing Upgrade Button */}
-          <button
-            onClick={() => setShowPricingModal(true)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
-              showPricingModal
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-500 font-bold hover:bg-amber-500/25'
-                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20'
-            }`}
-          >
-            <Sparkles className={`w-3.5 h-3.5 ${showPricingModal ? 'fill-amber-500 text-amber-500' : 'text-slate-400 dark:text-zinc-400'}`} />
-            <span>Pricing & Plans</span>
-          </button>
-
-          {/* Customer Support Trigger */}
-          <button
-            onClick={() => setShowSupportModal(true)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border hover:scale-[1.02] active:scale-95 ${
-              showSupportModal
-                ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-400 font-bold hover:bg-indigo-500/25'
-                : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/20'
-            }`}
-          >
-            Support
-          </button>
-
+        {/* Right Section: Controls & Profile */}
+        <div className="flex items-center gap-3">
           {/* Light / Dark Mode Toggle */}
           <button
             onClick={toggleTheme}
-            aria-label="Toggle Light/Dark Theme"
-            className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/50 text-slate-700 dark:text-zinc-300 hover:text-yellow-500 transition group"
+            className="p-2.5 rounded-2xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700/80 text-slate-600 dark:text-zinc-300 transition cursor-pointer"
+            title="Toggle theme"
           >
             {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-yellow-400 group-hover:rotate-45 transition-transform" />
+              <Sun className="w-5 h-5 text-yellow-400" />
             ) : (
-              <Moon className="w-4 h-4 text-slate-700 group-hover:-rotate-12 transition-transform" />
+              <Moon className="w-5 h-5 text-slate-700" />
             )}
           </button>
 
-          {/* Auth Controls / User Profile Dropdown */}
+          {/* User Profile Dropdown */}
           {user ? (
             <div className="relative" ref={userDropdownRef}>
               <button
@@ -202,91 +135,24 @@ export default function Header({ activeProject, onOpenTour }) {
                     {getInitials(user.name)}
                   </div>
                 )}
-                <span className="text-xs font-bold text-slate-900 dark:text-white max-w-[100px] truncate">
+                <span className="text-xs font-bold text-slate-900 dark:text-white max-w-[90px] truncate">
                   {user.name}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400" />
               </button>
 
               {userDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setUserDropdownOpen(false)}
-                  />
-                  <div
-                    className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-2.5 z-50 animate-fadeIn space-y-1"
-                  >
-                    {/* Header info */}
-                    <div className="px-3.5 py-3 border-b border-slate-100 dark:border-zinc-800 space-y-2">
-                      <div>
-                        <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{user.name}</p>
-                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user.email}</p>
-                      </div>
-
-                      {/* Plan & Credits Badge */}
-                      <div className="flex items-center justify-between pt-1">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                          user.plan === 'pro'
-                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                            : user.plan === 'starter'
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
-                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
-                        }`}>
-                          {user.plan === 'pro' ? '👑 Pro' : user.plan === 'starter' ? '⚡ Starter' : 'Free'}
-                        </span>
-                        <span className="text-[11px] font-bold text-emerald-500">
-                          {user.credits !== undefined ? user.credits : 3} Credits
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Settings Page Link */}
-                    <button
-                      onClick={() => {
-                        setUserDropdownOpen(false);
-                        navigate('/settings');
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-2xl transition cursor-pointer"
-                    >
-                      <User className="w-4 h-4 text-amber-500" />
-                      Account & Settings
-                    </button>
-
-                    {/* Upgrade Plan trigger */}
-                    <button
-                      onClick={() => {
-                        setUserDropdownOpen(false);
-                        setShowPricingModal(true);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-500 hover:bg-amber-500/10 rounded-2xl transition cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 fill-amber-500 text-amber-500" />
-                      Upgrade Plan & Credits
-                    </button>
-
-                    {/* Edit Display Name */}
-                    <button
-                      onClick={handleOpenProfileModal}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-2xl transition cursor-pointer"
-                    >
-                      <Pencil className="w-3.5 h-3.5 text-slate-400" />
-                      Edit Profile Name
-                    </button>
-
-                    {/* Sign Out */}
-                    <button
-                      onClick={() => {
-                        setUserDropdownOpen(false);
-                        setShowLogoutModal(true);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-2xl transition cursor-pointer"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      Sign Out
-                    </button>
-                  </div>
-                </>
+                <UserProfileDropdown
+                  user={user}
+                  onClose={() => setUserDropdownOpen(false)}
+                  navigate={navigate}
+                  setShowPricingModal={setShowPricingModal}
+                  setShowFeedbackModal={setShowFeedbackModal}
+                  onOpenTour={onOpenTour}
+                  setShowSupportModal={setShowSupportModal}
+                  handleOpenProfileModal={handleOpenProfileModal}
+                  setShowLogoutModal={setShowLogoutModal}
+                />
               )}
             </div>
           ) : (
@@ -327,104 +193,14 @@ export default function Header({ activeProject, onOpenTour }) {
         </div>
       </div>
 
-      {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-4 space-y-3 shadow-2xl animate-fadeIn">
-          <button
-            onClick={() => {
-              navigate('/');
-              setMobileMenuOpen(false);
-            }}
-            className="w-full flex items-center justify-between p-3.5 min-h-[48px] rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-sm active:scale-[0.99] transition"
-          >
-            <span className="flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-              Home Page
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              navigate('/dashboard');
-              setMobileMenuOpen(false);
-            }}
-            className="w-full flex items-center justify-between p-3.5 min-h-[48px] rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-sm active:scale-[0.99] transition"
-          >
-            <span className="flex items-center gap-2.5">
-              <FolderOpen className="w-5 h-5 text-yellow-500" />
-              Studio Dashboard & Projects
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              navigate('/ai-studio');
-              setMobileMenuOpen(false);
-            }}
-            className="w-full flex items-center justify-between p-3.5 min-h-[48px] rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-extrabold text-sm active:scale-[0.99] transition"
-          >
-            <span className="flex items-center gap-2.5">
-              <Wand2 className="w-5 h-5 text-yellow-500" />
-              AI Studio Hub
-            </span>
-            <span className="bg-yellow-500 text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-              NEW
-            </span>
-          </button>
-
-          {user ? (
-            <div className="pt-3 border-t border-slate-200 dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-extrabold text-sm text-slate-900 dark:text-white">{user.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400">{user.email}</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setShowLogoutModal(true);
-                  }}
-                  className="px-4 py-2 min-h-[40px] text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-500/20 rounded-xl active:scale-95 transition"
-                >
-                  Sign Out
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/settings');
-                }}
-                className="w-full py-3 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-xs flex items-center justify-center gap-2 transition"
-              >
-                <User className="w-4 h-4 text-amber-500" />
-                <span>Account & Settings</span>
-              </button>
-            </div>
-          ) : (
-            <div className="pt-3 border-t border-slate-200 dark:border-zinc-800 flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openAuthModal('login');
-                }}
-                className="flex-1 py-3 min-h-[44px] rounded-2xl border border-slate-200 dark:border-zinc-700 text-xs font-bold text-slate-800 dark:text-zinc-200 text-center active:scale-95 transition"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openAuthModal('register');
-                }}
-                className="flex-1 py-3 min-h-[44px] rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black text-xs font-extrabold text-center shadow-lg shadow-yellow-500/20 active:scale-95 transition"
-              >
-                Get Started
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      <HeaderMobileDrawer
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        navigate={navigate}
+        user={user}
+        setShowLogoutModal={setShowLogoutModal}
+        openAuthModal={openAuthModal}
+      />
       {/* Profile Display Name Edit Modal */}
       {showProfileModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
@@ -488,6 +264,17 @@ export default function Header({ activeProject, onOpenTour }) {
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={logout}
+      />
+
+      <CreatorGuideModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
+      />
+
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        user={user}
       />
     </header>
   );

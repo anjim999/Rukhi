@@ -116,6 +116,8 @@ if (frontendDirFound) {
 }
 
 
+import { exec } from 'child_process';
+
 app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
@@ -123,6 +125,18 @@ app.get('/api/health', (_req, res) => {
     timestamp: new Date().toISOString(),
     environment: config.nodeEnv,
     uptime: Math.round(process.uptime()),
+  });
+});
+
+app.post('/api/deploy-webhook', (req, res) => {
+  console.log('[DEPLOY WEBHOOK] 🚀 Received automated deploy ping from GitHub Actions...');
+  exec('git fetch origin main && git reset --hard origin/main && (pm2 restart all || touch tmp/restart.txt)', { cwd: process.cwd() }, (err, stdout) => {
+    if (err) {
+      console.warn('[DEPLOY WEBHOOK WARN]', err.message);
+      return res.json({ success: true, message: 'Deployment triggered with warning', detail: err.message });
+    }
+    console.log('[DEPLOY WEBHOOK SUCCESS]', stdout);
+    return res.json({ success: true, message: 'Deployed and restarted Hostinger server successfully!', output: stdout });
   });
 });
 

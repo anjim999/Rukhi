@@ -7,25 +7,15 @@ on:
 
 jobs:
   deploy:
-    name: Auto Deploy to Hostinger
+    name: Auto Deploy to Hostinger via API Webhook
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Deploy via SSH to Hostinger
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: 22
-          script: |
-            echo "🚀 Starting automated deployment on Hostinger for rukhi.in..."
-            cd /home/u209580425/public_html || cd ~/public_html
-            git fetch origin main
-            git reset --hard origin/main
-            echo "✅ Code pulled successfully from main branch!"
-            pm2 restart all || touch tmp/restart.txt
-            echo "🎉 Hostinger deployment completed successfully for rukhi.in!"
+      - name: Trigger Hostinger Deployment Ping
+        run: |
+          echo "🚀 Triggering automated deployment for rukhi.in..."
+          curl -s -X POST "https://rukhi.in/api/deploy-webhook" \
+               -H "Authorization: Bearer ${{ secrets.HOSTINGER_API_TOKEN }}" \
+               -H "Content-Type: application/json" \
+               -d '{"ref": "refs/heads/main"}' || true
+          echo "🎉 Deployment signal sent to Hostinger!"

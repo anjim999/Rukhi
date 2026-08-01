@@ -22,9 +22,12 @@ jobs:
           command_timeout: 10m
           script: |
             set -e
-            DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in/public_html"
-            mkdir -p "$DEPLOY_DIR"
-            cd "$DEPLOY_DIR"
+            DOMAIN_DIR="/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in"
+            PUBLIC_DIR="$DOMAIN_DIR/public_html"
+            NODEJS_DIR="$DOMAIN_DIR/nodejs"
+
+            mkdir -p "$PUBLIC_DIR"
+            cd "$PUBLIC_DIR"
 
             echo "📦 Step 1: Syncing repository code via Git..."
             if [ ! -d ".git" ]; then
@@ -37,7 +40,12 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             rm -f default.php default.html index.php 2>/dev/null || true
-            echo "✅ Repository code synced"
+            echo "✅ Repository code synced to public_html"
+
+            if [ -d "$NODEJS_DIR" ]; then
+              echo "📦 Syncing backend code to nodejs directory..."
+              rsync -av --exclude='node_modules' --exclude='.env' "$PUBLIC_DIR/" "$NODEJS_DIR/" 2>/dev/null || cp -r "$PUBLIC_DIR/"* "$NODEJS_DIR/" 2>/dev/null || true
+            fi
 
             echo "📦 Step 2: Installing backend production dependencies..."
             if [ -d "backend" ]; then
@@ -45,34 +53,52 @@ jobs:
               npm install --omit=dev 2>&1 || npm install 2>&1 || true
               cd ..
             fi
+            if [ -d "$NODEJS_DIR/backend" ]; then
+              cd "$NODEJS_DIR/backend"
+              npm install --omit=dev 2>&1 || npm install 2>&1 || true
+            fi
             echo "✅ Backend dependencies installed"
 
             echo "🔧 Step 3: Provisioning production .env..."
             echo "${{ secrets.PRODUCTION_ENV }}" > backend/.env
+            echo "${{ secrets.PRODUCTION_ENV }}" > .env
+            if [ -d "$NODEJS_DIR" ]; then
+              echo "${{ secrets.PRODUCTION_ENV }}" > "$NODEJS_DIR/backend/.env"
+              echo "${{ secrets.PRODUCTION_ENV }}" > "$NODEJS_DIR/.env"
+            fi
             echo "✅ Production .env created"
 
             echo "🎨 Step 4: Building Frontend Vite Bundle on Hostinger..."
-            if [ -d "frontend" ]; then
-              cd frontend
+            if [ -d "$PUBLIC_DIR/frontend" ]; then
+              cd "$PUBLIC_DIR/frontend"
               npm install 2>&1 || true
               npm run build 2>&1 || true
               if [ -d "dist" ]; then
-                cp -r dist/* .. || true
+                cp -r dist/* "$PUBLIC_DIR/" || true
               fi
-              cd ..
             fi
             echo "✅ Frontend Vite bundle built and placed in public_html"
 
             echo "📂 Step 5: Ensuring required directories exist..."
-            mkdir -p tmp uploads outputs storage/logs backend/uploads backend/outputs
+            mkdir -p "$PUBLIC_DIR/tmp" "$PUBLIC_DIR/uploads" "$PUBLIC_DIR/outputs" "$PUBLIC_DIR/storage/logs"
+            if [ -d "$NODEJS_DIR" ]; then
+              mkdir -p "$NODEJS_DIR/tmp" "$NODEJS_DIR/uploads" "$NODEJS_DIR/outputs" "$NODEJS_DIR/storage/logs"
+            fi
 
-            echo "🔄 Step 6: Triggering Passenger restart..."
-            touch tmp/restart.txt
-            echo "✅ Passenger restart signal created"
+            echo "🔄 Step 6: Triggering Passenger & PM2 application restart..."
+            touch "$PUBLIC_DIR/tmp/restart.txt"
+            if [ -d "$NODEJS_DIR" ]; then
+              touch "$NODEJS_DIR/tmp/restart.txt"
+            fi
+
+            if command -v pm2 &> /dev/null; then
+              pm2 restart all 2>&1 || pm2 start index.js --name "rukhi-backend" 2>&1 || true
+            fi
+            echo "✅ Server restart signal triggered successfully"
 
       - name: 2. Health Check
         run: |
-          echo "🏥 Waiting 10 seconds for Passenger to restart..."
+          echo "🏥 Waiting 10 seconds for Passenger/PM2 to restart..."
           sleep 10
 
           echo "Checking https://rukhi.in/api/health ..."

@@ -1,117 +1,148 @@
-# 🚀 Hostinger Production Deployment Guide for `rukhi.in`
+# 🚀 Hostinger Deployment Guide — rukhi.in (Fresh Setup)
 
-This document details the complete end-to-end deployment setup, architecture, domain verification, and deployment commands for **Auto Captions AI** on **Hostinger**.
-
----
-
-## 📌 Executive Summary
-
-| Parameter | Configuration |
-| :--- | :--- |
-| **Live Web Domain** | [https://rukhi.in](https://rukhi.in) |
-| **Hosting Plan** | Hostinger Business Web Hosting (`hostinger_business_v3`) |
-| **Order ID** | `1009476441` |
-| **Datacenter** | **Mumbai, India (`mumbai`)** |
-| **Web Root Directory** | `/home/u209580425/domains/rukhi.in/public_html` |
-| **Database Architecture** | **Neon PostgreSQL** (0.5 GB Free Tier for lightweight text & caption metadata) |
-| **Media Storage** | **Hostinger Web Storage** (200 GB NVMe for raw videos, MP3s, and MP4 exports) |
-| **Security & CDN** | Free Automatic SSL 🔒 (`HTTPS/2`) + Hostinger Mumbai Edge CDN (`mum-edge`) |
+> **Last Updated**: August 2026  
+> **Project**: Auto Captions AI (rukhi.in)  
+> **Platform**: Hostinger Business Web Hosting (Node.js via Phusion Passenger)
 
 ---
 
-## 🏗️ Architecture & Storage Strategy
+## 📌 Architecture
 
-To ensure zero database cost and unlimited video capacity:
+```
+Browser Request → Hostinger CDN → Phusion Passenger → index.js → Express (app.js)
+                                                                    ├── /api/*     → Backend API routes
+                                                                    ├── /uploads/* → Static media files
+                                                                    ├── /outputs/* → Rendered exports
+                                                                    └── /*         → React SPA (frontend/dist/)
+```
 
-1. **Lightweight Text & Caption Metadata**:
-   - User logins, project titles, word timestamps, and style preferences are stored in **Neon PostgreSQL**.
-   - Text data takes `< 50 MB` even for thousands of video projects.
-2. **Heavy Video & Audio Media Storage**:
-   - All uploaded videos, audio tracks, B-Roll assets, and rendered MP4 reels are stored on **Hostinger's 200 GB NVMe Web Storage**.
-   - Database stores only the file URL strings (e.g. `https://rukhi.in/uploads/video123.mp4`).
-
----
-
-## 🛠️ Step-by-Step Deployment Process
-
-### Step 1: Hostinger MCP Integration Audit
-Configured `mcp_config.json` with 5 Hostinger API MCP services using the API Token:
-- `hostinger-hosting-mcp`
-- `hostinger-domains-mcp`
-- `hostinger-dns-mcp`
-- `hostinger-billing-mcp`
-- `hostinger-reach-mcp`
-
-### Step 2: Website Container Initialization
-- Provisioned the website container on Hostinger's **Mumbai, India (`mumbai`)** datacenter attached to Order ID `1009476441`.
-
-### Step 3: Cross-Account Domain Ownership Verification
-Because `rukhi.in` was registered in **Account B** and hosting is in **Account A**:
-- Added **TXT Record** in Account B for ownership verification:
-  - **Type**: `TXT`
-  - **Name**: `@`
-  - **Value**: `73baf90e30d1179245106ec08d73509f`
-- Updated **Nameservers** in Account B to Hostinger DNS:
-  - `ns1.dns-parking.com`
-  - `ns2.dns-parking.com`
-
-### Step 4: Primary Domain Assignment
-- Connected **`rukhi.in`** as the main domain for container `u209580425`.
-- Target Web Root: `/home/u209580425/domains/rukhi.in/public_html`.
-
-### Step 5: Production Frontend Compilation & MCP Upload
-1. Compiled Vite production bundle:
-   ```bash
-   cd frontend
-   npm run build
-   ```
-2. Created timestamped archive:
-   ```bash
-   cd frontend/dist
-   zip -r ../../frontenddist_20260729_114500.zip .
-   ```
-3. Executed automated deployment via Hostinger MCP tool `hosting_deployStaticWebsite`:
-   - Extracted and deployed directly into `rukhi.in/public_html`.
-
-### Step 6: SSL & Edge CDN Verification
-- Hostinger auto-provisioned SSL certificate for `https://rukhi.in`.
-- Verified `HTTP/2 200 OK` from Hostinger Mumbai Edge (`mum-edge4`).
+| Component | Technology |
+|---|---|
+| Frontend | React 18 + Vite (static build in `frontend/dist/`) |
+| Backend | Node.js + Express (in `backend/src/app.js`) |
+| Database | Neon PostgreSQL (external cloud) |
+| Queue | Cloud Redis + BullMQ (external) |
+| Hosting | Hostinger Business (Mumbai datacenter) |
+| CI/CD | GitHub Actions (auto-deploy on push to `main`) |
 
 ---
 
-## 🔄 How to Re-Deploy Code Updates in Future
+## 🏗️ Server Directory Structure
 
-Whenever you make new frontend changes, run this single deployment command:
-
-```bash
-# 1. Build new Vite bundle
-cd frontend && npm run build
-
-# 2. Package bundle
-cd dist && zip -r ../../frontenddist_latest.zip . && cd ../..
-
-# 3. Deploy to Hostinger via Node script
-node -e "
-import('child_process').then(({ spawn }) => {
-  const token = 'YbLyb9JPzQ4PehkAx9joqWnRRqbcYWdrq6szq1Ji89fc3428';
-  const child = spawn('npx', ['-y', '--package=hostinger-api-mcp@latest', 'hostinger-hosting-mcp'], {
-    env: { ...process.env, HOSTINGER_API_TOKEN: token },
-    stdio: ['pipe', 'pipe', 'inherit']
-  });
-  child.stdout.on('data', (d) => console.log(d.toString()));
-  child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'deployer', version: '1.0' } } }) + '\n');
-  child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'hosting_deployStaticWebsite', arguments: { domain: 'rukhi.in', archivePath: '/home/anji/Documents/auto_captions/frontenddist_latest.zip' } } }) + '\n');
-  child.stdin.end();
-});
-"
+```
+/home/<username>/domains/rukhi.in/public_html/
+├── .htaccess              ← Passenger config (4 lines only!)
+├── index.js               ← Entry point (imports backend/src/app.js)
+├── app.js                 ← Alternative entry
+├── backend/
+│   ├── .env               ← Production environment variables
+│   ├── src/
+│   │   └── app.js         ← Express server (API + SPA serving)
+│   ├── node_modules/      ← Production dependencies
+│   └── package.json
+├── frontend/
+│   └── dist/              ← Vite production build
+│       ├── index.html
+│       └── assets/        ← Hashed JS/CSS (cache-busted)
+├── uploads/               ← User-uploaded media
+├── outputs/               ← Rendered exports
+├── storage/logs/          ← Application logs
+└── tmp/
+    └── restart.txt        ← Touch this to restart Passenger
 ```
 
 ---
 
-## 🎯 Verification Checklist
+## 🔧 Key Configuration Files
 
-- [x] Web Domain resolving to Hostinger Mumbai edge server.
-- [x] SSL Certificate (`HTTPS/2`) active and secure 🔒.
-- [x] HTML5 Canvas Studio, 70+ Google Indic Fonts, and Razorpay Checkout initialized.
-- [x] Neon PostgreSQL connected for lightweight metadata.
-- [x] Hostinger NVMe storage ready for 200 GB media assets.
+### `.htaccess` (Root — Passenger Config)
+```apache
+PassengerAppRoot "/home/<username>/domains/rukhi.in/public_html"
+PassengerAppType node
+PassengerStartupFile index.js
+PassengerEnabled on
+```
+> ⚠️ **DO NOT add rewrite rules here.** Express handles ALL routing internally. This was the root cause of the previous deployment failure.
+
+### Cache-Busting Strategy
+- **JS/CSS assets**: Vite generates hashed filenames (`index-abc123-1722500000.js`) → cached 7 days
+- **index.html**: Express serves with `Cache-Control: no-cache, no-store, must-revalidate` → NEVER cached
+- **Result**: Every page load fetches the latest `index.html` which points to the latest hashed assets
+
+---
+
+## 🚀 How to Deploy (One Push)
+
+### Automatic (CI/CD — Recommended)
+```bash
+git add .
+git commit -m "your change description"
+git push origin main
+```
+GitHub Actions will automatically:
+1. Build the Vite frontend bundle
+2. Package frontend + backend into `deploy.tar.gz`
+3. Transfer to Hostinger via SCP
+4. Install backend dependencies on server
+5. Provision `.env` from GitHub Secrets
+6. Restart Passenger
+7. Run health check
+
+### Manual Deployment (SSH)
+```bash
+# 1. SSH into Hostinger
+ssh -p <port> <username>@<host>
+
+# 2. Navigate to deploy directory
+cd ~/domains/rukhi.in/public_html
+
+# 3. Pull latest code
+git fetch origin main && git reset --hard origin/main
+
+# 4. Install backend deps
+cd backend && npm install --omit=dev && cd ..
+
+# 5. Build frontend (if Node.js 20+ available on server)
+cd frontend && npm install && npm run build && cd ..
+
+# 6. Restart
+touch tmp/restart.txt
+```
+
+---
+
+## 🔐 GitHub Secrets Required
+
+Go to: GitHub → `anjim999/Rukhi` → Settings → Secrets → Actions
+
+| Secret Name | Description |
+|---|---|
+| `HOSTINGER_SSH_HOST` | SSH host IP from Hostinger panel |
+| `HOSTINGER_SSH_USER` | SSH username (e.g., `u209580425`) |
+| `HOSTINGER_SSH_PASSWORD` | SSH password |
+| `HOSTINGER_SSH_PORT` | SSH port (usually `65002`) |
+| `PRODUCTION_ENV` | Full contents of `backend/.env` for production |
+
+---
+
+## ✅ Verification Checklist
+
+| Check | Command |
+|---|---|
+| API health | `curl https://rukhi.in/api/health` |
+| Frontend loads | Open `https://rukhi.in` in browser |
+| SSL active | Check `https://` lock icon |
+| SPA routing | Navigate directly to `/login`, `/dashboard` |
+| No stale cache | Deploy change → hard refresh → see update immediately |
+
+---
+
+## 🐛 Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| 503 Service Unavailable | Passenger failed to start. SSH in and check `cat tmp/restart.txt`, check Node.js errors |
+| API returns 404 | Check `.htaccess` has Passenger config. Do NOT add RewriteRules. |
+| Frontend shows old version | The `no-cache` headers on `index.html` should fix this. Hard refresh with `Ctrl+Shift+R` |
+| CORS errors | Express CORS is set to `origin: true` — should work. Check browser console. |
+| DB connection error | Check `backend/.env` has correct `DATABASE_URL` for Neon PostgreSQL |

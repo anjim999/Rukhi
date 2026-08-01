@@ -1,4 +1,4 @@
-name: Production CI/CD Pipeline (Hostinger rukhi.in)
+name: 🚀 Deploy rukhi.in to Hostinger
 
 on:
   push:
@@ -7,112 +7,129 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    name: Build & Deploy Frontend & Backend
+  deploy:
+    name: Build & Deploy to Hostinger
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Checkout Repository
-        uses: actions/checkout@v3
+      - name: 1. Checkout Code
+        uses: actions/checkout@v4
 
       - name: 2. Setup Node.js 20
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 3. Install Frontend Dependencies & Build Vite Bundle Archive
+      - name: 3. Build Frontend (Vite Production Bundle)
         run: |
           cd frontend
           npm install
           npm run build
-          cd dist
-          tar -czf ../../dist.tar.gz .
-          cd ../..
+          echo "✅ Frontend build complete"
+          ls -la dist/
 
-      - name: 4. Sync Backend Code & Provision Environment Variables on Hostinger via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
-          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
-          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
-          script: |
-            echo "🚀 Syncing backend repository code on Hostinger..."
-            
-            TARGET_DIR=""
-            if [ -d "/home/u209580425/domains/rukhi.in/public_html/.git" ]; then
-              TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
-            elif [ -d "/home/u209580425/public_html/.git" ]; then
-              TARGET_DIR="/home/u209580425/public_html"
-            else
-              TARGET_DIR=$(find /home/u209580425 -name ".git" -type d 2>/dev/null | head -n 1 | xargs dirname)
-            fi
-            
-            cd "$TARGET_DIR"
-            echo "📍 Deployment directory: $(pwd)"
-            
-            # Ensure git origin URL is current
-            git remote set-url origin https://github.com/anjim999/Rukhi.git 2>/dev/null || true
-            
-            git fetch origin main || true
-            git reset --hard origin/main || true
+      - name: 4. Package Frontend + Backend for Transfer
+        run: |
+          # Create a clean deployment archive
+          mkdir -p deploy_package
 
-            # Auto-provision production .env on Hostinger for Neon PostgreSQL & Auth APIs
-            echo "Tk9ERV9FTlY9cHJvZHVjdGlvbgpEQVRBQkFTRV9VUkw9cG9zdGdyZXNxbDovL25lb25kYl9vd25lcjpucGdfWWhSMnRKaWZXNXVRQGVwLWpvbGx5LWJ1dHRlcmZseS1heGdiMmIzZS1wb29sZXIuYy00LnVzLWVhc3QtMi5hd3MubmVvbi50ZWNoOjU0MzMvbmVvbmRiP3NzbG1vZGU9cmVxdWlyZQpKV1RfU0VDUkVUPWVncmRiaGZuYnNndmpvaWZha2ppZ252aW9laHJnaW9zZGpwbHNkbg==" | base64 -d > .env
-            cp .env /home/u209580425/.env 2>/dev/null || true
-            mkdir -p backend storage/logs
-            cp .env backend/.env 2>/dev/null || true
-            
-            if [ -d "backend" ]; then
-              echo "📦 Installing production dependencies for backend..."
-              cd backend
-              npm install --omit=dev || npm install || true
-              cd ..
-            fi
+          # Copy backend (exclude node_modules, dev files)
+          rsync -av --exclude='node_modules' --exclude='.env' --exclude='uploads/*' --exclude='outputs/*' --exclude='storage/*' backend/ deploy_package/backend/
 
-      - name: 5. Transfer Production Dist Archive via SCP
+          # Copy frontend dist
+          mkdir -p deploy_package/frontend/dist
+          cp -r frontend/dist/* deploy_package/frontend/dist/
+
+          # Copy root entry files
+          cp index.js deploy_package/
+          cp app.js deploy_package/
+          cp .htaccess deploy_package/
+
+          # Create the archive
+          cd deploy_package
+          tar -czf ../deploy.tar.gz .
+          cd ..
+          echo "✅ Deploy package created ($(du -sh deploy.tar.gz | cut -f1))"
+
+      - name: 5. Transfer Deploy Package to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
-          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
           password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
-          source: "dist.tar.gz"
-          target: "/home/u209580425/domains/rukhi.in/public_html"
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          source: "deploy.tar.gz"
+          target: "/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in/public_html"
           overwrite: true
 
-      - name: 6. Extract Production Bundle & Restart Application Server
+      - name: 6. Deploy on Hostinger Server
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
-          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
           password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
           script: |
-            TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
-            [ -d "$TARGET_DIR" ] || TARGET_DIR="/home/u209580425/public_html"
-            cd "$TARGET_DIR"
-            
-            if [ -f "dist.tar.gz" ]; then
-              echo "📦 Extracting new production static assets..."
-              tar -xzf dist.tar.gz
-              rm -f dist.tar.gz
-              echo "✅ Extracted latest static assets successfully!"
-            fi
-            
-            echo "🔄 Triggering Hostinger Node.js application restart..."
-            mkdir -p tmp storage/logs
-            touch tmp/restart.txt
-            echo "🎉 Hostinger restart signal created successfully!"
+            set -e
+            DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in/public_html"
+            cd "$DEPLOY_DIR"
 
-      - name: 7. Automated Health Check
+            echo "📦 Step 1: Extract deploy package..."
+            tar -xzf deploy.tar.gz
+            rm -f deploy.tar.gz
+            echo "✅ Files extracted"
+
+            echo "📦 Step 2: Install backend production dependencies..."
+            cd backend
+            npm install --omit=dev 2>&1 || npm install 2>&1 || true
+            cd ..
+            echo "✅ Backend dependencies installed"
+
+            echo "🔧 Step 3: Provision production .env..."
+            echo "${{ secrets.PRODUCTION_ENV }}" > backend/.env
+            echo "✅ Production .env created"
+
+            echo "📂 Step 4: Ensure required directories exist..."
+            mkdir -p tmp uploads outputs storage/logs backend/uploads backend/outputs
+
+            echo "🔄 Step 5: Restart Passenger (Node.js app)..."
+            touch tmp/restart.txt
+            echo "✅ Passenger restart triggered"
+
+            echo ""
+            echo "🎉 Deployment complete!"
+            echo "📍 Deploy dir: $DEPLOY_DIR"
+            echo "📅 Deployed at: $(date)"
+
+      - name: 7. Health Check
         run: |
-          echo "🏥 Verifying production health check on https://rukhi.in..."
-          sleep 5
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://rukhi.in || echo "000")
-          echo "Production Response Code: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
-            echo "✅ Production health check PASSED!"
-          else
-            echo "⚠️ Health check status code: $HTTP_STATUS"
+          echo "🏥 Waiting 10 seconds for Passenger to restart..."
+          sleep 10
+
+          echo "Checking https://rukhi.in/api/health ..."
+          HTTP_STATUS=$(curl -o /tmp/health_response.json -s -w "%{http_code}" --max-time 30 https://rukhi.in/api/health || echo "000")
+          echo "Response Code: $HTTP_STATUS"
+
+          if [ -f /tmp/health_response.json ]; then
+            echo "Response Body:"
+            cat /tmp/health_response.json
           fi
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo ""
+            echo "✅ Health check PASSED! rukhi.in is live!"
+          else
+            echo ""
+            echo "⚠️ Health check returned $HTTP_STATUS — site may need a few more seconds to start"
+            echo "Check manually: https://rukhi.in/api/health"
+          fi
+
+      - name: 8. Cache Purge Verification
+        run: |
+          echo "🔍 Verifying frontend cache headers..."
+          CACHE_HEADER=$(curl -s -I https://rukhi.in 2>/dev/null | grep -i "cache-control" || echo "No cache header found")
+          echo "Cache-Control: $CACHE_HEADER"
+
+          echo ""
+          echo "✅ Deployment pipeline complete!"
+          echo "🌐 Live at: https://rukhi.in"

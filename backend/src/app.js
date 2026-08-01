@@ -143,7 +143,17 @@ let frontendDirFound = null;
 for (const dir of staticFrontendDirs) {
   if (fs.existsSync(dir) && fs.existsSync(path.join(dir, 'index.html'))) {
     frontendDirFound = dir;
-    app.use(express.static(dir));
+    app.use(express.static(dir, {
+      maxAge: '7d',
+      setHeaders: (res, filePath) => {
+        // CRITICAL: index.html must NEVER be cached — this ensures fresh deploys appear instantly
+        if (filePath.endsWith('index.html') || filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      },
+    }));
     break;
   }
 }
@@ -158,6 +168,10 @@ if (frontendDirFound) {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/outputs')) {
       return next();
     }
+    // CRITICAL: Always serve fresh index.html — never let browser cache the SPA shell
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(frontendDirFound, 'index.html'));
   });
 }

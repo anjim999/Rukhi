@@ -26,7 +26,8 @@ backend/outputs/*
 *.log
 .DS_Store
 *.zip
+*.tar.gz
 backend/gcp_key.json
 backend/storage/
-
+deploy_package/
 

@@ -7,16 +7,15 @@ PassengerEnabled on
   RewriteEngine On
   RewriteBase /
 
-  # 1. Pass real static files directly (Vite assets, favicon, etc)
+  # 1. Pass real static files directly (Vite assets, favicon, images, etc)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 2. Pass /api, /uploads, and /outputs directly to Passenger Node.js app
-  RewriteCond %{REQUEST_URI} ^/api [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/uploads [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/outputs [NC]
-  RewriteRule ^ - [L]
+  # 2. Route all API, uploads, and outputs requests (GET, POST, PUT, DELETE, OPTIONS) to index.js (Passenger)
+  RewriteRule ^api index.js [QSA,L]
+  RewriteRule ^uploads index.js [QSA,L]
+  RewriteRule ^outputs index.js [QSA,L]
 
   # 3. SPA Frontend Route Fallback for all other pages (/dashboard, /settings, etc.)
   RewriteRule . /index.html [L]

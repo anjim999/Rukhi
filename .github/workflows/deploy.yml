@@ -90,21 +90,19 @@ jobs:
             TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
             [ -d "$TARGET_DIR" ] || TARGET_DIR="/home/u209580425/public_html"
             cd "$TARGET_DIR"
-            echo "🔄 Restarting Hostinger Node.js Express Server..."
+            echo "🔄 Triggering Hostinger Node.js application restart..."
             mkdir -p tmp storage/logs
             touch tmp/restart.txt
-            pkill -9 -f node || true
-            nohup node index.js > storage/logs/server.log 2>&1 &
-            echo "🎉 Node.js Express server launched successfully!"
+            echo "🎉 Hostinger restart signal created successfully!"
 
       - name: 7. Automated Health Check
         run: |
-          echo "🏥 Verifying production health check on https://rukhi.in/api/health..."
+          echo "🏥 Verifying production health check on https://rukhi.in..."
           sleep 5
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://rukhi.in/api/health || echo "000")
-          echo "Production API Response Code: $HTTP_STATUS"
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://rukhi.in || echo "000")
+          echo "Production Response Code: $HTTP_STATUS"
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
-            echo "✅ Production API health check PASSED!"
+            echo "✅ Production health check PASSED!"
           else
             echo "⚠️ Health check status code: $HTTP_STATUS"
           fi

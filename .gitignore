@@ -10,9 +10,8 @@ frontend/.env
 *.env.local
 
 # Builds
-dist/
 build/
-frontend/dist/
+!frontend/dist/
 
 
 

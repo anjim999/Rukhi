@@ -2,3 +2,4 @@ PassengerAppRoot "/home/u209580425/domains/rukhi.in/public_html"
 PassengerAppType node
 PassengerStartupFile index.js
 PassengerEnabled on
+DirectoryIndex index.js

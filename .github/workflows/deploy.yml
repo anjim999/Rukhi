@@ -7,15 +7,39 @@ on:
 
 jobs:
   deploy:
-    name: Auto Deploy to Hostinger via API Webhook
+    name: Auto Deploy to Hostinger via SSH
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Hostinger Deployment Ping
-        run: |
-          echo "🚀 Triggering automated deployment for rukhi.in..."
-          curl -s -X POST "https://rukhi.in/api/deploy-webhook" \
-               -H "Authorization: Bearer ${{ secrets.HOSTINGER_API_TOKEN }}" \
-               -H "Content-Type: application/json" \
-               -d '{"ref": "refs/heads/main"}' || true
-          echo "🎉 Deployment signal sent to Hostinger!"
+      - name: Execute Remote SSH Commands on Hostinger
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
+          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
+          script: |
+            echo "🚀 Starting Hostinger deployment..."
+            
+            # Find and navigate to repository root
+            if [ -d "/home/u209580425/domains/rukhi.in/public_html/.git" ]; then
+              cd /home/u209580425/domains/rukhi.in/public_html
+            elif [ -d "/home/u209580425/public_html/.git" ]; then
+              cd /home/u209580425/public_html
+            else
+              cd $(find /home/u209580425 -name ".git" -type d 2>/dev/null | head -n 1 | xargs dirname)
+            fi
+            
+            echo "📍 Deployment directory: $(pwd)"
+            
+            # Fetch latest commit from main
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Restart Phusion Passenger Node.js server
+            mkdir -p tmp
+            touch tmp/restart.txt
+            pkill -9 -f node || true
+            
+            echo "🎉 Deployment completed and Node.js server restarted successfully!"
+

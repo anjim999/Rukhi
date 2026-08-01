@@ -20,14 +20,21 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 3. Build Frontend Vite Production Bundle
+      - name: 3. Build Frontend Vite Bundle & Install Backend Dependencies
         run: |
+          echo "📦 Building Frontend..."
           cd frontend
           npm install
           npm run build
-          echo "✅ Frontend build complete"
+          cd ..
 
-      - name: 4. Deploy to Hostinger via SSH
+          echo "📦 Installing Backend Production Dependencies..."
+          cd backend
+          npm install --omit=dev
+          cd ..
+          echo "✅ Pre-build complete"
+
+      - name: 4. Deploy Ready-to-Run App to Hostinger via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -37,9 +44,6 @@ jobs:
           command_timeout: 10m
           script: |
             set -e
-            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -1)/bin:$HOME/.nvm/current/bin:$HOME/bin
-            source ~/.bashrc 2>/dev/null || true
-
             DOMAIN_DIR="/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in"
             PUBLIC_DIR="$DOMAIN_DIR/public_html"
 
@@ -59,33 +63,27 @@ jobs:
             rm -f default.php default.html index.php 2>/dev/null || true
             echo "✅ Repository code synced"
 
-            echo "📦 Step 2: Installing backend production dependencies..."
-            if [ -d "backend" ]; then
-              cd backend
-              npm install --omit=dev 2>&1 || npm install 2>&1 || true
-              cd ..
-            fi
-            echo "✅ Backend dependencies installed"
-
-            echo "🔧 Step 3: Provisioning production .env..."
+            echo "🔧 Step 2: Provisioning production .env..."
             echo "${{ secrets.PRODUCTION_ENV }}" > backend/.env
             echo "${{ secrets.PRODUCTION_ENV }}" > .env
             echo "PORT=5000" >> backend/.env
             echo "PORT=5000" >> .env
             echo "✅ Production .env created with PORT=5000"
 
-            echo "📂 Step 4: Ensuring required directories exist..."
+            echo "📂 Step 3: Ensuring required directories exist..."
             mkdir -p tmp uploads outputs storage/logs backend/uploads backend/outputs
 
-            echo "🔄 Step 5: Starting Express server process on port 5000..."
+            echo "🔄 Step 4: Starting Express server process on port 5000..."
             pkill -f "node backend/src/app.js" 2>/dev/null || pkill -f "rukhi-backend" 2>/dev/null || true
             sleep 2
+
+            NODE_CMD=$(which node 2>/dev/null || find /usr /opt /home -name "node" -type f 2>/dev/null | head -n 1 || echo "node")
+            echo "Using Node binary: $NODE_CMD"
 
             if command -v pm2 &> /dev/null; then
               pm2 delete rukhi-backend 2>/dev/null || true
               pm2 start backend/src/app.js --name "rukhi-backend" 2>&1 || true
             else
-              NODE_CMD=$(which node 2>/dev/null || echo "node")
               PORT=5000 nohup $NODE_CMD backend/src/app.js > storage/logs/app.log 2>&1 &
             fi
             echo "✅ Express server started on port 5000"

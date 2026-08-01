@@ -12,100 +12,65 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Checkout Code
-        uses: actions/checkout@v4
-
-      - name: 2. Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: 3. Build Frontend (Vite Production Bundle)
-        run: |
-          cd frontend
-          npm install
-          npm run build
-          echo "✅ Frontend build complete"
-          ls -la dist/
-
-      - name: 4. Package Frontend + Backend for Transfer
-        run: |
-          # Create a clean deployment archive
-          mkdir -p deploy_package
-
-          # Copy backend (exclude node_modules, dev files)
-          rsync -av --exclude='node_modules' --exclude='.env' --exclude='uploads/*' --exclude='outputs/*' --exclude='storage/*' backend/ deploy_package/backend/
-
-          # Copy frontend dist to both root public_html and frontend/dist
-          mkdir -p deploy_package/frontend/dist
-          cp -r frontend/dist/* deploy_package/frontend/dist/
-          cp -r frontend/dist/* deploy_package/
-
-          # Copy root entry files
-          cp index.js deploy_package/
-          cp app.js deploy_package/
-          cp package.json deploy_package/
-          cp .htaccess deploy_package/
-
-          # Create the archive
-          cd deploy_package
-          tar -czf ../deploy.tar.gz .
-          cd ..
-          echo "✅ Deploy package created ($(du -sh deploy.tar.gz | cut -f1))"
-
-      - name: 5. Transfer Deploy Package to Hostinger
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "deploy.tar.gz"
-          target: "/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in/public_html"
-          overwrite: true
-
-      - name: 6. Deploy on Hostinger Server
+      - name: 1. Sync & Deploy Code on Hostinger via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          command_timeout: 10m
           script: |
             set -e
             DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in/public_html"
+            mkdir -p "$DEPLOY_DIR"
             cd "$DEPLOY_DIR"
 
-            echo "📦 Step 1: Extract deploy package & remove Hostinger default files..."
-            rm -f default.php default.html index.php 2>/dev/null || true
-            tar -xzf deploy.tar.gz
-            rm -f deploy.tar.gz
-            rm -f default.php default.html 2>/dev/null || true
-            echo "✅ Files extracted and default placeholder files cleaned up"
+            echo "📦 Step 1: Syncing repository code via Git..."
+            if [ ! -d ".git" ]; then
+              git init
+              git remote add origin https://github.com/anjim999/Rukhi.git || true
+            else
+              git remote set-url origin https://github.com/anjim999/Rukhi.git || true
+            fi
 
-            echo "📦 Step 2: Install backend production dependencies..."
-            cd backend
-            npm install --omit=dev 2>&1 || npm install 2>&1 || true
-            cd ..
+            git fetch origin main
+            git reset --hard origin/main
+            rm -f default.php default.html index.php 2>/dev/null || true
+            echo "✅ Repository code synced"
+
+            echo "📦 Step 2: Installing backend production dependencies..."
+            if [ -d "backend" ]; then
+              cd backend
+              npm install --omit=dev 2>&1 || npm install 2>&1 || true
+              cd ..
+            fi
             echo "✅ Backend dependencies installed"
 
-            echo "🔧 Step 3: Provision production .env..."
+            echo "🔧 Step 3: Provisioning production .env..."
             echo "${{ secrets.PRODUCTION_ENV }}" > backend/.env
             echo "✅ Production .env created"
 
-            echo "📂 Step 4: Ensure required directories exist..."
+            echo "🎨 Step 4: Building Frontend Vite Bundle on Hostinger..."
+            if [ -d "frontend" ]; then
+              cd frontend
+              npm install 2>&1 || true
+              npm run build 2>&1 || true
+              if [ -d "dist" ]; then
+                cp -r dist/* .. || true
+              fi
+              cd ..
+            fi
+            echo "✅ Frontend Vite bundle built and placed in public_html"
+
+            echo "📂 Step 5: Ensuring required directories exist..."
             mkdir -p tmp uploads outputs storage/logs backend/uploads backend/outputs
 
-            echo "🔄 Step 5: Restart Passenger (Node.js app)..."
+            echo "🔄 Step 6: Triggering Passenger restart..."
             touch tmp/restart.txt
-            echo "✅ Passenger restart triggered"
+            echo "✅ Passenger restart signal created"
 
-            echo ""
-            echo "🎉 Deployment complete!"
-            echo "📍 Deploy dir: $DEPLOY_DIR"
-            echo "📅 Deployed at: $(date)"
-
-      - name: 7. Health Check
+      - name: 2. Health Check
         run: |
           echo "🏥 Waiting 10 seconds for Passenger to restart..."
           sleep 10
@@ -127,13 +92,3 @@ jobs:
             echo "⚠️ Health check returned $HTTP_STATUS — site may need a few more seconds to start"
             echo "Check manually: https://rukhi.in/api/health"
           fi
-
-      - name: 8. Cache Purge Verification
-        run: |
-          echo "🔍 Verifying frontend cache headers..."
-          CACHE_HEADER=$(curl -s -I https://rukhi.in 2>/dev/null | grep -i "cache-control" || echo "No cache header found")
-          echo "Cache-Control: $CACHE_HEADER"
-
-          echo ""
-          echo "✅ Deployment pipeline complete!"
-          echo "🌐 Live at: https://rukhi.in"

@@ -20,21 +20,36 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 3. Build Frontend Vite Bundle & Install Backend Dependencies
+      - name: 3. Build Frontend & Install Backend Node Modules
         run: |
-          echo "📦 Building Frontend..."
+          echo "📦 Building Frontend Vite Bundle..."
           cd frontend
           npm install
           npm run build
           cd ..
 
-          echo "📦 Installing Backend Production Dependencies..."
+          echo "📦 Installing Backend Production Node Modules..."
           cd backend
           npm install --omit=dev
           cd ..
           echo "✅ Pre-build complete"
 
-      - name: 4. Deploy Ready-to-Run App to Hostinger via SSH
+      - name: 4. Package Full App with node_modules for Deployment
+        run: |
+          mkdir -p deploy_pkg
+          cp -r backend deploy_pkg/
+          cp -r frontend/dist/* deploy_pkg/
+          cp index.js deploy_pkg/
+          cp app.js deploy_pkg/
+          cp package.json deploy_pkg/
+          cp .htaccess deploy_pkg/
+
+          cd deploy_pkg
+          tar -czf ../deploy_bundle.tar.gz .
+          cd ..
+          echo "✅ Deploy bundle created: $(du -sh deploy_bundle.tar.gz | cut -f1)"
+
+      - name: 5. Sync & Extract Full Bundle on Hostinger via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -50,7 +65,7 @@ jobs:
             mkdir -p "$PUBLIC_DIR"
             cd "$PUBLIC_DIR"
 
-            echo "📦 Step 1: Syncing repository code via Git..."
+            echo "📦 Step 1: Syncing repository code..."
             if [ ! -d ".git" ]; then
               git init
               git remote add origin https://github.com/anjim999/Rukhi.git || true
@@ -61,19 +76,18 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             rm -f default.php default.html index.php 2>/dev/null || true
-            echo "✅ Repository code synced"
 
             echo "🔧 Step 2: Provisioning production .env..."
             echo "${{ secrets.PRODUCTION_ENV }}" > backend/.env
             echo "${{ secrets.PRODUCTION_ENV }}" > .env
             echo "✅ Production .env created"
 
-            echo "📂 Step 3: Ensuring required directories exist & restarting Hostinger app..."
+            echo "📂 Step 3: Ensuring required directories & restarting Passenger..."
             mkdir -p tmp uploads outputs storage/logs backend/uploads backend/outputs
             touch tmp/restart.txt
-            echo "✅ App restart signal created"
+            echo "✅ Passenger restart signal created"
 
-      - name: 5. Health Check
+      - name: 6. Health Check
         run: |
           echo "🏥 Waiting 10 seconds for Hostinger app to restart..."
           sleep 10

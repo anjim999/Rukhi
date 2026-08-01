@@ -74,10 +74,12 @@ jobs:
             DEPLOY_DIR="/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in/public_html"
             cd "$DEPLOY_DIR"
 
-            echo "📦 Step 1: Extract deploy package..."
+            echo "📦 Step 1: Extract deploy package & remove Hostinger default files..."
+            rm -f default.php default.html index.php 2>/dev/null || true
             tar -xzf deploy.tar.gz
             rm -f deploy.tar.gz
-            echo "✅ Files extracted"
+            rm -f default.php default.html 2>/dev/null || true
+            echo "✅ Files extracted and default placeholder files cleaned up"
 
             echo "📦 Step 2: Install backend production dependencies..."
             cd backend

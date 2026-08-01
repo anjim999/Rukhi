@@ -100,12 +100,10 @@ jobs:
               echo "✅ Extracted latest static assets successfully!"
             fi
             
-            echo "🔄 Restarting Hostinger Node.js Express Server on Port 5000..."
+            echo "🔄 Triggering Hostinger Node.js application restart..."
             mkdir -p tmp storage/logs
             touch tmp/restart.txt
-            pkill -9 -f node || true
-            PORT=5000 nohup node index.js > storage/logs/server.log 2>&1 &
-            echo "🎉 Node.js Express server launched successfully on port 5000!"
+            echo "🎉 Hostinger restart signal created successfully!"
 
       - name: 7. Automated Health Check
         run: |

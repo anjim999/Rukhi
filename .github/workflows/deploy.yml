@@ -51,7 +51,7 @@ jobs:
             # Ensure git origin URL is current
             git remote set-url origin https://github.com/anjim999/Rukhi.git 2>/dev/null || true
             
-            git fetch origin main || git fetch --all || true
+            git fetch origin main || true
             git reset --hard origin/main || true
             
             if [ -d "backend" ]; then
@@ -81,18 +81,11 @@ jobs:
           password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
           script: |
-            TARGET_DIR=""
-            if [ -d "/home/u209580425/domains/rukhi.in/public_html" ]; then
-              TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
-            else
-              TARGET_DIR="/home/u209580425/public_html"
-            fi
-            cd "$TARGET_DIR"
-            echo "🔄 Restarting Hostinger Node.js Application Server..."
+            cd /home/u209580425/domains/rukhi.in/public_html 2>/dev/null || cd /home/u209580425/public_html
+            echo "🔄 Triggering Phusion Passenger Node.js restart..."
             mkdir -p tmp
             touch tmp/restart.txt
-            pkill -9 -f node || true
-            echo "🎉 Backend Deployment completed and server restarted!"
+            echo "🎉 Hostinger restart signal created successfully!"
 
       - name: 7. Automated Health Check
         run: |
@@ -103,5 +96,5 @@ jobs:
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
             echo "✅ Production health check PASSED!"
           else
-            echo "⚠️ Health check returned status $HTTP_STATUS (site may still be starting up)"
+            echo "⚠️ Health check status code: $HTTP_STATUS"
           fi

@@ -12,6 +12,9 @@ frontend/.env
 # Builds
 dist/
 build/
+!frontend/dist/
+!frontend/dist/**
+
 
 # Uploads & Temporary Media
 backend/uploads/*

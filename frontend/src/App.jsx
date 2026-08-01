@@ -24,7 +24,7 @@ import TermsOfServicePage from './pages/legal/TermsOfServicePage';
 import RefundPolicyPage from './pages/legal/RefundPolicyPage';
 import ContactUsPage from './pages/legal/ContactUsPage';
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '729927667402-k6hksmher65amh9ufkfckd64m3762gja.apps.googleusercontent.com';
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '42205160974-i9p2fss2bmh9drir0uefdp684dqtiig1.apps.googleusercontent.com';
 
 function EditorRouteWrapper() {
   const navigate = useNavigate();

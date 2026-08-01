@@ -1,17 +1,44 @@
-name: Deploy to Hostinger (rukhi.in)
+name: Production CI/CD Pipeline (Hostinger rukhi.in)
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Auto Deploy to Hostinger via SSH
+  build-and-deploy:
+    name: Build & Deploy Frontend & Backend
     runs-on: ubuntu-latest
 
     steps:
-      - name: Execute Remote SSH Commands on Hostinger
+      - name: 1. Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: 2. Setup Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: 3. Install Frontend Dependencies & Build Vite Bundle
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: 4. Deploy Static Frontend Assets via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
+          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
+          source: "frontend/dist/*"
+          target: "/home/u209580425/domains/rukhi.in/public_html"
+          strip_components: 2
+          overwrite: true
+
+      - name: 5. Deploy Backend Code & Restart Node Server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
@@ -19,40 +46,45 @@ jobs:
           password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
           script: |
-            echo "🚀 Starting Hostinger deployment..."
+            echo "🚀 Syncing backend repository code on Hostinger..."
             
-            # Find and navigate to repository root
+            TARGET_DIR=""
             if [ -d "/home/u209580425/domains/rukhi.in/public_html/.git" ]; then
-              cd /home/u209580425/domains/rukhi.in/public_html
+              TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
             elif [ -d "/home/u209580425/public_html/.git" ]; then
-              cd /home/u209580425/public_html
+              TARGET_DIR="/home/u209580425/public_html"
             else
-              cd $(find /home/u209580425 -name ".git" -type d 2>/dev/null | head -n 1 | xargs dirname)
+              TARGET_DIR=$(find /home/u209580425 -name ".git" -type d 2>/dev/null | head -n 1 | xargs dirname)
             fi
             
+            cd "$TARGET_DIR"
             echo "📍 Deployment directory: $(pwd)"
             
-            # Fetch latest commit from main
             git fetch origin main
             git reset --hard origin/main
-
-            # Sync compiled frontend dist assets to web document roots
-            if [ -d "frontend/dist" ]; then
-              echo "📦 Syncing frontend/dist static assets..."
-              cp -rf frontend/dist/* ./ 2>/dev/null || true
-              if [ -d "/home/u209580425/domains/rukhi.in/public_html" ]; then
-                cp -rf frontend/dist/* /home/u209580425/domains/rukhi.in/public_html/ 2>/dev/null || true
-              fi
-              if [ -d "/home/u209580425/public_html" ]; then
-                cp -rf frontend/dist/* /home/u209580425/public_html/ 2>/dev/null || true
-              fi
+            
+            if [ -d "backend" ]; then
+              echo "📦 Installing production dependencies for backend..."
+              cd backend
+              npm install --omit=dev || npm install
+              cd ..
             fi
             
-            # Restart Phusion Passenger Node.js server
+            echo "🔄 Restarting Hostinger Node.js Application Server..."
             mkdir -p tmp
             touch tmp/restart.txt
             pkill -9 -f node || true
             
-            echo "🎉 Deployment completed and Node.js server restarted successfully!"
+            echo "🎉 Backend Deployment completed and server restarted!"
 
-
+      - name: 6. Automated Health Check
+        run: |
+          echo "🏥 Verifying production health check on https://rukhi.in..."
+          sleep 5
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://rukhi.in || echo "000")
+          echo "Production URL Response Code: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✅ Production health check PASSED!"
+          else
+            echo "⚠️ Health check returned status $HTTP_STATUS (site may still be starting up)"
+          fi

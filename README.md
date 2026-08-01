@@ -25,7 +25,7 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 * 🎤 **Demucs AI Vocal Separator & Deepgram Nova-3 Engine**: Meta `htdemucs` vocal isolation pipeline running on Python 3.11 with single-threaded bounds (`OMP_NUM_THREADS=1`, `--jobs 1`) combined with Deepgram Nova-3 for 98%+ speech-to-text accuracy even on heavy BGM audio.
 * ⚡ **Perfect Video-Audio-Caption Sync Engine**: Built-in `_validateAndRepairTimestamps()` algorithm enforcing monotonic word ordering, millisecond timing precision, overlap repair, and seamless gap filling.
 * 🌊 **Broadcast-Grade Ripple Sync & Nudge Controls**: Automatic downstream timeline shift upon timestamp edits, 1-click nudge controls (`-0.5s`, `-0.1s`, `+0.1s`, `+0.5s`), and global offset correction.
-* 💳 **Bank-Grade Cashfree v3 Production Payment Gateway**: Monetization architecture featuring Starter Creator (₹199 / 25 videos) and Pro Unlimited (₹399 / unlimited) tiers with Cashfree Popup Checkout modal (`redirectTarget: '_modal'`), real-time webhook listeners (`/api/payment/cashfree-webhook`), and automatic PostgreSQL subscription activation.
+* 💳 **Bank-Grade Cashfree v3 Production Payment Gateway**: Monetization architecture featuring 5 flexible subscription tiers (**Free ₹0**, **Basic ₹79**, **Plus 30s Reels ₹199**, **Pro 60s Reels ₹299**, and **Dubbing Studio ₹399**) with Cashfree Popup Checkout modal (`redirectTarget: '_modal'`), real-time webhook listeners (`/api/payment/cashfree-webhook`), and automatic PostgreSQL subscription activation.
 * 📜 **Legal Compliance Suite**: Fully compliant Privacy Policy, Terms of Service with Anti-Deepfake/Zero-Abuse policies, Refund Policy (7-Day Money Back Guarantee), and Contact Us pages with live interactive UI components.
 * 🌐 **70+ Multilingual Typography Suite & Font Studio Modal**: Native Google Fonts for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.
 * ⚛️ **Un-Clipped React Portal Dropdowns (`CustomFontSelect.jsx`)**: Floating `rounded-2xl` popovers rendered on `document.body` with built-in font search bar.
@@ -70,7 +70,7 @@ cd frontend && npm run dev
 
 ---
 
-## 🌐 Live Production Deployment
+## 🌐 Live Production Deployment & Automated CI/CD
 
 Auto Captions AI is deployed live on Hostinger Business Web Hosting under custom domain **[https://rukhi.in](https://rukhi.in)**.
 
@@ -78,4 +78,6 @@ Auto Captions AI is deployed live on Hostinger Business Web Hosting under custom
 * **Node.js Engine**: Node.js 20.x runtime (`src/app.js`)
 * **Database**: Neon Cloud PostgreSQL (SSL Encrypted)
 * **Payment Engine**: Cashfree v3 Production REST API
+* **Automated CI/CD Pipeline**: GitHub Actions (`.github/workflows/deploy.yml`) executing SSH remote commands (`appleboy/ssh-action@v1.0.3`) to pull `main`, sync compiled `frontend/dist/*` static assets into `public_html/`, and clear Phusion Passenger RAM cache on every `git push origin main`.
 * **Persistent Media Storage**: `/home/u209580425/persistent_storage`
+

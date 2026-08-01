@@ -40,11 +40,12 @@ Auto Captions AI automates this entire pipeline in seconds:
 - **70+ Multilingual Typography & Visual Font Studio Modal**: Full Google Fonts suite for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.
 - **Un-Clipped React Portal Dropdowns (`CustomFontSelect.jsx`)**: Floating `rounded-2xl` popovers rendered on `document.body` with built-in font search bar.
 - **Millisecond Audio Synchronization**: Enforces 100% frame-accurate word-level alignment matching actual audio playback.
-- **Bank-Grade Cashfree v3 Production Payment Gateway**: Monetization architecture featuring Starter Creator (₹199 / 25 videos) and Pro Unlimited (₹399 / unlimited) tiers with Cashfree Popup Checkout modal (`redirectTarget: '_modal'`), real-time webhook listeners (`/api/payment/cashfree-webhook`), and automatic PostgreSQL subscription activation.
+- **Bank-Grade Cashfree v3 Production Payment Gateway**: Monetization architecture featuring 5 flexible subscription tiers (**Free ₹0**, **Basic ₹79**, **Plus 30s Reels ₹199**, **Pro 60s Reels ₹299**, and **Dubbing Studio ₹399**) with Cashfree Popup Checkout modal (`redirectTarget: '_modal'`), real-time webhook listeners (`/api/payment/cashfree-webhook`), and automatic PostgreSQL subscription activation.
 - **Legal Compliance Suite**: Privacy Policy, Terms of Service with Anti-Deepfake/Zero-Abuse policies, Refund Policy (7-Day Money Back Guarantee), and Contact Us pages with live embedded interactive components.
 - **Admin Oversight Dashboard & Analytics**: System monitoring, user metrics, subscription logs, and admin management endpoints.
 - **Integrated Support Desk & Mailer**: Embedded support modal, issue ticket tracking, and direct email delivery using Hostinger SMTP.
 - **AI Social Copywriter**: Generates viral Instagram captions, hashtags, and YouTube Shorts titles directly from the video transcript.
+
 
 ---
 

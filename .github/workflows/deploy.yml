@@ -66,31 +66,16 @@ jobs:
             echo "🔧 Step 2: Provisioning production .env..."
             echo "${{ secrets.PRODUCTION_ENV }}" > backend/.env
             echo "${{ secrets.PRODUCTION_ENV }}" > .env
-            echo "PORT=5000" >> backend/.env
-            echo "PORT=5000" >> .env
-            echo "✅ Production .env created with PORT=5000"
+            echo "✅ Production .env created"
 
-            echo "📂 Step 3: Ensuring required directories exist..."
+            echo "📂 Step 3: Ensuring required directories exist & restarting Hostinger app..."
             mkdir -p tmp uploads outputs storage/logs backend/uploads backend/outputs
-
-            echo "🔄 Step 4: Starting Express server process on port 5000..."
-            pkill -f "node backend/src/app.js" 2>/dev/null || pkill -f "rukhi-backend" 2>/dev/null || true
-            sleep 1
-
-            NODE_CMD=$(which node 2>/dev/null || echo "/usr/bin/node")
-            echo "Using Node binary: $NODE_CMD"
-
-            if command -v pm2 &> /dev/null; then
-              pm2 delete rukhi-backend 2>/dev/null || true
-              pm2 start backend/src/app.js --name "rukhi-backend" 2>&1 || true
-            else
-              PORT=5000 nohup $NODE_CMD backend/src/app.js > storage/logs/app.log 2>&1 </dev/null & disown || true
-            fi
-            echo "✅ Express server started on port 5000"
+            touch tmp/restart.txt
+            echo "✅ App restart signal created"
 
       - name: 5. Health Check
         run: |
-          echo "🏥 Waiting 10 seconds for Express server to start..."
+          echo "🏥 Waiting 10 seconds for Hostinger app to restart..."
           sleep 10
 
           echo "Checking https://rukhi.in/api/health ..."

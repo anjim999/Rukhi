@@ -3,11 +3,15 @@ PassengerAppType node
 PassengerStartupFile index.js
 PassengerEnabled on
 
+<Files "index.js">
+  SetHandler process-with-passenger
+</Files>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # 1. Forward all API and media requests to Phusion Passenger (index.js) via Pass-Through [PT]
+  # 1. Forward all API and media requests to Passenger index.js via Pass-Through [PT]
   RewriteCond %{REQUEST_URI} ^/(api|uploads|outputs) [NC]
   RewriteRule ^(.*)$ /index.js [QSA,PT,L]
 

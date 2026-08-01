@@ -7,18 +7,22 @@ PassengerEnabled on
   RewriteEngine On
   RewriteBase /
 
-  # 1. Direct pass-through for API, uploads, and outputs to Phusion Passenger
+  # 1. Allow direct access to real static files (Vite build assets, images, etc)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 2. Direct pass-through for API and POST requests to Phusion Passenger entry point /index.js
+  RewriteCond %{REQUEST_METHOD} POST
+  RewriteRule ^(.*)$ /index.js [PT,L]
+
+  # 3. Direct pass-through for GET API requests to Passenger
   RewriteCond %{REQUEST_URI} ^/api [NC,OR]
   RewriteCond %{REQUEST_URI} ^/uploads [NC,OR]
   RewriteCond %{REQUEST_URI} ^/outputs [NC]
   RewriteRule ^ - [L]
 
-  # 2. Allow direct access to real static files (Vite build assets, images, etc)
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-
-  # 3. SPA Frontend Route Fallback
+  # 4. SPA Frontend Route Fallback for all other GET pages (/dashboard, /settings, etc.)
   RewriteRule . /index.html [L]
 </IfModule>
 

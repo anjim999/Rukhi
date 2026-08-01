@@ -26,7 +26,7 @@ jobs:
           npm install
           npm run build
 
-      - name: 4. Sync Backend Code on Hostinger via SSH
+      - name: 4. Sync Backend Code & Provision Environment Variables on Hostinger via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
@@ -53,6 +53,12 @@ jobs:
             
             git fetch origin main || true
             git reset --hard origin/main || true
+
+            # Auto-provision production .env on Hostinger for Neon PostgreSQL & Auth APIs
+            echo "Tk9ERV9FTlY9cHJvZHVjdGlvbgpEQVRBQkFTRV9VUkw9cG9zdGdyZXNxbDovL25lb25kYl9vd25lcjpucGdfWWhSMnRKaWZXNXVRQGVwLWpvbGx5LWJ1dHRlcmZseS1heGdiMmIzZS1wb29sZXIuYy00LnVzLWVhc3QtMi5hd3MubmVvbi50ZWNoOjU0MzMvbmVvbmRiP3NzbG1vZGU9cmVxdWlyZQpKV1RfU0VDUkVUPWVncmRiaGZuYnNndmpvaWZha2ppZ252aW9laHJnaW9zZGpwbHNkbg==" | base64 -d > .env
+            cp .env /home/u209580425/.env 2>/dev/null || true
+            mkdir -p backend
+            cp .env backend/.env 2>/dev/null || true
             
             if [ -d "backend" ]; then
               echo "📦 Installing production dependencies for backend..."

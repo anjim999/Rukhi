@@ -7,12 +7,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
     name: Build & Deploy to Hostinger
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Sync & Deploy Code on Hostinger via SSH
+      - name: 1. Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 2. Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 3. Build Frontend Vite Production Bundle
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          echo "✅ Frontend build complete"
+
+      - name: 4. Deploy to Hostinger via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -22,6 +37,9 @@ jobs:
           command_timeout: 10m
           script: |
             set -e
+            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -1)/bin:$HOME/.nvm/current/bin:$HOME/bin
+            source ~/.bashrc 2>/dev/null || true
+
             DOMAIN_DIR="/home/${{ secrets.HOSTINGER_SSH_USER }}/domains/rukhi.in"
             PUBLIC_DIR="$DOMAIN_DIR/public_html"
 
@@ -56,22 +74,10 @@ jobs:
             echo "PORT=5000" >> .env
             echo "✅ Production .env created with PORT=5000"
 
-            echo "🎨 Step 4: Building Frontend Vite Bundle..."
-            if [ -d "frontend" ]; then
-              cd frontend
-              npm install 2>&1 || true
-              npm run build 2>&1 || true
-              if [ -d "dist" ]; then
-                cp -r dist/* "$PUBLIC_DIR/" || true
-              fi
-              cd ..
-            fi
-            echo "✅ Frontend Vite bundle built and placed in public_html"
-
-            echo "📂 Step 5: Ensuring required directories exist..."
+            echo "📂 Step 4: Ensuring required directories exist..."
             mkdir -p tmp uploads outputs storage/logs backend/uploads backend/outputs
 
-            echo "🔄 Step 6: Starting Express server process on port 5000..."
+            echo "🔄 Step 5: Starting Express server process on port 5000..."
             pkill -f "node backend/src/app.js" 2>/dev/null || pkill -f "rukhi-backend" 2>/dev/null || true
             sleep 2
 
@@ -79,11 +85,12 @@ jobs:
               pm2 delete rukhi-backend 2>/dev/null || true
               pm2 start backend/src/app.js --name "rukhi-backend" 2>&1 || true
             else
-              PORT=5000 nohup node backend/src/app.js > storage/logs/app.log 2>&1 &
+              NODE_CMD=$(which node 2>/dev/null || echo "node")
+              PORT=5000 nohup $NODE_CMD backend/src/app.js > storage/logs/app.log 2>&1 &
             fi
             echo "✅ Express server started on port 5000"
 
-      - name: 2. Health Check
+      - name: 5. Health Check
         run: |
           echo "🏥 Waiting 10 seconds for Express server to start..."
           sleep 10

@@ -12,13 +12,17 @@ PassengerEnabled on
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 2. Forward ALL API and media requests (GET, POST, PUT, DELETE) to Passenger /index.js with Pass-Through [PT]
-  RewriteCond %{REQUEST_URI} ^/api [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/uploads [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/outputs [NC]
+  # 2. For POST/PUT/DELETE API requests: rewrite to /index.js with Pass-Through [PT]
+  RewriteCond %{REQUEST_METHOD} !^GET$ [NC]
+  RewriteCond %{REQUEST_URI} ^/(api|uploads|outputs)
   RewriteRule ^(.*)$ /index.js [QSA,PT,L]
 
-  # 3. SPA Frontend Route Fallback for all other pages (/dashboard, /settings, etc.)
+  # 3. For GET API requests: pass directly to Phusion Passenger without rewriting
+  RewriteCond %{REQUEST_METHOD} ^GET$ [NC]
+  RewriteCond %{REQUEST_URI} ^/(api|uploads|outputs)
+  RewriteRule ^ - [L]
+
+  # 4. SPA Frontend Route Fallback for all other pages (/dashboard, /settings, etc.)
   RewriteRule . /index.html [L]
 </IfModule>
 

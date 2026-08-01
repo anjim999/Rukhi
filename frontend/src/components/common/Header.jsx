@@ -124,17 +124,24 @@ export default function Header({ activeProject, onOpenTour }) {
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700/60 bg-slate-100/80 dark:bg-zinc-800/80 hover:border-yellow-500/50 transition cursor-pointer"
               >
-                {user.avatar_url ? (
+                {(user.avatar_url || user.avatar || user.picture) ? (
                   <img
-                    src={user.avatar_url}
-                    alt={user.name}
+                    src={user.avatar_url || user.avatar || user.picture}
+                    alt={user.name || 'User'}
+                    referrerPolicy="no-referrer"
                     className="w-7 h-7 rounded-full object-cover border border-amber-400/50"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                    }}
                   />
-                ) : (
+                ) : null}
+                {!(user.avatar_url || user.avatar || user.picture) && (
                   <div className="w-7 h-7 rounded-full bg-yellow-500 text-black font-extrabold text-xs flex items-center justify-center shadow-sm">
                     {getInitials(user.name)}
                   </div>
                 )}
+
                 <span className="text-xs font-bold text-slate-900 dark:text-white max-w-[90px] truncate">
                   {user.name}
                 </span>

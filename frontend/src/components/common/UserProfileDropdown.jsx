@@ -21,27 +21,50 @@ export default function UserProfileDropdown({
       <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-2.5 z-50 animate-fadeIn space-y-1">
         {/* Header info */}
         <div className="px-3.5 py-3 border-b border-slate-100 dark:border-zinc-800 space-y-2">
-          <div>
-            <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{user.name}</p>
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user.email}</p>
+          <div className="flex items-center gap-3">
+            {(user.avatar_url || user.avatar || user.picture) ? (
+              <img
+                src={user.avatar_url || user.avatar || user.picture}
+                alt={user.name || 'User'}
+                referrerPolicy="no-referrer"
+                className="w-9 h-9 rounded-full object-cover border border-amber-400/50 shrink-0"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-yellow-500 text-black font-extrabold text-xs flex items-center justify-center shadow-sm shrink-0">
+                {(user.name || 'User').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{user.name}</p>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user.email}</p>
+            </div>
           </div>
 
           {/* Plan & Credits Badge */}
           <div className="flex items-center justify-between pt-1">
             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-              user.plan === 'pro'
+              user.plan === 'dubbing_studio' || user.plan === 'pro'
                 ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                : user.plan === 'starter'
+                : user.plan === 'starter' || user.plan === 'plus' || user.plan === 'basic'
                 ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
                 : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
             }`}>
-              {user.plan === 'pro' ? '👑 Pro' : user.plan === 'starter' ? '⚡ Starter' : 'Free'}
+              {user.plan === 'dubbing_studio'
+                ? '👑 Dubbing Studio'
+                : user.plan === 'pro'
+                ? '👑 Pro 60s'
+                : user.plan === 'starter' || user.plan === 'plus'
+                ? '⚡ Plus 30s'
+                : user.plan === 'basic'
+                ? '✨ Basic'
+                : 'Free Tier'}
             </span>
             <span className="text-[11px] font-bold text-emerald-500">
-              {user.credits !== undefined ? user.credits : 3} Credits
+              {user.credits !== undefined && user.credits !== null ? (user.credits > 9999 ? '∞ Unlimited' : `${user.credits} Credits`) : '3 Credits'}
             </span>
           </div>
         </div>
+
 
         {/* Account Settings */}
         <button

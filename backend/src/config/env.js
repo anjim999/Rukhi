@@ -41,7 +41,8 @@ export const config = {
   gcpLocation: process.env.GCP_LOCATION || 'us-central1',
   veoModel: process.env.VEO_MODEL || 'veo-3.1-lite-generate-001',
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
-  jwtSecret: process.env.JWT_SECRET || process.env.JWT_SECREATE || 'auto_captions_super_secret_key_2026',
+  jwtSecret: process.env.JWT_SECRET || process.env.JWT_SECREATE || 'rukhi_production_super_secret_jwt_key_2026_persist',
+
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT || '587', 10),

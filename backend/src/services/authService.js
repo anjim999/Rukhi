@@ -107,7 +107,7 @@ export async function loginUser({ email, password }) {
 
   const normalizedEmail = email.trim().toLowerCase();
   const res = await query(
-    `SELECT id, name, email, password_hash, avatar_url FROM users WHERE LOWER(email) = $1`,
+    `SELECT id, name, email, password_hash, avatar_url, plan, credits, role FROM users WHERE LOWER(email) = $1`,
     [normalizedEmail]
   );
 
@@ -115,7 +115,7 @@ export async function loginUser({ email, password }) {
     throw new AppError('Invalid email or password.', 401);
   }
 
-  const user = res.rows[0];
+  let user = res.rows[0];
   if (!user.password_hash) {
     throw new AppError('This account was created with Google Sign In. Please use Google to log in.', 400);
   }
@@ -125,8 +125,20 @@ export async function loginUser({ email, password }) {
     throw new AppError('Invalid email or password.', 401);
   }
 
+  const isOwner = normalizedEmail === 'anjaneyulumandagiri@gmail.com' || normalizedEmail === 'veeranjaneyulumandagiri@gmail.com';
+  if (isOwner) {
+    user.plan = 'dubbing_studio';
+    user.credits = 99999;
+    user.role = 'admin';
+    await query(
+      `UPDATE users SET plan = 'dubbing_studio', credits = 99999, role = 'admin' WHERE id = $1`,
+      [user.id]
+    );
+  }
+
   const token = generateToken(user);
   const { password_hash, ...userWithoutPassword } = user;
+
 
   // Send Login Alert Email
   try {
@@ -171,27 +183,51 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
 
   // Search by google_id or email
   const existingRes = await query(
-    `SELECT id, name, email, avatar_url FROM users WHERE google_id = $1 OR LOWER(email) = $2`,
+    `SELECT id, name, email, avatar_url, plan, credits, role FROM users WHERE google_id = $1 OR LOWER(email) = $2`,
     [googleId || '', normalizedEmail]
   );
 
   let user;
+  const isOwner = normalizedEmail === 'anjaneyulumandagiri@gmail.com' || normalizedEmail === 'veeranjaneyulumandagiri@gmail.com';
 
   if (existingRes.rows.length > 0) {
     user = existingRes.rows[0];
-    // Update google_id / avatar_url if missing
+    const targetPlan = isOwner ? 'dubbing_studio' : (user.plan || 'free');
+    const targetCredits = isOwner ? 99999 : (user.credits !== undefined && user.credits !== null ? user.credits : 3);
+    const targetRole = isOwner ? 'admin' : (user.role || 'user');
+    const targetAvatar = avatarUrl || user.avatar_url;
+
     await query(
-      `UPDATE users SET google_id = COALESCE(google_id, $1), avatar_url = COALESCE(avatar_url, $2) WHERE id = $3`,
-      [googleId || null, avatarUrl || null, user.id]
+      `UPDATE users 
+       SET google_id = COALESCE(google_id, $1), 
+           avatar_url = COALESCE($2, avatar_url),
+           plan = $3,
+           credits = $4,
+           role = $5
+       WHERE id = $6`,
+      [googleId || null, targetAvatar || null, targetPlan, targetCredits, targetRole, user.id]
     );
+
+    user = {
+      ...user,
+      google_id: googleId || user.google_id,
+      avatar_url: targetAvatar,
+      plan: targetPlan,
+      credits: targetCredits,
+      role: targetRole,
+    };
   } else {
     // Create new user
     const userId = uuidv4();
+    const targetPlan = isOwner ? 'dubbing_studio' : 'free';
+    const targetCredits = isOwner ? 99999 : 3;
+    const targetRole = isOwner ? 'admin' : 'user';
+
     const insertRes = await query(
-      `INSERT INTO users (id, name, email, google_id, avatar_url)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, email, avatar_url, created_at`,
-      [userId, name || 'Google User', normalizedEmail, googleId || null, avatarUrl || null]
+      `INSERT INTO users (id, name, email, google_id, avatar_url, plan, credits, role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, name, email, avatar_url, plan, credits, role, created_at`,
+      [userId, name || 'Google User', normalizedEmail, googleId || null, avatarUrl || null, targetPlan, targetCredits, targetRole]
     );
     user = insertRes.rows[0];
 
@@ -200,7 +236,7 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
       const welcomeHtml = `
         <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #09090b; color: #ffffff; border-radius: 16px; border: 1px solid #27272a;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #facc15; font-size: 32px; font-weight: 800; margin: 0;">Rocky Captions</h1>
+            <h1 style="color: #facc15; font-size: 32px; font-weight: 800; margin: 0;">rukhi.in</h1>
             <p style="color: #a1a1aa; font-size: 16px; margin-top: 8px;">Your AI Reel Studio</p>
           </div>
           <div style="background-color: #18181b; padding: 30px; border-radius: 12px; border: 1px solid #3f3f46;">
@@ -209,14 +245,14 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
               You successfully joined using Google. You now have access to the ultimate AI-powered captioning engine.
             </p>
             <div style="text-align: center; margin-top: 35px;">
-              <a href="${(process.env.FRONTEND_URL || '').split(',')[0].trim()}" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase;">Launch Studio</a>
+              <a href="${(process.env.FRONTEND_URL || 'https://rukhi.in').split(',')[0].trim()}" style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: 8px; text-decoration: none; text-transform: uppercase;">Launch Studio</a>
             </div>
           </div>
         </div>
       `;
       await sendEmail({
         to: normalizedEmail,
-        subject: '🚀 Welcome to Rocky Captions! Your AI Studio is ready.',
+        subject: '🚀 Welcome to rukhi.in! Your AI Studio is ready.',
         html: welcomeHtml,
       });
     } catch (err) {
@@ -228,6 +264,7 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
 
   return { user, token };
 }
+
 
 /**
  * Request password reset token
@@ -321,16 +358,31 @@ export async function resetPassword({ token, newPassword }) {
  */
 export async function getUserById(userId) {
   const res = await query(
-    `SELECT id, name, email, avatar_url, plan, credits, created_at FROM users WHERE id = $1`,
+    `SELECT id, name, email, avatar_url, plan, credits, role, created_at FROM users WHERE id = $1`,
     [userId]
   );
 
   if (res.rows.length === 0) {
-    throw new Error('User not found.');
+    throw new AppError('User account not found.', 404);
   }
 
-  return res.rows[0];
+  const user = res.rows[0];
+  const normalizedEmail = (user.email || '').trim().toLowerCase();
+  const isOwner = normalizedEmail === 'anjaneyulumandagiri@gmail.com' || normalizedEmail === 'veeranjaneyulumandagiri@gmail.com';
+
+  if (isOwner && (user.plan !== 'dubbing_studio' || user.credits < 9999)) {
+    await query(
+      `UPDATE users SET plan = 'dubbing_studio', credits = 99999, role = 'admin' WHERE id = $1`,
+      [user.id]
+    );
+    user.plan = 'dubbing_studio';
+    user.credits = 99999;
+    user.role = 'admin';
+  }
+
+  return user;
 }
+
 
 export async function updateUserProfile(userId, name) {
   if (!name || !name.trim()) {

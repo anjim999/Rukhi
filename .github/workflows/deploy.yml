@@ -36,9 +36,10 @@ jobs:
           # Copy backend (exclude node_modules, dev files)
           rsync -av --exclude='node_modules' --exclude='.env' --exclude='uploads/*' --exclude='outputs/*' --exclude='storage/*' backend/ deploy_package/backend/
 
-          # Copy frontend dist
+          # Copy frontend dist to both root public_html and frontend/dist
           mkdir -p deploy_package/frontend/dist
           cp -r frontend/dist/* deploy_package/frontend/dist/
+          cp -r frontend/dist/* deploy_package/
 
           # Copy root entry files
           cp index.js deploy_package/

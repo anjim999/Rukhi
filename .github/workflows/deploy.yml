@@ -44,6 +44,7 @@ jobs:
           # Copy root entry files
           cp index.js deploy_package/
           cp app.js deploy_package/
+          cp package.json deploy_package/
           cp .htaccess deploy_package/
 
           # Create the archive

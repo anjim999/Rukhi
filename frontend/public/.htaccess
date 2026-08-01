@@ -7,13 +7,13 @@ PassengerEnabled on
   RewriteEngine On
   RewriteBase /
 
-  # 1. Serve real static files directly (Vite assets, images, favicon, etc)
+  # 1. Allow direct access to real static files (Vite build assets, images, etc)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 2. Pass all dynamic requests (API endpoints & SPA fallback) to Passenger index.js
-  RewriteRule ^ index.js [QSA,L]
+  # 2. Route all dynamic requests (GET, POST, PUT, DELETE) to index.js Passenger entry point
+  RewriteRule ^(.*)$ index.js [QSA,L]
 </IfModule>
 
 # Force browsers and Hostinger Edge CDN (hcdn) to never cache index.html

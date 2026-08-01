@@ -75,9 +75,9 @@ jobs:
 
             echo "🔄 Step 4: Starting Express server process on port 5000..."
             pkill -f "node backend/src/app.js" 2>/dev/null || pkill -f "rukhi-backend" 2>/dev/null || true
-            sleep 2
+            sleep 1
 
-            NODE_CMD=$(which node 2>/dev/null || find /usr /opt /home -name "node" -type f 2>/dev/null | head -n 1 || echo "node")
+            NODE_CMD=$(which node 2>/dev/null || echo "/usr/bin/node")
             echo "Using Node binary: $NODE_CMD"
 
             if command -v pm2 &> /dev/null; then

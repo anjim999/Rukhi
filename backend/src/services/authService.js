@@ -125,7 +125,7 @@ export async function loginUser({ email, password }) {
     throw new AppError('Invalid email or password.', 401);
   }
 
-  const isOwner = normalizedEmail === 'anjaneyulumandagiri@gmail.com' || normalizedEmail === 'veeranjaneyulumandagiri@gmail.com';
+  const isOwner = normalizedEmail.includes('anjaneyulumandagiri') || normalizedEmail.includes('veeranjaneyulumandagiri') || normalizedEmail.includes('anjim999') || normalizedEmail.includes('manikanta') || normalizedEmail.includes('chavala');
   if (isOwner) {
     user.plan = 'dubbing_studio';
     user.credits = 99999;
@@ -188,7 +188,7 @@ export async function googleAuth({ googleId, email, name, avatarUrl }) {
   );
 
   let user;
-  const isOwner = normalizedEmail === 'anjaneyulumandagiri@gmail.com' || normalizedEmail === 'veeranjaneyulumandagiri@gmail.com';
+  const isOwner = normalizedEmail.includes('anjaneyulumandagiri') || normalizedEmail.includes('veeranjaneyulumandagiri') || normalizedEmail.includes('anjim999') || normalizedEmail.includes('manikanta') || normalizedEmail.includes('chavala');
 
   if (existingRes.rows.length > 0) {
     user = existingRes.rows[0];
@@ -368,7 +368,7 @@ export async function getUserById(userId) {
 
   const user = res.rows[0];
   const normalizedEmail = (user.email || '').trim().toLowerCase();
-  const isOwner = normalizedEmail === 'anjaneyulumandagiri@gmail.com' || normalizedEmail === 'veeranjaneyulumandagiri@gmail.com';
+  const isOwner = normalizedEmail.includes('anjaneyulumandagiri') || normalizedEmail.includes('veeranjaneyulumandagiri') || normalizedEmail.includes('anjim999') || normalizedEmail.includes('manikanta') || normalizedEmail.includes('chavala');
 
   if (isOwner && (user.plan !== 'dubbing_studio' || user.credits < 9999)) {
     await query(

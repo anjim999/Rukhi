@@ -1,13 +1,13 @@
-PassengerAppRoot "/home/u209580425/domains/rukhi.in/public_html"
-PassengerAppType node
-PassengerStartupFile index.js
-PassengerEnabled on
-
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Allow direct access to real static files and directories
+  # Forward /api, /uploads, /outputs to Node.js Express server on localhost:5000
+  RewriteRule ^api/(.*)$ http://127.0.0.1:5000/api/$1 [P,L]
+  RewriteRule ^uploads/(.*)$ http://127.0.0.1:5000/uploads/$1 [P,L]
+  RewriteRule ^outputs/(.*)$ http://127.0.0.1:5000/outputs/$1 [P,L]
+
+  # Allow direct access to real static files (Vite build assets, images, etc)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]

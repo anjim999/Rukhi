@@ -57,7 +57,7 @@ jobs:
             # Auto-provision production .env on Hostinger for Neon PostgreSQL & Auth APIs
             echo "Tk9ERV9FTlY9cHJvZHVjdGlvbgpEQVRBQkFTRV9VUkw9cG9zdGdyZXNxbDovL25lb25kYl9vd25lcjpucGdfWWhSMnRKaWZXNXVRQGVwLWpvbGx5LWJ1dHRlcmZseS1heGdiMmIzZS1wb29sZXIuYy00LnVzLWVhc3QtMi5hd3MubmVvbi50ZWNoOjU0MzMvbmVvbmRiP3NzbG1vZGU9cmVxdWlyZQpKV1RfU0VDUkVUPWVncmRiaGZuYnNndmpvaWZha2ppZ252aW9laHJnaW9zZGpwbHNkbg==" | base64 -d > .env
             cp .env /home/u209580425/.env 2>/dev/null || true
-            mkdir -p backend
+            mkdir -p backend storage/logs
             cp .env backend/.env 2>/dev/null || true
             
             if [ -d "backend" ]; then
@@ -87,20 +87,24 @@ jobs:
           password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
           script: |
-            cd /home/u209580425/domains/rukhi.in/public_html 2>/dev/null || cd /home/u209580425/public_html
-            echo "🔄 Triggering Phusion Passenger Node.js restart..."
-            mkdir -p tmp
+            TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
+            [ -d "$TARGET_DIR" ] || TARGET_DIR="/home/u209580425/public_html"
+            cd "$TARGET_DIR"
+            echo "🔄 Restarting Hostinger Node.js Express Server..."
+            mkdir -p tmp storage/logs
             touch tmp/restart.txt
-            echo "🎉 Hostinger restart signal created successfully!"
+            pkill -9 -f node || true
+            nohup node index.js > storage/logs/server.log 2>&1 &
+            echo "🎉 Node.js Express server launched successfully!"
 
       - name: 7. Automated Health Check
         run: |
-          echo "🏥 Verifying production health check on https://rukhi.in..."
+          echo "🏥 Verifying production health check on https://rukhi.in/api/health..."
           sleep 5
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://rukhi.in || echo "000")
-          echo "Production URL Response Code: $HTTP_STATUS"
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://rukhi.in/api/health || echo "000")
+          echo "Production API Response Code: $HTTP_STATUS"
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
-            echo "✅ Production health check PASSED!"
+            echo "✅ Production API health check PASSED!"
           else
             echo "⚠️ Health check status code: $HTTP_STATUS"
           fi

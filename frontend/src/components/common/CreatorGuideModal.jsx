@@ -84,7 +84,7 @@ export default function CreatorGuideModal({ isOpen, onClose }) {
               Automate visual story B-roll overlays:
             </p>
             <ul className="list-disc pl-4 space-y-1 text-zinc-400">
-              <li><strong className="text-white">AI B-Roll Button:</strong> Automatically extracts keyword triggers from speech and inserts Pexels/Pixabay video clips on the timeline.</li>
+              <li><strong className="text-white">AI B-Roll Button:</strong> Automatically extracts keyword triggers from speech and inserts AI visual scene clips on the timeline.</li>
               <li><strong className="text-white">Faceless Reel Generator:</strong> Type any prompt topic (e.g. <em>"5 habits of successful founders"</em>) to generate full script, neural voice, background visuals, and subtitles automatically.</li>
             </ul>
           </div>

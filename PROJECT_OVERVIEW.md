@@ -32,9 +32,9 @@ Auto Captions AI solves the core problem content creators face: **manually writi
 Auto Captions AI automates this entire pipeline in seconds:
 - **Instant AI Transcription & Script Formatting**: Transcribes raw speech in native Telugu, Hindi, English, Teluglish (Telugu in Roman script), Hinglish, and code-switched audio using Meta Demucs vocal separator, Deepgram Nova-2, and Gemini 2.5 Flash.
 - **Submagic Kinetic Subtitles**: Dynamically styles words into animated blocks with active-word solid box highlights, neon glow effects, emojis, and sound effects.
-- **AI B-Roll Engine & Stock Visual Overlays**: Contextual keyword extraction for automated stock video/image search (Pexels / Pixabay) and overlay clip placement on the timeline.
+- **AI B-Roll Engine & AI Visual Overlays**: Contextual keyword extraction via Gemini 2.5 Flash for automated AI scene image generation (Pollinations.ai / Fal.ai) and FFmpeg 3D camera motion overlay clip placement on the timeline.
 - **Multilingual Voice Dubbing Studio**: AI speech translation and neural voice synthesis in Telugu, Hindi, English, Spanish, French, and other languages.
-- **Faceless Short-Form Video Generator**: Topic-to-video workflow generating scripts, stock visual footage, audio narration, and synchronized captions automatically.
+- **Faceless Short-Form Video Generator**: Topic-to-video workflow generating scripts, AI scene visuals, audio narration, and synchronized captions automatically.
 - **Smart Aspect-Ratio Auto-Reframer**: Dynamic subject tracking for reframing 16:9 widescreen videos into 9:16 vertical reels.
 - **Broadcast-Grade Ripple Sync & Nudge Engine**: Auto-shifts downstream captions upon timestamp edits, with quick 1-click nudge controls (`-0.5s`, `-0.1s`, `+0.1s`, `+0.5s`) and global offset delay tool.
 - **70+ Multilingual Typography & Visual Font Studio Modal**: Full Google Fonts suite for English, Hindi (Devanagari script), and Telugu script with live rendered script previews and language category filtering.

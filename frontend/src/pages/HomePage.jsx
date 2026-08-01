@@ -186,9 +186,9 @@ export default function HomePage() {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-yellow-500 to-amber-400 text-black flex items-center justify-center font-bold shadow-lg shadow-yellow-500/20 group-hover:scale-110 transition-transform">
               <Film className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">AI Stock B-Roll Search</h3>
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">AI Visual Scene B-Roll</h3>
             <p className="text-slate-600 dark:text-zinc-400 text-sm leading-relaxed">
-              Contextually searches stock media libraries (Pexels / Pixabay) based on speech keywords and places visual overlay clips directly onto the timeline.
+              Contextually extracts keywords from speech concepts and places AI-generated visual scene overlay clips directly onto the timeline.
             </p>
           </div>
 

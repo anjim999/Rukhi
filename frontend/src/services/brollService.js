@@ -26,7 +26,7 @@ export async function generateScriptOnly({ prompt, targetLanguage = 'te', durati
 }
 
 /**
- * Search stock Pexels / Pixabay B-Roll media by query string
+ * Search AI visual B-Roll media by query string
  */
 export async function searchStockBroll(query = '') {
   const data = await axiosClient.get('/broll/search', { params: { query } });

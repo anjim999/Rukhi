@@ -36,23 +36,11 @@ app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Passenger URL Normalization Middleware for Hostinger Node.js Engine
+// Production + Development Request Logger (temporary for Hostinger debugging)
 app.use((req, _res, next) => {
-  const passengerUri = req.headers['x-passenger-request-uri'] || req.headers['x-env-request_uri'];
-  if (passengerUri && passengerUri.startsWith('/api')) {
-    req.url = passengerUri;
-  } else if (req.originalUrl && req.originalUrl.startsWith('/api') && req.url !== req.originalUrl) {
-    req.url = req.originalUrl;
-  }
+  console.log(`[${new Date().toISOString()}] ${req.method} url=${req.url} originalUrl=${req.originalUrl}`);
   next();
 });
-
-if (config.nodeEnv === 'development') {
-  app.use((req, _res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-    next();
-  });
-}
 
 const persistentBase = '/home/u209580425/persistent_storage';
 

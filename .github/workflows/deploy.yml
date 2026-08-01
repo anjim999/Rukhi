@@ -84,7 +84,7 @@ jobs:
               pm2 delete rukhi-backend 2>/dev/null || true
               pm2 start backend/src/app.js --name "rukhi-backend" 2>&1 || true
             else
-              PORT=5000 nohup $NODE_CMD backend/src/app.js > storage/logs/app.log 2>&1 &
+              PORT=5000 nohup $NODE_CMD backend/src/app.js > storage/logs/app.log 2>&1 </dev/null & disown || true
             fi
             echo "✅ Express server started on port 5000"
 

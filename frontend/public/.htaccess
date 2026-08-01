@@ -7,18 +7,17 @@ PassengerEnabled on
   RewriteEngine On
   RewriteBase /
 
-  # Exclude /api, /uploads, /outputs from SPA index.html rewrite so Passenger Node.js app handles them
-  RewriteCond %{REQUEST_URI} ^/api [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/uploads [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/outputs [NC]
-  RewriteRule ^ - [L]
+  # 1. Direct pass-through for API and backend media endpoints to Phusion Passenger Node.js app
+  RewriteRule ^api - [L]
+  RewriteRule ^uploads - [L]
+  RewriteRule ^outputs - [L]
 
-  # Allow direct access to real static files (Vite build assets, images, etc)
+  # 2. Allow direct access to real static files (Vite build assets, images, etc)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # SPA Frontend Route Fallback
+  # 3. SPA Frontend Route Fallback
   RewriteRule . /index.html [L]
 </IfModule>
 

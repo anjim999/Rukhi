@@ -35,6 +35,18 @@ jobs:
             # Fetch latest commit from main
             git fetch origin main
             git reset --hard origin/main
+
+            # Sync compiled frontend dist assets to web document roots
+            if [ -d "frontend/dist" ]; then
+              echo "📦 Syncing frontend/dist static assets..."
+              cp -rf frontend/dist/* ./ 2>/dev/null || true
+              if [ -d "/home/u209580425/domains/rukhi.in/public_html" ]; then
+                cp -rf frontend/dist/* /home/u209580425/domains/rukhi.in/public_html/ 2>/dev/null || true
+              fi
+              if [ -d "/home/u209580425/public_html" ]; then
+                cp -rf frontend/dist/* /home/u209580425/public_html/ 2>/dev/null || true
+              fi
+            fi
             
             # Restart Phusion Passenger Node.js server
             mkdir -p tmp
@@ -42,4 +54,5 @@ jobs:
             pkill -9 -f node || true
             
             echo "🎉 Deployment completed and Node.js server restarted successfully!"
+
 

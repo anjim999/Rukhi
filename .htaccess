@@ -1,24 +1,16 @@
-PassengerAppRoot "/home/u209580425/domains/rukhi.in/public_html"
-PassengerAppType node
-PassengerStartupFile index.js
-PassengerEnabled on
-
-<Files "index.js">
-  SetHandler process-with-passenger
-</Files>
-
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # 1. Forward all API and media requests to Passenger index.js via Pass-Through [PT]
-  RewriteCond %{REQUEST_URI} ^/(api|uploads|outputs) [NC]
-  RewriteRule ^(.*)$ /index.js [QSA,PT,L]
+  # 1. Reverse proxy /api, /uploads, /outputs to Express server on port 5000
+  RewriteRule ^api/(.*)$ http://127.0.0.1:5000/api/$1 [P,L]
+  RewriteRule ^api$ http://127.0.0.1:5000/api [P,L]
+  RewriteRule ^uploads/(.*)$ http://127.0.0.1:5000/uploads/$1 [P,L]
+  RewriteRule ^outputs/(.*)$ http://127.0.0.1:5000/outputs/$1 [P,L]
 
   # 2. Allow direct access to real static files (Vite CSS, JS, images)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
-  RewriteCond %{REQUEST_URI} !^/index\.js$
   RewriteRule ^ - [L]
 
   # 3. SPA Frontend Route Fallback for all other pages (/dashboard, /editor, /login)

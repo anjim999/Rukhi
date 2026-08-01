@@ -1,23 +1,18 @@
-PassengerAppRoot "/home/u209580425/domains/rukhi.in/public_html"
-PassengerAppType node
-PassengerStartupFile index.js
-PassengerEnabled on
-
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # 1. Pass real static files directly (Vite assets, favicon, images, etc)
+  # 1. Reverse proxy /api, /uploads, /outputs to Node.js Express server on localhost:5000
+  RewriteRule ^api/(.*)$ http://127.0.0.1:5000/api/$1 [P,L]
+  RewriteRule ^uploads/(.*)$ http://127.0.0.1:5000/uploads/$1 [P,L]
+  RewriteRule ^outputs/(.*)$ http://127.0.0.1:5000/outputs/$1 [P,L]
+
+  # 2. Allow direct access to real static files (Vite build assets, images, etc)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 2. Route all API, uploads, and outputs requests (GET, POST, PUT, DELETE, OPTIONS) to index.js (Passenger)
-  RewriteRule ^api index.js [QSA,L]
-  RewriteRule ^uploads index.js [QSA,L]
-  RewriteRule ^outputs index.js [QSA,L]
-
-  # 3. SPA Frontend Route Fallback for all other pages (/dashboard, /settings, etc.)
+  # 3. SPA Frontend Route Fallback
   RewriteRule . /index.html [L]
 </IfModule>
 

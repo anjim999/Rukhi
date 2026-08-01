@@ -20,11 +20,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 3. Install Frontend Dependencies & Build Vite Bundle
+      - name: 3. Install Frontend Dependencies & Build Vite Bundle Archive
         run: |
           cd frontend
           npm install
           npm run build
+          cd dist
+          tar -czf ../../dist.tar.gz .
+          cd ../..
 
       - name: 4. Sync Backend Code & Provision Environment Variables on Hostinger via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -67,19 +70,18 @@ jobs:
               cd ..
             fi
 
-      - name: 5. Deploy Static Frontend Assets via SCP
+      - name: 5. Transfer Production Dist Archive via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
           username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
           password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
-          source: "frontend/dist/*"
+          source: "dist.tar.gz"
           target: "/home/u209580425/domains/rukhi.in/public_html"
-          strip_components: 2
           overwrite: true
 
-      - name: 6. Restart Hostinger Node.js Application Server
+      - name: 6. Extract Production Bundle & Restart Application Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
@@ -90,10 +92,20 @@ jobs:
             TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
             [ -d "$TARGET_DIR" ] || TARGET_DIR="/home/u209580425/public_html"
             cd "$TARGET_DIR"
-            echo "🔄 Triggering Hostinger Node.js application restart..."
+            
+            if [ -f "dist.tar.gz" ]; then
+              echo "📦 Extracting new production static assets..."
+              tar -xzf dist.tar.gz
+              rm -f dist.tar.gz
+              echo "✅ Extracted latest static assets successfully!"
+            fi
+            
+            echo "🔄 Restarting Hostinger Node.js Express Server on Port 5000..."
             mkdir -p tmp storage/logs
             touch tmp/restart.txt
-            echo "🎉 Hostinger restart signal created successfully!"
+            pkill -9 -f node || true
+            PORT=5000 nohup node index.js > storage/logs/server.log 2>&1 &
+            echo "🎉 Node.js Express server launched successfully on port 5000!"
 
       - name: 7. Automated Health Check
         run: |

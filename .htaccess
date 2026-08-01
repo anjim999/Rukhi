@@ -7,13 +7,18 @@ PassengerEnabled on
   RewriteEngine On
   RewriteBase /
 
-  # 1. Allow direct access to real static files (Vite build assets, images, etc)
+  # 1. Forward /api, /uploads, /outputs to Phusion Passenger entry point /index.js
+  RewriteRule ^api/(.*)$ /index.js [PT,L]
+  RewriteRule ^uploads/(.*)$ /index.js [PT,L]
+  RewriteRule ^outputs/(.*)$ /index.js [PT,L]
+
+  # 2. Allow direct access to real static files (Vite build assets, images, etc)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 2. Pass all dynamic requests (GET, POST, PUT, DELETE) to Phusion Passenger /index.js
-  RewriteRule ^(.*)$ /index.js [PT,L]
+  # 3. SPA Frontend Route Fallback for all other pages (/dashboard, /settings, etc.)
+  RewriteRule . /index.html [L]
 </IfModule>
 
 # Force browsers and Hostinger Edge CDN (hcdn) to never cache index.html

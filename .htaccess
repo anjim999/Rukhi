@@ -7,6 +7,12 @@ PassengerEnabled on
   RewriteEngine On
   RewriteBase /
 
+  # Exclude /api, /uploads, /outputs from SPA index.html rewrite so Passenger Node.js app handles them
+  RewriteCond %{REQUEST_URI} ^/api [NC,OR]
+  RewriteCond %{REQUEST_URI} ^/uploads [NC,OR]
+  RewriteCond %{REQUEST_URI} ^/outputs [NC]
+  RewriteRule ^ - [L]
+
   # Allow direct access to real static files (Vite build assets, images, etc)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d

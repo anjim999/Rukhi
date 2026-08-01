@@ -3,25 +3,7 @@ PassengerAppType node
 PassengerStartupFile index.js
 PassengerEnabled on
 
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-
-  # 1. Direct pass-through for API and backend media endpoints to Phusion Passenger Node.js app
-  RewriteRule ^api - [L]
-  RewriteRule ^uploads - [L]
-  RewriteRule ^outputs - [L]
-
-  # 2. Allow direct access to real static files (Vite build assets, images, etc)
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-
-  # 3. SPA Frontend Route Fallback
-  RewriteRule . /index.html [L]
-</IfModule>
-
-# Force browsers and Hostinger Edge CDN (hcdn) to never cache index.html
+# Prevent browsers and Hostinger Edge CDN (hcdn) to never cache index.html
 <IfModule mod_headers.c>
   <FilesMatch "index\.html$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"

@@ -26,19 +26,7 @@ jobs:
           npm install
           npm run build
 
-      - name: 4. Deploy Static Frontend Assets via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
-          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
-          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
-          source: "frontend/dist/*"
-          target: "/home/u209580425/domains/rukhi.in/public_html"
-          strip_components: 2
-          overwrite: true
-
-      - name: 5. Deploy Backend Code & Restart Node Server via SSH
+      - name: 4. Sync Backend Code on Hostinger via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
@@ -60,24 +48,53 @@ jobs:
             cd "$TARGET_DIR"
             echo "📍 Deployment directory: $(pwd)"
             
-            git fetch origin main
-            git reset --hard origin/main
+            # Ensure git origin URL is current
+            git remote set-url origin https://github.com/anjim999/Rukhi.git 2>/dev/null || true
+            
+            git fetch origin main || git fetch --all || true
+            git reset --hard origin/main || true
             
             if [ -d "backend" ]; then
               echo "📦 Installing production dependencies for backend..."
               cd backend
-              npm install --omit=dev || npm install
+              npm install --omit=dev || npm install || true
               cd ..
             fi
-            
+
+      - name: 5. Deploy Static Frontend Assets via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
+          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
+          source: "frontend/dist/*"
+          target: "/home/u209580425/domains/rukhi.in/public_html"
+          strip_components: 2
+          overwrite: true
+
+      - name: 6. Restart Hostinger Node.js Application Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST || '217.21.90.190' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER || 'u209580425' }}
+          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
+          script: |
+            TARGET_DIR=""
+            if [ -d "/home/u209580425/domains/rukhi.in/public_html" ]; then
+              TARGET_DIR="/home/u209580425/domains/rukhi.in/public_html"
+            else
+              TARGET_DIR="/home/u209580425/public_html"
+            fi
+            cd "$TARGET_DIR"
             echo "🔄 Restarting Hostinger Node.js Application Server..."
             mkdir -p tmp
             touch tmp/restart.txt
             pkill -9 -f node || true
-            
             echo "🎉 Backend Deployment completed and server restarted!"
 
-      - name: 6. Automated Health Check
+      - name: 7. Automated Health Check
         run: |
           echo "🏥 Verifying production health check on https://rukhi.in..."
           sleep 5

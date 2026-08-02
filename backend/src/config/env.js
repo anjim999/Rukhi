@@ -26,7 +26,12 @@ export const config = {
 
   // Database & Cache (Neon PostgreSQL & Redis)
   dbUrl: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.POSTGRES_URL,
-  redisUrl: process.env.REDIS_URL || null,
+  redisUrl: process.env.REDIS_URL || 'redis://default:aG5HTOk7fbkLcO0y409BGosN31924zGg@party-cast-retrofresh-33861.db.redis.io:11185',
+  redis: {
+    url: process.env.REDIS_URL || 'redis://default:aG5HTOk7fbkLcO0y409BGosN31924zGg@party-cast-retrofresh-33861.db.redis.io:11185',
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  },
 
   // AI Service Keys
   geminiApiKey: process.env.GEMINI_API_KEY || process.env.GCP_API_KEY || '',

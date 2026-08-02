@@ -330,6 +330,9 @@ auto_captions/
 | **Veo Code 3 Duration Error** | Veo 3.1 strictly enforces `[4, 6, 8]` duration seconds | Configured `durationSeconds: 6` in `veoVideoService.js` request parameters. |
 | **Audio Playing During Export** | `audioSource` was connected to `audioCtx.destination` (speakers) | Disconnected `audioCtx.destination` during canvas export capture so recording is silent. |
 | **Video Replay Required Page Refresh** | Video `currentTime` remained stuck at end after video ended | Updated `togglePlay` and `onEnded` in `CanvasVideoPlayer.jsx` to reset `currentTime = 0`. |
+| **Raw Audio STT Recovery Fallback** | Meta Demucs vocal separation filtered out low-volume speech on heavy BGM audio | Added automatic secondary re-probing of raw unfiltered audio in `mediaWorker.js` to recover dropped words. |
+| **3-Stage Pipeline Forensic Logging** | Lack of visibility into LLM word retention vs raw STT word timestamps | Added 3-stage terminal forensic logging and safety guard in `GeminiCaptionDirector.js` triggering fallback if LLM output drops >30% of spoken words. |
+| **Canvas Player Duration Drift** | Canvas player relying solely on fixed timeline duration, causing premature stops or infinite loops | Implemented `getEffectiveDuration()` calculating maximum bound across video, audio, timeline, and final segment end. |
 
 ---
 

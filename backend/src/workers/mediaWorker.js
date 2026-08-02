@@ -122,6 +122,37 @@ async function processMediaJob(job) {
       } catch (dgErr) {
         console.warn(`[WORKER WARNING] Deepgram STT failed (${dgErr.message}). Falling back to alternative STT...`);
       }
+
+      // Check if STT returned insufficient words or late speech onset (e.g. Demucs muted early speech)
+      const expectedWords = Math.max(3, Math.floor(videoMeta.duration / 3.5));
+      const firstWordStart = transcription?.words?.[0]?.start || 0;
+      const lastWordEnd = transcription?.words?.[transcription.words.length - 1]?.end || 0;
+      const wordSpan = lastWordEnd - firstWordStart;
+
+      if (
+        sttAudioPath !== rawAudioPath &&
+        (!transcription ||
+          transcription.words.length < expectedWords ||
+          firstWordStart > 4.5 ||
+          wordSpan < videoMeta.duration * 0.45)
+      ) {
+        console.warn(
+          `[WORKER WARNING] ⚠️ Demucs isolated audio yielded only ${transcription?.words?.length || 0} words starting at ${firstWordStart.toFixed(1)}s (span: ${wordSpan.toFixed(1)}s / video: ${videoMeta.duration.toFixed(1)}s). Re-probing Deepgram with RAW UNFILTERED AUDIO to recover missing speech...`
+        );
+        try {
+          const rawTranscription = await deepgramProvider.transcribe(rawAudioPath, { targetStyle });
+          if (
+            rawTranscription &&
+            rawTranscription.words &&
+            rawTranscription.words.length > (transcription?.words?.length || 0)
+          ) {
+            console.log(
+              `[WORKER RECOVERY] 🎉 Raw audio STT recovered ${rawTranscription.words.length} words (vs ${transcription?.words?.length || 0} Demucs words)! Using raw audio STT.`
+            );
+            transcription = rawTranscription;
+          }
+        } catch (_rawErr) {}
+      }
     }
 
     if (await isProjectCancelled(projectId)) {
@@ -152,26 +183,25 @@ async function processMediaJob(job) {
       await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.ANALYZING);
       await job.updateProgress(70);
 
-      // Acoustic Onset Alignment: Ensure first word starts cleanly at speech onset edge
+      // Acoustic Onset Alignment: Fine-tune first word timestamp ONLY if within 1.2s of onset
       if (acousticOnsetSec > 0 && transcription.words.length > 0) {
         const firstWord = transcription.words[0];
-        if (firstWord.start < acousticOnsetSec) {
-          console.log(`[WORKER SYNC] Clamping initial word "${firstWord.word}" start from ${firstWord.start}s to acoustic onset ${acousticOnsetSec}s`);
+        const delta = acousticOnsetSec - firstWord.start;
+        if (delta > 0 && delta <= 1.2) {
+          console.log(`[WORKER SYNC] Fine-tuning initial word "${firstWord.word}" start from ${firstWord.start}s to acoustic onset ${acousticOnsetSec}s`);
           firstWord.start = acousticOnsetSec;
           if (firstWord.end <= firstWord.start) firstWord.end = firstWord.start + 0.2;
+        } else if (delta > 1.2) {
+          console.log(`[WORKER SYNC] 🛡️ Preserving authentic STT initial word "${firstWord.word}" start (${firstWord.start}s). Ignoring late Demucs onset (${acousticOnsetSec}s).`);
         }
       }
 
       console.log(`[WORKER] Directing captions with Gemini 2.5 Flash from ${transcription.words.length} precise STT words...`);
-      const result = await captionDirector.generateCaptionTimeline({
+      const result = await captionDirector.transformSTTWordsToTargetStyle({
         words: transcription.words,
         fullText: transcription.fullText,
-        language: transcription.language,
         duration: transcription.duration || videoMeta.duration,
-        aspectRatio: '9:16',
-        presetName: 'bold_viral',
         targetStyle,
-        applyEmojis,
       });
       timeline = result.timeline;
     } else {

@@ -183,10 +183,9 @@ export class GeminiCaptionDirector extends LLMProvider {
     const OVERLAP_BUFFER = 2.5; // 2.5s overlap
     const CHUNK_STEP = CHUNK_SIZE - OVERLAP_BUFFER; // 12.5s step
 
-    // Use single-pass native audio transcription for videos up to 180s (3 minutes)
-    // For mega-long podcasts (> 180s), chunking with 2.5s overlapping windows is used.
-    if (duration > 180) {
-      console.log(`[GEMINI STT ENGINE] Duration ${duration.toFixed(1)}s > 180s. Transcribing with 2.5s overlapping sliding window chunks...`);
+    // Use 2.5s overlapping sliding window chunks for videos > 18s to guarantee 100% full coverage & sample-accurate sync
+    if (duration > 18) {
+      console.log(`[GEMINI STT ENGINE] Duration ${duration.toFixed(1)}s > 18s. Transcribing with 2.5s overlapping sliding window chunks for 100% acoustic sync...`);
       const numChunks = Math.ceil(duration / CHUNK_STEP);
       const tmpDir = path.dirname(audioPath);
 
@@ -408,8 +407,6 @@ Return ONLY a compact JSON object with this exact structure:
     };
   }
 
-
-
   /**
    * Transforms raw STT words into target language script (Pure English translation, Pure Telugu, Pure Hindi, Tanglish, or Chatting script).
    */
@@ -420,14 +417,26 @@ Return ONLY a compact JSON object with this exact structure:
       return { timeline, fullText, language: 'en' };
     }
 
-    if (targetStyle === 'auto') {
-      const timeline = this._buildTimelineFromWords({ words, fullText }, duration);
-      if (timeline) timeline.targetStyle = targetStyle;
-      return { timeline, fullText, language: 'en' };
-    }
-
     const styleInstruction = getStyleInstruction(targetStyle);
-    console.log(`[GEMINI STT TRANSFORMER] Transforming ${words.length} STT words to target style '${targetStyle}'...`);
+
+    // 🔍 STAGE 1 FORENSIC LOGGING: Print exact STT words and timestamps
+    console.log(`\n================================================================================`);
+    console.log(`🔍 [PIPELINE FORENSIC LOG STAGE 1: RAW STT WORDS]`);
+    console.log(`Total Extracted STT Words : ${words.length}`);
+    console.log(`Target Style              : '${targetStyle}'`);
+    console.log(`Total Audio Duration      : ${duration.toFixed(2)}s`);
+    if (words.length > 0) {
+      const firstW = words[0];
+      const lastW = words[words.length - 1];
+      console.log(`First Word Time           : t = ${(firstW.start || 0).toFixed(2)}s ("${firstW.word}")`);
+      console.log(`Last Word Time            : t = ${(lastW.end || 0).toFixed(2)}s ("${lastW.word}")`);
+      console.log(`--------------------------------------------------------------------------------`);
+      console.log(`EXTRACTED RAW WORDS TIMESTAMPS LIST:`);
+      words.forEach((w, idx) => {
+        console.log(`  [Word ${String(idx + 1).padStart(3, ' ')}] [${(w.start || 0).toFixed(2)}s ──► ${(w.end || 0).toFixed(2)}s] "${w.word}"`);
+      });
+    }
+    console.log(`================================================================================\n`);
 
     const wordListStr = JSON.stringify(
       words.map((w) => [w.word, parseFloat((w.start || 0).toFixed(2)), parseFloat((w.end || 0).toFixed(2))])
@@ -467,6 +476,23 @@ Return ONLY a JSON object:
 
     try {
       const rawData = await this._callGeminiWithRetry(prompt, { temperature: 0.1 }, 3);
+      const outWords = rawData?.words || [];
+
+      // 🔍 Word Preservation Safety Guard: Check if Gemini dropped words
+      if (outWords.length < Math.floor(words.length * 0.7)) {
+        console.warn(
+          `[GEMINI STT TRANSFORMER WARNING] ⚠️ Gemini returned only ${outWords.length} words vs ${words.length} input STT words! Gemini output dropped words. Reverting to 1:1 word-preserved transliteration alignment to prevent caption dropouts.`
+        );
+        throw new Error(`Word preservation check failed (${outWords.length}/${words.length} words returned)`);
+      }
+
+      console.log(`\n================================================================================`);
+      console.log(`🔍 [PIPELINE FORENSIC LOG STAGE 2: GEMINI STT TRANSFORMER OUTPUT]`);
+      console.log(`Input STT Words           : ${words.length}`);
+      console.log(`Transformed Output Words   : ${outWords.length}`);
+      console.log(`Word Retention Ratio       : ${Math.round((outWords.length / words.length) * 100)}%`);
+      console.log(`================================================================================\n`);
+
       const timeline = this._buildTimelineFromWords(rawData, duration);
       if (timeline) {
         timeline.targetStyle = targetStyle;
@@ -477,7 +503,7 @@ Return ONLY a JSON object:
         language: rawData.language || 'en',
       };
     } catch (err) {
-      console.warn(`[GEMINI STT TRANSFORMER ERROR] Transformation failed: ${err.message}. Using raw STT words fallback.`);
+      console.warn(`[GEMINI STT TRANSFORMER FALLBACK] Transformation fallback engaged (${err.message}). Preserving 100% of raw STT words.`);
       let fallbackWords = words;
       let fallbackFullText = fullText;
       if (['chatting', 'tel_eng', 'hinglish', 'auto'].includes(targetStyle)) {
@@ -496,10 +522,6 @@ Return ONLY a JSON object:
     }
   }
 
-  /**
-   * Scans transcribed words for any unexplained gap > 3.5s and re-inspects
-   * that specific audio segment with high vocal sensitivity to recover missing captions.
-   */
   async _scanAndRepairUnexplainedAudioGaps(allWords, audioPath, duration, targetStyle, styleInstruction) {
     if (!Array.isArray(allWords) || allWords.length === 0) return allWords;
 
@@ -564,25 +586,29 @@ Return ONLY a JSON object with this exact structure:
   ]
 }`;
 
-        const model = this.ai.getGenerativeModel({
-          model: this.modelName,
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-            maxOutputTokens: 2048,
-          },
+        const textResult = await this._generateContentWithFallback([audioPart, prompt], {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+          maxOutputTokens: 2048,
         });
-
-        const result = await model.generateContent([audioPart, prompt]);
-        const rawData = this._parseJSON(result.response.text());
+        const rawData = this._parseJSON(textResult);
 
         if (rawData.words && Array.isArray(rawData.words) && rawData.words.length > 0) {
           console.log(`[ZERO-GAP SAFETY RECOVERY] 🎉 Recovered ${rawData.words.length} missing words in gap ${gap.start.toFixed(1)}s–${gap.end.toFixed(1)}s!`);
           for (const wArr of rawData.words) {
             if (Array.isArray(wArr) && wArr.length >= 3) {
               const wText = String(wArr[0] || '').trim();
-              const wStart = Math.round((parseFloat(wArr[1]) + gap.start) * 100) / 100;
-              const wEnd = Math.max(wStart + 0.1, Math.round((parseFloat(wArr[2]) + gap.start) * 100) / 100);
+              let rawStart = parseFloat(wArr[1]) || 0;
+              let rawEnd = parseFloat(wArr[2]) || (rawStart + 0.3);
+
+              // If returned as snippet-relative time (e.g. 0.5s into gap snippet), convert to absolute timeline time
+              if (rawStart < gap.start) {
+                rawStart += gap.start;
+                rawEnd += gap.start;
+              }
+
+              const wStart = Math.round(rawStart * 100) / 100;
+              const wEnd = Math.max(wStart + 0.1, Math.round(rawEnd * 100) / 100);
               if (wText) {
                 recoveredWords.push([wText, wStart, wEnd, 0.9]);
               }
@@ -855,8 +881,32 @@ Return ONLY a JSON object with this exact structure:
           'DONT MISS THIS TODAY 💡',
         ];
 
+    // 🔍 STAGE 3 FORENSIC LOGGING: Print final generated timeline segment cards
+    console.log(`\n================================================================================`);
+    console.log(`🔍 [PIPELINE FORENSIC LOG STAGE 3: TIMELINE CARDS GENERATED]`);
+    console.log(`Total Generated Subtitle Cards : ${segments.length}`);
+    console.log(`Total Input Words Processed     : ${wordObjects.length}`);
+    if (segments.length > 0) {
+      const firstCard = segments[0];
+      const lastCard = segments[segments.length - 1];
+      console.log(`First Subtitle Card Time       : t = ${firstCard.start.toFixed(2)}s  ──►  t = ${firstCard.end.toFixed(2)}s`);
+      console.log(`Last Subtitle Card Time        : t = ${lastCard.start.toFixed(2)}s  ──►  t = ${lastCard.end.toFixed(2)}s`);
+      console.log(`--------------------------------------------------------------------------------`);
+      console.log(`GENERATED SUBTITLE CARDS TIMESTAMPS & TEXT:`);
+      segments.forEach((seg, idx) => {
+        const segText = (seg.words || []).map((w) => w.word).join(' ');
+        console.log(`  [Card ${String(idx + 1).padStart(3, ' ')}] [${seg.start.toFixed(2)}s ──► ${seg.end.toFixed(2)}s] "${segText}"`);
+      });
+    }
+    console.log(`================================================================================\n`);
+
     return {
       version: '1.0',
+      duration: Math.max(
+        videoDuration && videoDuration > 0 ? videoDuration : 0,
+        segments.length > 0 ? segments[segments.length - 1].end : 0,
+        15
+      ),
       aspectRatio: '9:16',
       topBanner: {
         enabled: true,
@@ -908,6 +958,16 @@ Return ONLY a JSON object with this exact structure:
       const rawTimeline = await this._callGeminiWithRetry(prompt, { maxOutputTokens: 16384 }, 3);
 
       const timeline = this._normalizeTimeline(rawTimeline, enrichedWords, aspectRatio, presetName);
+
+      // 🔍 Word Preservation Guard: Detect if LLM returned truncated segments
+      const totalTimelineWords = (timeline?.segments || []).reduce((acc, s) => acc + (s.words?.length || 0), 0);
+      if (totalTimelineWords < Math.floor(enrichedWords.length * 0.7)) {
+        console.warn(
+          `[GEMINI CAPTION DIRECTOR WARNING] ⚠️ LLM returned only ${totalTimelineWords} words vs ${enrichedWords.length} input STT words! Triggering transformSTTWordsToTargetStyle fallback to preserve 100% of speech.`
+        );
+        return this.transformSTTWordsToTargetStyle({ words: enrichedWords, fullText, duration, targetStyle });
+      }
+
       if (timeline) {
         timeline.targetStyle = targetStyle;
       }
@@ -1247,16 +1307,11 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
-    const model = this.ai.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.3,
-      },
+    const textResult = await this._generateContentWithFallback(prompt, {
+      responseMimeType: 'application/json',
+      temperature: 0.3,
     });
-
-    const result = await model.generateContent(prompt);
-    return this._parseJSON(result.response.text());
+    return this._parseJSON(textResult);
   }
 
   /**

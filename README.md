@@ -41,6 +41,7 @@ Auto Captions AI transforms raw audio and video into viral reels with word-by-wo
 - 📚 **Exhaustive Technical Architecture**: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 - ⚡ **Google Vertex AI Gemini 3.5 Flash & Timeline Pending Fix**: [docs/fixes/STRICT_TIMELINE_AND_VERTEX_GEMINI_FIX.md](docs/fixes/STRICT_TIMELINE_AND_VERTEX_GEMINI_FIX.md)
 - 🎬 **Google Veo 3.1 Vertex AI Integration Fix**: [docs/fixes/VEO_3.1_VERTEX_AI_INTEGRATION_FIX.md](docs/fixes/VEO_3.1_VERTEX_AI_INTEGRATION_FIX.md)
+- 🎬 **Native Slang De-Noising & Server FFmpeg Render Fix Log**: [docs/fixes/NATIVE_SLANG_STT_AND_SERVER_FFMPEG_EXPORT_FIX.md](docs/fixes/NATIVE_SLANG_STT_AND_SERVER_FFMPEG_EXPORT_FIX.md)
 - 🔧 **Hostinger Deployment & Payment Fix Log**: [docs/fixes/HOSTINGER_PAYMENT_DEPLOYMENT_FIX.md](docs/fixes/HOSTINGER_PAYMENT_DEPLOYMENT_FIX.md)
 
 ---

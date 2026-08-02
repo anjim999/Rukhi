@@ -226,27 +226,36 @@ export default function EditorPage({ projectId, onBack }) {
           setProject(projRes.data);
           setInitialFetch(false);
 
-          let activeTimeline = projRes.data.timeline || projRes.data.caption_timeline || null;
-          if (typeof activeTimeline === 'string') {
-            try { activeTimeline = JSON.parse(activeTimeline); } catch (_) {}
+          let realTimeline = projRes.data.timeline || projRes.data.caption_timeline || null;
+          if (typeof realTimeline === 'string') {
+            try { realTimeline = JSON.parse(realTimeline); } catch (_) {}
           }
 
-          if (!activeTimeline || !activeTimeline.segments || activeTimeline.segments.length === 0) {
+          if (!realTimeline || !realTimeline.segments || realTimeline.segments.length === 0) {
             try {
               const timeRes = await getProjectTimeline(projectId);
-              if (timeRes.success && timeRes.data) {
-                activeTimeline = timeRes.data;
+              if (timeRes.success && timeRes.data && Array.isArray(timeRes.data.segments) && timeRes.data.segments.length > 0) {
+                realTimeline = timeRes.data;
               }
             } catch (_) {}
           }
 
-          // Guaranteed fallback timeline for completed AI Reel videos
-          if ((!activeTimeline || (!activeTimeline.segments && !activeTimeline.words)) && projRes.data.video_url && ['completed', 'ready'].includes(projRes.data.status)) {
+          const hasRealCaptionData = realTimeline && Array.isArray(realTimeline.segments) && realTimeline.segments.length > 0;
+          const isStatusFinished = ['completed', 'failed', 'cancelled', 'ready'].includes(projRes.data.status);
+
+          let activeTimeline = realTimeline;
+          if (!activeTimeline || (!activeTimeline.segments && !activeTimeline.words)) {
             activeTimeline = {
               version: '1.0',
-              videoUrl: projRes.data.video_url,
+              videoUrl: projRes.data.video_url || projRes.data.video_path || '',
               duration: projRes.data.duration || 30,
               aspectRatio: '9:16',
+              globalTheme: {
+                presetName: 'BOLD_VIRAL',
+                primaryColor: '#FFFFFF',
+                highlightColor: '#00FFFF',
+                fontFamily: 'Montserrat',
+              },
               tracks: [
                 {
                   id: 'track-video-1',
@@ -257,24 +266,16 @@ export default function EditorPage({ projectId, onBack }) {
                       id: 'clip-video-1',
                       startTime: 0,
                       endTime: projRes.data.duration || 30,
-                      src: projRes.data.video_url,
+                      src: projRes.data.video_url || projRes.data.video_path || '',
                       type: 'video',
                     },
                   ],
                 },
               ],
               words: [],
-              segments: [
-                {
-                  id: 'seg-0',
-                  start: 0,
-                  end: projRes.data.duration || 30,
-                  text: projRes.data.title || 'AI Reel',
-                  words: [],
-                },
-              ],
+              segments: [],
               style: {
-                preset: 'HORMOZI',
+                preset: 'BOLD_VIRAL',
                 textColor: '#FFFFFF',
                 highlightColor: '#00FFFF',
                 fontSize: 48,
@@ -282,13 +283,10 @@ export default function EditorPage({ projectId, onBack }) {
             };
           }
 
-          if (activeTimeline) {
-            setTimeline(activeTimeline);
-            if (activeTimeline.aspectRatio) setAspectRatio(activeTimeline.aspectRatio);
-          }
+          setTimeline(activeTimeline);
+          if (activeTimeline.aspectRatio) setAspectRatio(activeTimeline.aspectRatio);
 
-          const isDoneOrHasData = activeTimeline || ['completed', 'failed', 'cancelled', 'ready'].includes(projRes.data.status);
-          if (isDoneOrHasData) {
+          if (hasRealCaptionData || isStatusFinished) {
             setLoading(false);
             if (intervalId) clearInterval(intervalId);
           }
@@ -494,14 +492,14 @@ export default function EditorPage({ projectId, onBack }) {
         />
 
       {/* 3-Column Studio Grid Layout (Side-by-Side Left-to-Right) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 items-start w-full max-w-full overflow-x-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start w-full max-w-full overflow-x-hidden">
         {/* 1. Preset & Style Sidebar (Left Column - 4 cols) */}
-        <div className="order-1 md:col-span-4 w-full">
+        <div className={`order-1 lg:col-span-4 w-full ${mobileTab === 'presets' ? 'block' : 'hidden lg:block'}`}>
           <PresetSidebar timeline={timeline} setTimeline={setTimeline} />
         </div>
 
         {/* 2. Canvas Video Player Studio (Middle Column - 4 cols) */}
-        <div className="order-2 md:col-span-4 flex justify-center w-full">
+        <div className={`order-2 lg:col-span-4 flex justify-center w-full ${mobileTab === 'player' ? 'block' : 'hidden lg:block'}`}>
           <CanvasVideoPlayer
             projectId={projectId}
             videoUrl={videoFullUrl}
@@ -516,7 +514,7 @@ export default function EditorPage({ projectId, onBack }) {
         </div>
 
         {/* 3. Subtitles & Timing Studio (Right Column - 4 cols) */}
-        <div className="order-3 md:col-span-4 w-full">
+        <div className={`order-3 lg:col-span-4 w-full ${mobileTab === 'editor' ? 'block' : 'hidden lg:block'}`}>
           <TimelineEditor
             projectId={projectId}
             timeline={timeline}

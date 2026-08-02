@@ -124,6 +124,22 @@ export async function exportProjectMP4(projectId, quality = '1080p', options = {
 }
 
 /**
+ * Fetch real-time live FFmpeg render progress (percentage & rendered time).
+ * @param {string} projectId
+ */
+export async function getProjectExportProgress(projectId) {
+  return axiosClient.get(`/projects/${projectId}/export-progress`);
+}
+
+/**
+ * Instantly kill active video export process on backend server.
+ * @param {string} projectId
+ */
+export async function cancelExportMP4(projectId) {
+  return axiosClient.post(`/projects/${projectId}/cancel-export`);
+}
+
+/**
  * Remux a recorded canvas blob into an Instagram-ready MP4 with +faststart moov duration header.
  * @param {Blob} blob
  * @param {string} title

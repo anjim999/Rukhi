@@ -82,9 +82,8 @@ export default function PresetSidebar({ timeline, setTimeline }) {
     return Math.max(count, 8);
   }, [timeline]);
 
-  if (!timeline) return null;
-
-  const currentPreset = timeline.globalTheme?.presetName || THEME_PRESETS.BOLD_VIRAL;
+  const safeTimeline = timeline || { segments: [], globalTheme: {} };
+  const currentPreset = safeTimeline.globalTheme?.presetName || THEME_PRESETS.BOLD_VIRAL;
 
   const handleApplyViralEmojis = () => {
     if (isEmojiApplying) return;

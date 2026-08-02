@@ -10,6 +10,8 @@ import {
   deleteProject,
   getSocialPostPack,
   exportProjectVideo,
+  getExportProgress,
+  cancelProjectExport,
   remuxRecordedVideo,
   downloadExportedVideo,
   cancelProject,
@@ -37,6 +39,8 @@ router.post('/:id/auto-emojis', autoAddEmojisToProjectTimeline);
 router.post('/:id/generate-hooks', generateHookBannersForProject);
 router.post('/:id/social-pack', getSocialPostPack);
 router.post('/:id/export', exportProjectVideo);
+router.get('/:id/export-progress', getExportProgress);
+router.post('/:id/cancel-export', cancelProjectExport);
 router.get('/:id/download', downloadExportedVideo);
 router.post('/:id/cancel', cancelProject);
 router.post('/:id/pause', pauseProject);

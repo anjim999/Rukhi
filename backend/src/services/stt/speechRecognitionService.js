@@ -48,13 +48,13 @@ export async function transcribeAndAutocorrectSpeech({ audioFilePath, mimeType =
 
   const audioPart = fileToGenerativePart(finalAudioPath, finalMimeType);
 
-  const prompt = `You are an expert AI Speech Transcriptionist & Grammar Autocorrect Engine for video creators.
+  const prompt = `You are an expert AI Speech Transcriptionist & Native Slang Engine for video creators.
 Task:
-1. Listen carefully to the audio recording (which may contain spoken Telugu, Hindi, English, Teluglish, or Hinglish).
-2. Transcribe the spoken speech with 100% precision.
-3. Automatically autocorrect any grammatical errors, awkward hesitations (stutters, "um", "ah"), and fix spelling mistakes.
-4. Output ONLY the clean, final transcribed text. Do NOT include markdown code blocks, quotes, preamble, or conversational commentary.
-Target Language Constraint: ${targetLanguage === 'auto' ? 'Keep in the original native spoken language but with perfect spelling and grammar.' : `Format script into ${targetLanguage}.`}`;
+1. Listen carefully to the audio recording (which may contain spoken Telugu, Hindi, English, Teluglish, Hinglish, or multi-lingual code-switched speech).
+2. Transcribe spoken speech with 100% precision. Accurately capture code-switched English words alongside regional slangs (e.g. "Offer life set iga", "start iga", "bhayya", "malli", "pelli", "pillalu", "dabbaalu", "chittitho", "paala").
+3. Automatically de-noise any phonetic speech distortions or acoustic mishearings.
+4. Output ONLY clean, perfectly spelled transcribed text without conversational preamble or code blocks.
+Target Language Constraint: ${targetLanguage === 'auto' ? 'Keep in original spoken language/slang mix but with 100% accurate spelling.' : `Format script into ${targetLanguage}.`}`;
 
   const modelsToTry = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
   let lastErr = null;

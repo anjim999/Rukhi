@@ -220,6 +220,40 @@ export async function exportProjectVideo(req, res, next) {
 }
 
 /**
+ * GET /api/projects/:id/export-progress
+ * Fetch real-time live FFmpeg render progress (percentage & seconds).
+ */
+export async function getExportProgress(req, res, next) {
+  try {
+    const { getProgressForProject } = await import('../services/media/exportService.js');
+    const progress = getProgressForProject(req.params.id);
+    res.json({
+      success: true,
+      data: progress,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/projects/:id/cancel-export
+ * Instantly kill active FFmpeg export process on server.
+ */
+export async function cancelProjectExport(req, res, next) {
+  try {
+    const { cancelFFmpegExport } = await import('../services/media/exportService.js');
+    const cancelled = cancelFFmpegExport(req.params.id);
+    res.json({
+      success: true,
+      message: cancelled ? 'Active video export process killed.' : 'No active export process found.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * POST /api/projects/remux
  * Convert recorded canvas stream to Instagram Reels Ready MP4 (+faststart moov duration header).
  */

@@ -183,10 +183,9 @@ export class GeminiCaptionDirector extends LLMProvider {
     const OVERLAP_BUFFER = 2.5; // 2.5s overlap
     const CHUNK_STEP = CHUNK_SIZE - OVERLAP_BUFFER; // 12.5s step
 
-    // Use single-pass native audio transcription for videos up to 180s (3 minutes)
-    // For mega-long podcasts (> 180s), chunking with 2.5s overlapping windows is used.
-    if (duration > 180) {
-      console.log(`[GEMINI STT ENGINE] Duration ${duration.toFixed(1)}s > 180s. Transcribing with 2.5s overlapping sliding window chunks...`);
+    // Use 2.5s overlapping sliding window chunks for videos > 18s to guarantee 100% full coverage & sample-accurate sync
+    if (duration > 18) {
+      console.log(`[GEMINI STT ENGINE] Duration ${duration.toFixed(1)}s > 18s. Transcribing with 2.5s overlapping sliding window chunks for 100% acoustic sync...`);
       const numChunks = Math.ceil(duration / CHUNK_STEP);
       const tmpDir = path.dirname(audioPath);
 
@@ -420,14 +419,8 @@ Return ONLY a compact JSON object with this exact structure:
       return { timeline, fullText, language: 'en' };
     }
 
-    if (targetStyle === 'auto') {
-      const timeline = this._buildTimelineFromWords({ words, fullText }, duration);
-      if (timeline) timeline.targetStyle = targetStyle;
-      return { timeline, fullText, language: 'en' };
-    }
-
     const styleInstruction = getStyleInstruction(targetStyle);
-    console.log(`[GEMINI STT TRANSFORMER] Transforming ${words.length} STT words to target style '${targetStyle}'...`);
+    console.log(`[GEMINI STT TRANSFORMER] De-noising & Transforming ${words.length} STT words to target style '${targetStyle}' with Native Slang Intelligence...`);
 
     const wordListStr = JSON.stringify(
       words.map((w) => [w.word, parseFloat((w.start || 0).toFixed(2)), parseFloat((w.end || 0).toFixed(2))])
@@ -564,25 +557,29 @@ Return ONLY a JSON object with this exact structure:
   ]
 }`;
 
-        const model = this.ai.getGenerativeModel({
-          model: this.modelName,
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-            maxOutputTokens: 2048,
-          },
+        const textResult = await this._generateContentWithFallback([audioPart, prompt], {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+          maxOutputTokens: 2048,
         });
-
-        const result = await model.generateContent([audioPart, prompt]);
-        const rawData = this._parseJSON(result.response.text());
+        const rawData = this._parseJSON(textResult);
 
         if (rawData.words && Array.isArray(rawData.words) && rawData.words.length > 0) {
           console.log(`[ZERO-GAP SAFETY RECOVERY] 🎉 Recovered ${rawData.words.length} missing words in gap ${gap.start.toFixed(1)}s–${gap.end.toFixed(1)}s!`);
           for (const wArr of rawData.words) {
             if (Array.isArray(wArr) && wArr.length >= 3) {
               const wText = String(wArr[0] || '').trim();
-              const wStart = Math.round((parseFloat(wArr[1]) + gap.start) * 100) / 100;
-              const wEnd = Math.max(wStart + 0.1, Math.round((parseFloat(wArr[2]) + gap.start) * 100) / 100);
+              let rawStart = parseFloat(wArr[1]) || 0;
+              let rawEnd = parseFloat(wArr[2]) || (rawStart + 0.3);
+
+              // If returned as snippet-relative time (e.g. 0.5s into gap snippet), convert to absolute timeline time
+              if (rawStart < gap.start) {
+                rawStart += gap.start;
+                rawEnd += gap.start;
+              }
+
+              const wStart = Math.round(rawStart * 100) / 100;
+              const wEnd = Math.max(wStart + 0.1, Math.round(rawEnd * 100) / 100);
               if (wText) {
                 recoveredWords.push([wText, wStart, wEnd, 0.9]);
               }
@@ -857,6 +854,7 @@ Return ONLY a JSON object with this exact structure:
 
     return {
       version: '1.0',
+      duration: videoDuration && videoDuration > 0 ? videoDuration : (segments.length > 0 ? segments[segments.length - 1].end : 30),
       aspectRatio: '9:16',
       topBanner: {
         enabled: true,
@@ -1247,16 +1245,11 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
-    const model = this.ai.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.3,
-      },
+    const textResult = await this._generateContentWithFallback(prompt, {
+      responseMimeType: 'application/json',
+      temperature: 0.3,
     });
-
-    const result = await model.generateContent(prompt);
-    return this._parseJSON(result.response.text());
+    return this._parseJSON(textResult);
   }
 
   /**

@@ -17,6 +17,13 @@ for (const envPath of envCandidates) {
   }
 }
 
+if (!process.env.GEMINI_API_KEY && process.env.GCP_API_KEY) {
+  process.env.GEMINI_API_KEY = process.env.GCP_API_KEY;
+}
+if (!process.env.GCP_API_KEY && process.env.GEMINI_API_KEY) {
+  process.env.GCP_API_KEY = process.env.GEMINI_API_KEY;
+}
+
 const rawPort = process.env.PORT || '5000';
 
 export const config = {

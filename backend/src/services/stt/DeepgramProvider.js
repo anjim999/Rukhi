@@ -40,7 +40,12 @@ export class DeepgramProvider extends STTProvider {
 
     // Deepgram Nova-3 uses 'keyterm' parameter for keyphrase boosting
     if (modelName.includes('nova')) {
-      const defaultKeyterms = ['reels', 'shorts', 'viral', 'bhayya', 'bro', 'telugu', 'hinglish', 'tanglish', 'instagram', 'ayyo', 'kudaa'];
+      const defaultKeyterms = [
+        'reels', 'shorts', 'viral', 'bhayya', 'bro', 'telugu', 'hinglish', 'tanglish',
+        'instagram', 'ayyo', 'kudaa', 'iga', 'offer', 'life set', 'start iga',
+        'pelli', 'pillalu', 'dabbaalu', 'chittitho', 'aypodama', 'malli', 'ippudu',
+        'scene', 'matter', 'boss', 'entry', 'feel', 'kaadu', 'avunu', 'cheppu', 'settle'
+      ];
       const allKeyterms = [...defaultKeyterms, ...(keywords || []).map((k) => String(k).split(':')[0])];
       allKeyterms.forEach((kt) => queryParams.append('keyterm', kt));
     }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Loader2, Play, Pause, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 export default function EditorProcessingState({
@@ -14,6 +14,8 @@ export default function EditorProcessingState({
   handleRestartGeneration,
   onBack,
 }) {
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+
   if (loading) {
     if (initialFetch) {
       return (
@@ -54,7 +56,7 @@ export default function EditorProcessingState({
           <button
             onClick={handlePauseResumeToggle}
             disabled={pausing}
-            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition flex items-center gap-2 border border-zinc-700 disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition flex items-center gap-2 border border-zinc-700 disabled:opacity-50 cursor-pointer"
           >
             {isPaused ? (
               <>
@@ -68,13 +70,49 @@ export default function EditorProcessingState({
           </button>
 
           <button
-            onClick={handleCancelGeneration}
+            onClick={() => setShowCancelConfirmModal(true)}
             disabled={cancelling}
-            className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition flex items-center gap-2 border border-red-500/20 disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition flex items-center gap-2 border border-red-500/20 disabled:opacity-50 cursor-pointer"
           >
             <XCircle className="w-4 h-4" /> Cancel Generation
           </button>
         </div>
+
+        {/* Confirmation Modal for Caption Generation Cancellation */}
+        {showCancelConfirmModal && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mx-auto">
+                <XCircle className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-white mb-1">Cancel Caption Generation?</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Are you sure you want to stop AI caption generation? This will stop all audio analysis and subtitle transcription immediately.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirmModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs transition cursor-pointer border border-zinc-700"
+                >
+                  Continue Generation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCancelConfirmModal(false);
+                    handleCancelGeneration();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-xs transition cursor-pointer shadow-lg shadow-red-500/20"
+                >
+                  Yes, Stop Generation
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

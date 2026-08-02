@@ -213,7 +213,7 @@ export default function TimelineEditor({ projectId, timeline, setTimeline, curre
     }
   }, [activeSegment?.id, isStudioCollapsed]);
 
-  if (!timeline || !timeline.segments) return null;
+  // Safe handlers when timeline is loaded below
 
   const handleWordChange = (segmentId, wordId, newWord) => {
     const updatedSegments = timeline.segments.map((seg) => {

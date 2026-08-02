@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, Download, Loader2, Gauge, ChevronDown } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Download, Loader2, Gauge, ChevronDown, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline.js';
-import { exportProjectMP4, remuxRecordedBlob, getFullMediaUrl } from '../../services/projectService';
+import { exportProjectMP4, getProjectExportProgress, cancelExportMP4, remuxRecordedBlob, getFullMediaUrl } from '../../services/projectService';
 
 /**
  * CanvasVideoPlayer — Broadcast-Grade Smooth Player & Exporter
@@ -31,6 +31,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   const [isSpeedOpen, setIsSpeedOpen] = useState(false);
   const [exportQuality, setExportQuality] = useState('1080p');
   const [isQualityOpen, setIsQualityOpen] = useState(false);
+  const [showCancelExportConfirmModal, setShowCancelExportConfirmModal] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
   const [hoverX, setHoverX] = useState(0);
   const [isHoveringSlider, setIsHoveringSlider] = useState(false);
@@ -53,16 +54,28 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   const segStartTimeRef = useRef(0);
   const lastUiUpdateRef = useRef(0);
 
-  const handleCancelExport = (e, silent = false) => {
+  const handleCancelExport = (e) => {
     if (e) e.stopPropagation();
+    setShowCancelExportConfirmModal(true);
+  };
 
-    // 1. Abort active network request immediately
+  const executeCancelExport = async () => {
+    setShowCancelExportConfirmModal(false);
+
+    // 1. Notify backend server to kill active FFmpeg export process
+    if (projectId) {
+      try {
+        await cancelExportMP4(projectId);
+      } catch (_e) {}
+    }
+
+    // 2. Abort active frontend network request
     if (exportAbortControllerRef.current) {
       try { exportAbortControllerRef.current.abort(); } catch (_e) {}
       exportAbortControllerRef.current = null;
     }
 
-    // 2. Clear all active timers
+    // 3. Clear active polling timers
     if (activeProgressIntervalRef.current) {
       clearInterval(activeProgressIntervalRef.current);
       activeProgressIntervalRef.current = null;
@@ -76,34 +89,13 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
       activeSafetyTimerRef.current = null;
     }
 
-    // 3. Halt media recorder if running
-    if (activeMediaRecorderRef.current) {
-      try {
-        if (activeMediaRecorderRef.current.state !== 'inactive') {
-          activeMediaRecorderRef.current.stop();
-        }
-      } catch (_e) {}
-      activeMediaRecorderRef.current = null;
-    }
-
-    // 4. Restore original canvas buffer dimensions if altered
-    if (origCanvasDimsRef.current && canvasRef.current) {
-      try {
-        canvasRef.current.width = origCanvasDimsRef.current.width;
-        canvasRef.current.height = origCanvasDimsRef.current.height;
-      } catch (_e) {}
-      origCanvasDimsRef.current = null;
-    }
-
-    // 5. Complete state cleanup
+    // 4. Reset recording state
     isRecordingRef.current = false;
     setIsRecording(false);
     setRecordProgress(0);
 
     toast.dismiss('export-toast');
-    if (!silent) {
-      toast.info('Video export cancelled.');
-    }
+    toast.info('Video export cancelled with 0 background rendering.');
   };
 
   const handleCanvasMouseDown = (e) => {
@@ -199,17 +191,11 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
           (o) => masterTime >= o.start && masterTime <= o.end
         );
 
-        // Explicitly pause any non-active B-Roll video element or when master player is paused
-        if (brollElementsRef.current) {
-          const isMasterPaused = !isPlaying && (!dubbedAudioRef.current || dubbedAudioRef.current.paused) && video.paused;
-          Object.entries(brollElementsRef.current).forEach(([url, el]) => {
-            if (el && el.tagName === 'VIDEO') {
-              const isActive = activeOverlay && (activeOverlay.clip?.videoUrl === url || activeOverlay.clip?.thumbnailUrl === url);
-              if (!isActive || isMasterPaused) {
-                if (!el.paused) {
-                  try { el.pause(); } catch (_) {}
-                }
-              }
+        // Explicitly pause non-active B-Roll elements when master player is paused
+        if (brollElementsRef.current && !isPlaying) {
+          Object.values(brollElementsRef.current).forEach((el) => {
+            if (el && el.tagName === 'VIDEO' && !el.paused) {
+              try { el.pause(); } catch (_) {}
             }
           });
         }
@@ -249,17 +235,6 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
           if (el) {
             try {
               if (el.tagName === 'VIDEO') {
-                const isMasterPlaying = isPlaying || (dubbedAudioRef.current && !dubbedAudioRef.current.paused) || (!video.paused);
-                if (isMasterPlaying) {
-                  if (el.paused) {
-                    el.play().catch(() => {});
-                  }
-                } else {
-                  if (!el.paused) {
-                    try { el.pause(); } catch (_) {}
-                  }
-                }
-
                 if (el.readyState >= 1) {
                   drawCover(ctx, el, width, height);
                   drawnOverlay = true;
@@ -278,12 +253,6 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
       if (!drawnOverlay) {
         if (video && (video.readyState >= 1 || video.currentTime >= 0 || video.videoWidth > 0)) {
           try {
-            if (isPlaying && video.paused && !video.seeking) {
-              video.play().catch(() => {});
-            }
-            if (isPlaying && dubbedAudioRef.current && dubbedAudioRef.current.paused) {
-              dubbedAudioRef.current.play().catch(() => {});
-            }
             if (dubbedAudioRef.current && !dubbedAudioRef.current.paused) {
               if (Math.abs(video.currentTime - dubbedAudioRef.current.currentTime) > 0.1 && !video.seeking) {
                 video.currentTime = dubbedAudioRef.current.currentTime;
@@ -397,6 +366,8 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
     const audio = new Audio(fullDubbedUrl);
     audio.preload = 'auto';
     dubbedAudioRef.current = audio;
+    audio.onplay = () => setIsPlaying(true);
+    audio.onpause = () => setIsPlaying(false);
 
     audio.onended = () => {
       console.log('[CANVAS PLAYER] 🛑 Voiceover completed. Stopping playback.');
@@ -487,51 +458,22 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   }, [projectId, timeline?.brollOverlays]);
 
   const togglePlay = (e) => {
+    if (e && typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
     if (isRecording || (videoError && !timeline?.dubbedAudioUrl)) return;
 
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(15);
+      try { window.navigator.vibrate(15); } catch (_) {}
     }
 
     const video = videoRef.current;
-    const isAudioPlaying = dubbedAudioRef.current && !dubbedAudioRef.current.paused;
-    const isVideoPlaying = video && !video.paused;
+    const audio = dubbedAudioRef.current;
+    const isCurrentlyPlaying = isPlaying || (video && !video.paused) || (audio && !audio.paused);
 
-    if (!isAudioPlaying && !isVideoPlaying && !isPlaying) {
-      const totalDur = duration || timeline?.duration || (dubbedAudioRef.current && dubbedAudioRef.current.duration) || (video && video.duration) || 180;
-      
-      const isNearEnd = (currentTime >= totalDur - 0.3) || (video && (video.ended || video.currentTime >= totalDur - 0.3)) || (dubbedAudioRef.current && (dubbedAudioRef.current.ended || dubbedAudioRef.current.currentTime >= totalDur - 0.3));
-      
-      if (isNearEnd) {
-        if (video) {
-          try { video.currentTime = 0; } catch (_) {}
-        }
-        if (dubbedAudioRef.current) {
-          try { dubbedAudioRef.current.currentTime = 0; } catch (_) {}
-        }
-        setCurrentTime(0);
-      }
-
-      setIsPlaying(true);
-
-      if (dubbedAudioRef.current) {
-        if (video) video.muted = true;
-        try {
-          if (video && Math.abs(dubbedAudioRef.current.currentTime - video.currentTime) > 0.1) {
-            dubbedAudioRef.current.currentTime = video.currentTime;
-          }
-        } catch (_) {}
-        dubbedAudioRef.current.play().catch((err) => console.warn('[PLAYBACK] Audio play warning:', err));
-      }
-
-      if (video && video.src && video.src.trim() !== '') {
-        video.play().catch((err) => {
-          console.warn('[PLAYBACK] Base video element play warning:', err);
-        });
-      }
-    } else {
-      if (dubbedAudioRef.current) {
-        try { dubbedAudioRef.current.pause(); } catch (_) {}
+    if (isCurrentlyPlaying) {
+      if (audio) {
+        try { audio.pause(); } catch (_) {}
       }
       if (video) {
         try { video.pause(); } catch (_) {}
@@ -544,6 +486,38 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
         });
       }
       setIsPlaying(false);
+    } else {
+      const totalDur = duration || timeline?.duration || (audio && audio.duration) || (video && video.duration) || 180;
+      
+      const isNearEnd = (currentTime >= totalDur - 0.3) || (video && (video.ended || video.currentTime >= totalDur - 0.3)) || (audio && (audio.ended || audio.currentTime >= totalDur - 0.3));
+      
+      if (isNearEnd) {
+        if (video) {
+          try { video.currentTime = 0; } catch (_) {}
+        }
+        if (audio) {
+          try { audio.currentTime = 0; } catch (_) {}
+        }
+        setCurrentTime(0);
+      }
+
+      setIsPlaying(true);
+
+      if (audio) {
+        if (video) video.muted = true;
+        try {
+          if (video && Math.abs(audio.currentTime - video.currentTime) > 0.1) {
+            audio.currentTime = video.currentTime;
+          }
+        } catch (_) {}
+        audio.play().catch((err) => console.warn('[PLAYBACK] Audio play warning:', err));
+      }
+
+      if (video && video.src && video.src.trim() !== '') {
+        video.play().catch((err) => {
+          console.warn('[PLAYBACK] Base video element play warning:', err);
+        });
+      }
     }
   };
 
@@ -627,248 +601,113 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
   }
 }
 
-  // Lossless Broadcast Video Exporter (100% WYSIWYG Pixel-Perfect Live Canvas Stream Recording)
+  // 100% Server-Side Broadcast Video Render Engine (Zero Lag, Frame-Perfect H.264 MP4 Export)
   const exportCaptionedVideo = async () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || isRecording) return;
+    if (isRecording) return;
 
-    if (!videoUrl) {
-      toast.error('Video URL is missing.', { id: 'export-toast' });
+    if (!projectId) {
+      toast.error('Project ID missing for server render.', { id: 'export-toast' });
       return;
     }
 
-    // Completely clear & reset any previous export/cancel state quietly before starting fresh
-    handleCancelExport(null, true);
-
-    try { video.pause(); } catch (_e) {}
+    try {
+      if (videoRef.current) videoRef.current.pause();
+      if (dubbedAudioRef.current) dubbedAudioRef.current.pause();
+    } catch (_e) {}
     setIsPlaying(false);
-
-    toast.dismiss('export-toast');
 
     const controller = new AbortController();
     exportAbortControllerRef.current = controller;
 
+    toast.dismiss('export-toast');
     isRecordingRef.current = true;
     setIsRecording(true);
-    setRecordProgress(0);
+    setRecordProgress(1);
 
-    toast.loading(`Capturing ${exportQuality} Ultra-HD Pixel-Perfect Reel...`, { id: 'export-toast' });
+    toast.loading(`🎬 Preparing ${exportQuality} Server Render...`, { id: 'export-toast' });
+    console.log(`🎥 [SERVER RENDER ENGINE] Initiating server-side FFmpeg render for project ${projectId} (${exportQuality})...`);
 
-    console.log('🎥 [EXPORT ENGINE] Initiating 100% WYSIWYG Pixel-Perfect Canvas Stream Recording...');
-
-    const nativeW = video.videoWidth || 1080;
-    const nativeH = video.videoHeight || 1920;
-    const dims = getExportDimensions(exportQuality, aspectRatio, nativeW, nativeH);
-    const origW = canvas.width;
-    const origH = canvas.height;
-
-    origCanvasDimsRef.current = { width: origW, height: origH };
-
-    // Dynamically scale canvas buffer to target resolution (480p, 720p, 1080p, 2K, 4K)
-    canvas.width = dims.width;
-    canvas.height = dims.height;
+    let progressPollInterval = null;
 
     try {
-      video.currentTime = 0;
-      setCurrentTime(0);
-      await new Promise((r) => setTimeout(r, 400));
-      if (!isRecordingRef.current) return;
-
-      const stream = canvas.captureStream(60);
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const dest = audioCtx.createMediaStreamDestination();
-        let hasAudioSource = false;
-
-        if (dubbedAudioRef.current) {
-          try {
-            const audioSource = audioCtx.createMediaElementSource(dubbedAudioRef.current);
-            audioSource.connect(dest);
-            hasAudioSource = true;
-          } catch (_) {}
-        }
-
-        if (video && video.src && video.src.trim() !== '') {
-          try {
-            const videoSource = audioCtx.createMediaElementSource(video);
-            videoSource.connect(dest);
-            hasAudioSource = true;
-          } catch (_) {}
-        }
-
-        if (hasAudioSource) {
-          const audioTrack = dest.stream.getAudioTracks()[0];
-          if (audioTrack) {
-            stream.addTrack(audioTrack);
-            console.log('🎙️ [EXPORT ENGINE] Mixed audio stream attached successfully!');
-          }
-        }
-      } catch (audioErr) {
-        console.warn('⚠️ [EXPORT ENGINE] AudioContext stream capture warning:', audioErr);
-      }
-
-      let mimeType = 'video/webm';
-      if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264')) {
-        mimeType = 'video/mp4;codecs=h264';
-      } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-        mimeType = 'video/mp4';
-      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-        mimeType = 'video/webm;codecs=vp9';
-      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
-        mimeType = 'video/webm;codecs=vp8';
-      }
-
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
-        videoBitsPerSecond: dims.bitrate,
-      });
-      activeMediaRecorderRef.current = mediaRecorder;
-
-      const chunks = [];
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunks.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        if (!isRecordingRef.current) return;
-
-        if (origCanvasDimsRef.current && canvasRef.current) {
-          canvasRef.current.width = origCanvasDimsRef.current.width;
-          canvasRef.current.height = origCanvasDimsRef.current.height;
-          origCanvasDimsRef.current = null;
-        }
-
-        const blob = new Blob(chunks, { type: mimeType });
-        const exportFilename = getSanitizedFilename(projectTitle, `reel_${exportQuality}`, 'mp4');
-
-        toast.loading('Packaging Instagram Reels MP4 (+faststart metadata)...', { id: 'export-toast' });
-
+      // 1. Auto-save current timeline state to server before rendering
+      if (timeline && setTimeline) {
         try {
-          // Send recorded stream to server for fast H.264 + +faststart moov atom header remux
-          console.log('📦 [EXPORT ENGINE] Sending recorded stream to server for H.264 +faststart remuxing...');
-          const remuxRes = await remuxRecordedBlob(blob, projectTitle);
-          if (!isRecordingRef.current) return;
+          await import('../../services/projectService').then(m => m.updateProjectTimeline(projectId, timeline));
+        } catch (_saveErr) {
+          console.warn('[SERVER RENDER WARN] Timeline auto-save before export skipped:', _saveErr.message);
+        }
+      }
 
-          const outputUrl = remuxRes.data?.outputUrl || remuxRes.data?.data?.outputUrl || remuxRes.outputUrl;
-          if (outputUrl) {
-            const downloadUrl = getFullMediaUrl(outputUrl);
-            console.log('📥 [EXPORT ENGINE] Downloading H.264 remuxed MP4:', downloadUrl);
-            const blobRes = await fetch(downloadUrl, { signal: controller.signal });
-            if (!isRecordingRef.current || controller.signal.aborted) return;
-
-            if (blobRes.ok) {
-              const remuxBlob = await blobRes.blob();
-              if (!isRecordingRef.current || controller.signal.aborted) return;
-              if (remuxBlob && remuxBlob.size > 10000) {
-                const url = URL.createObjectURL(remuxBlob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = exportFilename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-                isRecordingRef.current = false;
-                setIsRecording(false);
-                setRecordProgress(100);
-                exportAbortControllerRef.current = null;
-                console.log('✅ [EXPORT SUCCESS] 100% WYSIWYG Reel exported successfully as:', exportFilename);
-                toast.success(`🎉 Ultra-HD ${exportQuality} MP4 exported successfully as "${exportFilename}"!`, { id: 'export-toast' });
-                return;
-              }
-            }
+      // 2. Start real-time live progress polling (percentage & rendered seconds)
+      progressPollInterval = setInterval(async () => {
+        try {
+          if (!isRecordingRef.current || controller.signal.aborted) {
+            if (progressPollInterval) clearInterval(progressPollInterval);
+            return;
           }
-        } catch (remuxErr) {
-          if (!isRecordingRef.current) return;
-          console.error('❌ [EXPORT ERROR] Server MP4 remuxing failed:', remuxErr);
-          toast.error(`Export failed: ${remuxErr.message || 'Server encoding failed.'}`, { id: 'export-toast' });
-          isRecordingRef.current = false;
+          const progressRes = await getProjectExportProgress(projectId);
+          const prog = progressRes.data?.data || progressRes.data || progressRes;
+          if (prog && prog.status === 'rendering') {
+            const currentSec = parseFloat(prog.currentSec || 0);
+            const totalDur = parseFloat(prog.totalDuration || 0);
+            setRecordProgress((prevPct) => {
+              const newPct = Math.min(99, Math.max(prevPct, prog.percent || 1));
+              toast.loading(
+                `🎬 Exporting ${exportQuality} Reel (${newPct}%)... [${currentSec.toFixed(1)}s / ${totalDur.toFixed(1)}s]`,
+                { id: 'export-toast' }
+              );
+              return newPct;
+            });
+          }
+        } catch (_pollErr) {}
+      }, 350);
+      activeProgressIntervalRef.current = progressPollInterval;
+
+      // 3. Trigger server-side FFmpeg render
+      const res = await exportProjectMP4(projectId, exportQuality, { signal: controller.signal });
+      if (progressPollInterval) clearInterval(progressPollInterval);
+      activeProgressIntervalRef.current = null;
+
+      setRecordProgress(95);
+      toast.loading('Downloading finished MP4 video...', { id: 'export-toast' });
+
+      const outputUrl = res.data?.outputUrl || res.data?.data?.outputUrl || res.outputUrl;
+      const downloadFilename = res.data?.filename || getSanitizedFilename(projectTitle, `reel_${exportQuality}`, 'mp4');
+
+      if (outputUrl) {
+        const fullDownloadUrl = getFullMediaUrl(outputUrl);
+        console.log('📥 [SERVER RENDER ENGINE] Downloading server rendered MP4 file:', fullDownloadUrl);
+        const fileRes = await fetch(fullDownloadUrl);
+
+        if (fileRes.ok) {
+          const videoBlob = await fileRes.blob();
+          const blobUrl = URL.createObjectURL(videoBlob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = downloadFilename.endsWith('.mp4') ? downloadFilename : `${downloadFilename}.mp4`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+          setRecordProgress(100);
           setIsRecording(false);
-          setRecordProgress(0);
-          exportAbortControllerRef.current = null;
-        }
-      };
-
-      mediaRecorder.start(100);
-
-      if (dubbedAudioRef.current) {
-        try { dubbedAudioRef.current.currentTime = 0; } catch (_) {}
-        dubbedAudioRef.current.play().catch((e) => console.warn('[EXPORT] Dubbed audio play error:', e));
-      }
-      if (video && video.src && video.src.trim() !== '') {
-        try { video.currentTime = 0; } catch (_) {}
-        video.play().catch((e) => console.warn('[EXPORT] Base video play warning:', e));
-      }
-
-      setIsPlaying(true);
-
-      let stopTriggered = false;
-
-      const stopRecording = () => {
-        if (stopTriggered) return;
-        stopTriggered = true;
-        if (activeCheckEndRef.current) {
-          clearInterval(activeCheckEndRef.current);
-          activeCheckEndRef.current = null;
-        }
-        if (activeSafetyTimerRef.current) {
-          clearTimeout(activeSafetyTimerRef.current);
-          activeSafetyTimerRef.current = null;
-        }
-        if (dubbedAudioRef.current) {
-          try { dubbedAudioRef.current.pause(); } catch (_e) {}
-        }
-        if (video) {
-          try { video.pause(); } catch (_e) {}
-        }
-        setIsPlaying(false);
-        if (mediaRecorder.state !== 'inactive') {
-          mediaRecorder.stop();
-        }
-      };
-
-      const checkEnd = setInterval(() => {
-        if (!isRecordingRef.current) {
-          stopRecording();
+          isRecordingRef.current = false;
+          console.log('✅ [SERVER RENDER SUCCESS] Zero-lag MP4 exported successfully!');
+          toast.success(`🎉 Ultra-HD ${exportQuality} zero-lag MP4 exported successfully!`, { id: 'export-toast' });
           return;
         }
-
-        const currentProgressTime = (dubbedAudioRef.current && !dubbedAudioRef.current.paused)
-          ? dubbedAudioRef.current.currentTime
-          : (video ? video.currentTime : 0);
-        const maxDuration = (timeline?.duration && Number(timeline.duration) > 0)
-          ? Number(timeline.duration)
-          : (dubbedAudioRef.current?.duration || video?.duration || 60);
-
-        if (maxDuration > 0) {
-          const pct = Math.min(99, Math.round((currentProgressTime / maxDuration) * 100));
-          setRecordProgress(pct);
-          toast.loading(`🎬 Exporting ${exportQuality} Reel (${pct}%)... [${currentProgressTime.toFixed(1)}s / ${maxDuration.toFixed(1)}s]`, { id: 'export-toast' });
-        }
-        if (currentProgressTime >= maxDuration - 0.12) {
-          stopRecording();
-        }
-      }, 50);
-      activeCheckEndRef.current = checkEnd;
-
-      const actualVideoDuration = (timeline?.duration && Number(timeline.duration) > 0)
-        ? Number(timeline.duration)
-        : (dubbedAudioRef.current?.duration || video?.duration || 60);
-      const maxTimeoutMs = Math.max(60000, Math.round((actualVideoDuration + 15) * 1000));
-
-      const safetyTimer = setTimeout(() => {
-        console.warn('[EXPORT WATCHDOG] Max duration safety timeout reached, completing export cleanly...');
-        stopRecording();
-      }, maxTimeoutMs);
-      activeSafetyTimerRef.current = safetyTimer;
-    } catch (err) {
-      if (isRecordingRef.current) {
-        console.error('Export error:', err);
-        toast.error(`Export failed: ${err.message || 'Unknown error'}`, { id: 'export-toast' });
       }
-      handleCancelExport(null, true);
+
+      throw new Error('Server rendered video file could not be retrieved.');
+    } catch (err) {
+      if (progressPollInterval) clearInterval(progressPollInterval);
+      console.error('❌ [SERVER RENDER ERROR]', err);
+      toast.error(`Export failed: ${err.message || 'Server render error'}`, { id: 'export-toast' });
+      setRecordProgress(0);
+      setIsRecording(false);
+      isRecordingRef.current = false;
     }
   };
 
@@ -937,12 +776,13 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
               setCurrentTime(0);
             }
           }}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
           className="absolute top-0 left-0 opacity-0 pointer-events-none w-1 h-1"
         />
         <canvas
           ref={canvasRef}
           onClick={togglePlay}
-          onTouchEnd={togglePlay}
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
@@ -963,7 +803,6 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
         {!isPlaying && !isRecording && (
           <div
             onClick={togglePlay}
-            onTouchEnd={togglePlay}
             className="absolute inset-0 bg-black/30 flex items-center justify-center cursor-pointer backdrop-blur-[2px] transition-all hover:bg-black/20"
           >
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-xl shadow-yellow-500/20 scale-100 active:scale-95 sm:hover:scale-110 transition-transform">
@@ -1070,26 +909,41 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
             {/* Multi-Resolution Quality Split Dropdown Selector (480p, 720p, 1080p, 2K, 4K) */}
             <div className="relative flex items-center">
               <div className="flex items-center rounded-xl bg-yellow-500 dark:bg-yellow-400 text-black font-bold text-xs shadow-md shadow-yellow-500/10 overflow-hidden">
-                <button
-                  onClick={exportCaptionedVideo}
-                  disabled={isRecording}
-                  className="px-3 py-1.5 hover:bg-yellow-400 dark:hover:bg-yellow-300 transition flex items-center gap-1.5 border-r border-black/10 disabled:opacity-50"
-                  title={`Export reel in ${exportQuality} resolution`}
-                >
-                  {isRecording ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  <span>Export {exportQuality}</span>
-                </button>
-                <button
-                  onClick={() => setIsQualityOpen(!isQualityOpen)}
-                  disabled={isRecording}
-                  className="px-2 py-1.5 hover:bg-yellow-400 dark:hover:bg-yellow-300 transition flex items-center justify-center disabled:opacity-50"
-                  title="Choose export resolution (480p to 4K)"
-                >
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
+                {isRecording ? (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500 dark:bg-yellow-400 text-black font-bold text-xs">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Exporting ({recordProgress}%)...</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCancelExportConfirmModal(true)}
+                      className="ml-1 px-2 py-0.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-extrabold text-[10px] transition cursor-pointer shadow-sm active:scale-95"
+                      title="Cancel video export"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={exportCaptionedVideo}
+                      className="px-3 py-1.5 hover:bg-yellow-400 dark:hover:bg-yellow-300 transition flex items-center gap-1.5 border-r border-black/10 cursor-pointer"
+                      title={`Export reel in ${exportQuality} resolution`}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export {exportQuality}</span>
+                    </button>
+                    <button
+                      onClick={() => setIsQualityOpen(!isQualityOpen)}
+                      className="px-2 py-1.5 hover:bg-yellow-400 dark:hover:bg-yellow-300 transition flex items-center justify-center cursor-pointer"
+                      title="Choose export resolution (480p to 4K)"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
               </div>
 
-              {isQualityOpen && (
+              {isQualityOpen && !isRecording && (
                 <div className="absolute bottom-full mb-2.5 right-0 z-30 p-2 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-1 min-w-[150px] animate-fadeIn">
                   <div className="px-2 py-1 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
                     Export Resolution
@@ -1124,6 +978,39 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal for Export Cancellation */}
+      {showCancelExportConfirmModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mx-auto">
+              <XCircle className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-xl font-extrabold text-white mb-1">Cancel Video Export?</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Are you sure you want to stop exporting? The active server FFmpeg render process will be killed instantly with 0 background rendering.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCancelExportConfirmModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs transition cursor-pointer border border-zinc-700"
+              >
+                Keep Exporting
+              </button>
+              <button
+                type="button"
+                onClick={executeCancelExport}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-xs transition cursor-pointer shadow-lg shadow-red-500/20"
+              >
+                Yes, Stop Exporting
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

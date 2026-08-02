@@ -118,21 +118,31 @@ export class DeepgramProvider extends STTProvider {
       throw new Error('Deepgram API key not configured.');
     }
 
-    console.log(`[DEEPGRAM STT] Transcribing: ${audioPath} (Default Model: ${this.model})`);
+    // Auto-map regional targetStyle to explicit language hint ('te' or 'hi') to prevent English auto-detect from dropping words
+    let languageHint = options.language;
+    if (!languageHint && options.targetStyle) {
+      if (['chatting', 'tel_eng', 'telugu'].includes(options.targetStyle)) {
+        languageHint = 'te';
+      } else if (['hinglish', 'hin_eng', 'hindi'].includes(options.targetStyle)) {
+        languageHint = 'hi';
+      }
+    }
+
+    console.log(`[DEEPGRAM STT] Transcribing: ${audioPath} (Model: ${this.model}, TargetStyle: ${options.targetStyle || 'auto'}, LangHint: ${languageHint || 'auto-detect'})`);
     const startTime = Date.now();
     const fileBuffer = fs.readFileSync(audioPath);
 
-    // 1. Direct explicit language request
-    if (options.language) {
+    // 1. Direct explicit language request (Telugu / Hindi acoustic model)
+    if (languageHint) {
       try {
-        const result = await this._callDeepgramAPI(fileBuffer, this.model, options.language);
+        const result = await this._callDeepgramAPI(fileBuffer, this.model, languageHint);
         if (result && result.words.length > 0) {
           const latencyMs = Date.now() - startTime;
-          console.log(`[DEEPGRAM STT] ✅ Complete (${options.language}) in ${latencyMs}ms — ${result.words.length} words.`);
+          console.log(`[DEEPGRAM STT] ✅ Complete (${languageHint} model) in ${latencyMs}ms — ${result.words.length} words extracted.`);
           return result;
         }
       } catch (err) {
-        console.warn(`[DEEPGRAM WARNING] Direct language '${options.language}' failed: ${err.message}`);
+        console.warn(`[DEEPGRAM WARNING] Direct language '${languageHint}' failed: ${err.message}`);
       }
     }
 
@@ -140,19 +150,22 @@ export class DeepgramProvider extends STTProvider {
     try {
       const result = await this._callDeepgramAPI(fileBuffer, this.model, null, true);
       if (result && result.words.length >= 2) {
-        // ALWAYS check if auto-detect misidentified South Indian / regional speech as Hindi ('hi')
-        // regardless of targetStyle!
+        // Check if auto-detect misidentified South Indian / regional speech as Hindi ('hi') or English ('en')
+        const targetStyle = options.targetStyle || 'auto';
+        const isRegionalTarget = ['chatting', 'tel_eng', 'telugu', 'hinglish', 'hin_eng', 'hin_tel'].includes(targetStyle);
         const hasHindiScript = /[\u0900-\u097F]/.test(result.fullText || '');
         const isAutoDetectedHindi = result.language === 'hi' || hasHindiScript;
+        const isAutoDetectedEnglishOnRegional = result.language === 'en' && isRegionalTarget;
 
-        if (isAutoDetectedHindi) {
-          console.log(`[DEEPGRAM AUTO-PROBE] Auto-detect returned Hindi script/language. Probing Telugu ('te') acoustic model to verify source language...`);
+        if (isAutoDetectedHindi || isAutoDetectedEnglishOnRegional) {
+          const probeLang = ['hinglish', 'hin_eng', 'hindi'].includes(targetStyle) ? 'hi' : 'te';
+          console.log(`[DEEPGRAM AUTO-PROBE] Auto-detect returned '${result.language}' for target style '${targetStyle}'. Probing '${probeLang}' acoustic model to extract authentic regional speech...`);
           try {
-            const teResult = await this._callDeepgramAPI(fileBuffer, 'nova-3', 'te');
-            if (teResult && teResult.words.length >= Math.floor(result.words.length * 0.6)) {
-              console.log(`[DEEPGRAM AUTO-PROBE] 💡 Corrected auto-detect misclassification: Audio is authentic Telugu speech (${teResult.words.length} words).`);
-              teResult.language = 'te';
-              return teResult;
+            const probeResult = await this._callDeepgramAPI(fileBuffer, 'nova-3', probeLang);
+            if (probeResult && probeResult.words.length >= Math.floor(result.words.length * 0.5)) {
+              console.log(`[DEEPGRAM AUTO-PROBE] 💡 Corrected auto-detect misclassification: Audio is authentic ${probeLang} speech (${probeResult.words.length} words).`);
+              probeResult.language = probeLang;
+              return probeResult;
             }
           } catch (_e) {}
         }

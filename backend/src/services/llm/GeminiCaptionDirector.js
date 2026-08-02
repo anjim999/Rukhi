@@ -475,7 +475,7 @@ Return ONLY a JSON object:
 }`;
 
     try {
-      const rawData = await this._callGeminiWithRetry(prompt, { temperature: 0.1 }, 3);
+      const rawData = await this._callGeminiWithRetry(prompt, { temperature: 0.7, responseMimeType: 'application/json' }, 3);
       const outWords = rawData?.words || [];
 
       // 🔍 Word Preservation Safety Guard: Check if Gemini dropped words
@@ -986,40 +986,99 @@ Return ONLY a JSON object with this exact structure:
 
   _parseJSON(text) {
     if (!text) return {};
-    let repaired = String(text).trim();
+    let str = String(text).trim();
 
-    // 1. Strip markdown code block wrappers if any (handles prefixed text before ```json)
-    const codeBlockMatch = repaired.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    // 1. Strip markdown code block wrappers if any
+    const codeBlockMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (codeBlockMatch && codeBlockMatch[1]) {
-      repaired = codeBlockMatch[1].trim();
+      str = codeBlockMatch[1].trim();
     } else {
-      repaired = repaired.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     }
 
-    // 2. Extract substring between first '{' and last '}'
-    const firstBrace = repaired.indexOf('{');
-    const lastBrace = repaired.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-      repaired = repaired.substring(firstBrace, lastBrace + 1);
-    }
-
-    // 3. Strip single-line JS style comments if present
-    repaired = repaired.replace(/^\s*\/\/.*$/gm, '');
-
-    // 4. Attempt standard JSON.parse
+    // 2. Try parsing whole string directly first
     try {
-      return JSON.parse(repaired);
-    } catch (_e) {
-      // Continue to auto-repair
+      return JSON.parse(str);
+    } catch (_e) {}
+
+    // 3. Extract the FIRST balanced JSON object {...} or array [...] by tracking depth
+    let firstCharIndex = -1;
+    let startChar = '';
+    let endChar = '';
+
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === '{') {
+        firstCharIndex = i;
+        startChar = '{';
+        endChar = '}';
+        break;
+      } else if (str[i] === '[') {
+        firstCharIndex = i;
+        startChar = '[';
+        endChar = ']';
+        break;
+      }
     }
 
-    // 5. Advanced bracket/quote repair for truncated responses
+    if (firstCharIndex !== -1) {
+      let depth = 0;
+      let inString = false;
+      let escaped = false;
+      let matchEnd = -1;
+
+      for (let i = firstCharIndex; i < str.length; i++) {
+        const ch = str[i];
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (ch === '\\') {
+          escaped = true;
+          continue;
+        }
+        if (ch === '"') {
+          inString = !inString;
+          continue;
+        }
+        if (inString) continue;
+
+        if (ch === startChar) depth++;
+        else if (ch === endChar) {
+          depth--;
+          if (depth === 0) {
+            matchEnd = i;
+            break;
+          }
+        }
+      }
+
+      if (matchEnd !== -1) {
+        const extracted = str.substring(firstCharIndex, matchEnd + 1);
+        try {
+          return JSON.parse(extracted);
+        } catch (_e) {
+          str = extracted;
+        }
+      }
+    }
+
+    // 4. Clean comments & trailing commas
+    let cleaned = str
+      .replace(/^\s*\/\/.*$/gm, '')
+      .replace(/,\s*([\}\]])/g, '$1')
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, (c) => (c === '\n' || c === '\r' || c === '\t' ? c : ''));
+
+    try {
+      return JSON.parse(cleaned);
+    } catch (_e) {}
+
+    // 5. Final fallback: repair unclosed brackets/quotes for truncated responses
     let openBraces = 0;
     let openBrackets = 0;
     let inString = false;
     let escaped = false;
 
-    for (const ch of repaired) {
+    for (const ch of cleaned) {
       if (escaped) { escaped = false; continue; }
       if (ch === '\\') { escaped = true; continue; }
       if (ch === '"') { inString = !inString; continue; }
@@ -1030,15 +1089,13 @@ Return ONLY a JSON object with this exact structure:
       if (ch === ']') openBrackets--;
     }
 
-    if (inString) repaired += '"';
-    repaired = repaired.replace(/,\s*$/, '');
-    repaired = repaired.replace(/,?\s*"[^"]*"\s*:\s*$/, '');
-
-    for (let i = 0; i < openBrackets; i++) repaired += ']';
-    for (let i = 0; i < openBraces; i++) repaired += '}';
+    if (inString) cleaned += '"';
+    cleaned = cleaned.replace(/,\s*$/, '').replace(/,?\s*"[^"]*"\s*:\s*$/, '');
+    for (let i = 0; i < openBrackets; i++) cleaned += ']';
+    for (let i = 0; i < openBraces; i++) cleaned += '}';
 
     try {
-      return JSON.parse(repaired);
+      return JSON.parse(cleaned);
     } catch (e2) {
       throw new Error(`Gemini returned invalid JSON: ${e2.message}`);
     }

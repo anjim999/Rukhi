@@ -52,9 +52,10 @@ export const config = {
   aiVideoGpuEndpoint: process.env.AI_VIDEO_GPU_ENDPOINT || 'https://allen-wiley-true-actively.trycloudflare.com/generate-video',
   huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY || '',
 
-  // Payment Gateway
-  razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
-  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
+  // Cashfree Payment Gateway
+  cashfreeAppId: process.env.CASHFREE_APP_ID || '',
+  cashfreeSecretKey: process.env.CASHFREE_SECRET_KEY || '',
+  cashfreeEnv: process.env.CASHFREE_ENV || 'PRODUCTION',
 
   smtp: {
     host: process.env.SMTP_HOST || '',

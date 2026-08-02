@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Download, Loader2, Gauge, ChevronDown, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEME_PRESETS, ANIMATION_TYPES } from '../../../../shared/constants/timeline.js';
@@ -22,6 +22,17 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
+
+  const getEffectiveDuration = useCallback(() => {
+    const vDur = videoRef.current?.duration && !isNaN(videoRef.current.duration) && isFinite(videoRef.current.duration) ? videoRef.current.duration : 0;
+    const aDur = dubbedAudioRef.current?.duration && !isNaN(dubbedAudioRef.current.duration) && isFinite(dubbedAudioRef.current.duration) ? dubbedAudioRef.current.duration : 0;
+    const tDur = timeline?.duration && !isNaN(timeline.duration) && isFinite(timeline.duration) && Number(timeline.duration) > 0 ? Number(timeline.duration) : 0;
+    const lastSegEnd = (timeline?.segments && timeline.segments.length > 0)
+      ? (parseFloat(timeline.segments[timeline.segments.length - 1].end) || 0)
+      : 0;
+
+    return Math.max(vDur, aDur, tDur, lastSegEnd, 5);
+  }, [timeline]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
   const [videoError, setVideoError] = useState(null);
@@ -274,10 +285,10 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
         ctx.fillRect(0, 0, width, height);
       }
 
-      // Master End Stop Check: When video/audio reaches timeline duration, stop completely!
-      const maxTimelineDuration = timeline?.duration || 30;
-      if (masterTime >= maxTimelineDuration && !video.paused) {
-        console.log('[CANVAS PLAYER] 🏁 Reached end of timeline. Stopping all playback.');
+      // Master End Stop Check: When video/audio reaches effective video duration, stop cleanly!
+      const effectiveDuration = getEffectiveDuration();
+      if (masterTime >= effectiveDuration - 0.05 && !video.paused) {
+        console.log('[CANVAS PLAYER] 🏁 Reached end of video (', effectiveDuration.toFixed(2), 's). Stopping playback.');
         video.pause();
         video.currentTime = 0;
         if (dubbedAudioRef.current) {
@@ -296,12 +307,12 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
         return;
       }
 
-      // Auto resync base video element clock with master voiceover time
-      if (dubbedAudioRef.current && !video.paused) {
+      // Auto resync base video element clock with master voiceover time (clean sync without modulo jumping)
+      if (dubbedAudioRef.current && !video.paused && !video.seeking) {
         video.muted = true;
         const drift = Math.abs(video.currentTime - masterTime);
-        if (drift > 0.3) {
-          video.currentTime = masterTime % (video.duration || 5);
+        if (drift > 0.25 && masterTime < (video.duration || 9999)) {
+          video.currentTime = masterTime;
         }
       }
 
@@ -409,11 +420,12 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
   }, [timeline?.dubbedAudioUrl, isMuted]);
 
   useEffect(() => {
-    if (timeline?.duration && timeline.duration > 0) {
-      setDuration(timeline.duration);
-      console.log('[CANVAS PLAYER] ⏱️ Set player duration to timeline duration:', timeline.duration);
+    const effDur = getEffectiveDuration();
+    if (effDur > 0) {
+      setDuration(effDur);
+      console.log('[CANVAS PLAYER] ⏱️ Set player duration to effective video duration:', effDur.toFixed(2), 's');
     }
-  }, [timeline?.duration]);
+  }, [timeline, getEffectiveDuration]);
 
   const brollElementsRef = useRef({});
 
@@ -746,13 +758,13 @@ function getExportDimensions(qualityKey, aspect, nativeW, nativeH) {
           preload="auto"
           muted={isMuted}
           onLoadedMetadata={(e) => {
-            const totalDuration = timeline?.duration || (dubbedAudioRef.current && dubbedAudioRef.current.duration) || e.target.duration;
-            setDuration(totalDuration);
+            const effDur = getEffectiveDuration();
+            setDuration(effDur);
             setVideoError(null);
           }}
           onCanPlay={(e) => {
-            const totalDuration = timeline?.duration || (dubbedAudioRef.current && dubbedAudioRef.current.duration) || e.target.duration;
-            if (totalDuration) setDuration(totalDuration);
+            const effDur = getEffectiveDuration();
+            if (effDur > 0) setDuration(effDur);
           }}
           onError={() => {
             if (!timeline?.dubbedAudioUrl && !timeline?.brollOverlays?.length) {

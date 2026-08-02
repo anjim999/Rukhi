@@ -14,12 +14,14 @@
 
 2. **Backend Services Architecture**:
    - `backend/src/services/ai/sceneDirector.js`: Storyboard script generation using `gemini-3.5-flash`.
-   - `backend/src/services/llm/GeminiCaptionDirector.js`: Kinetic subtitle translation and verbatim word-level alignment.
+   - `backend/src/services/llm/GeminiCaptionDirector.js`: Kinetic subtitle translation, verbatim 1:1 word preservation, and 3-stage pipeline forensic logging (Raw STT -> LLM Transformer -> Timeline Cards).
+   - `backend/src/workers/mediaWorker.js`: BullMQ queue worker with raw audio STT recovery fallback if Demucs vocal separation filters out spoken words.
    - `backend/src/services/media/demucsService.js`: Vocal isolation using Python Demucs (`htdemucs`).
    - `backend/src/controllers/projectController.js`: Handles project status, draft timeline fetching, export, and status polling.
 
 3. **Frontend Editor Architecture**:
    - `frontend/src/pages/EditorPage.jsx`: 3-Column layout (`PresetSidebar`, `CanvasVideoPlayer`, `TimelineEditor`).
+   - `frontend/src/components/editor/CanvasVideoPlayer.jsx`: HTML5 Canvas preview player with dynamic effective video/audio/timeline duration calculation and seamless voiceover synchronization.
    - `frontend/src/components/editor/TimelineEditor.jsx`: Subtitle card editing, silence gap detection, and hook banners.
    - `frontend/src/components/pricing/PricingModal.jsx`: Monetization cards (Free, Basic ₹79, Plus 30s Reels ₹199, Pro Unlimited ₹399, Agency Ultra).
 

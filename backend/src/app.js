@@ -37,10 +37,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Production + Development Request Logger (temporary for Hostinger debugging)
-app.use((req, _res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} url=${req.url} originalUrl=${req.originalUrl}`);
-  next();
+app.get('/env-check', (req, res) => {
+  res.json({
+    database: process.env.DATABASE_URL || 'NOT_SET',
+    configDbUrl: config.dbUrl || 'NOT_SET',
+  });
 });
+
 
 const persistentBase = '/home/u209580425/persistent_storage';
 

@@ -4,6 +4,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "postinstall": "cd backend && npm install --omit=dev",
+    "build": "cd frontend && npm install && npm run build && cp -r dist/* ../",
     "start": "node index.js"
   },
   "dependencies": {}

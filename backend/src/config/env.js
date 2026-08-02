@@ -17,57 +17,51 @@ for (const envPath of envCandidates) {
   }
 }
 
-const isHostinger = fs.existsSync('/home/u209580425') || process.cwd().includes('u209580425') || process.cwd().includes('rukhi.in');
 const rawPort = process.env.PORT || '5000';
 
 export const config = {
   port: isNaN(parseInt(rawPort, 10)) ? rawPort : parseInt(rawPort, 10),
   nodeEnv: process.env.NODE_ENV || 'production',
 
-  // Database & Cache (Neon PostgreSQL & Redis)
-  dbUrl: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.POSTGRES_URL,
-  redisUrl: process.env.REDIS_URL || 'redis://default:aG5HTOk7fbkLcO0y409BGosN31924zGg@party-cast-retrofresh-33861.db.redis.io:11185',
+  // Database (Neon PostgreSQL) & Redis Cache
+  dbUrl: process.env.DATABASE_URL || '',
+  redisUrl: process.env.REDIS_URL || null,
   redis: {
-    url: process.env.REDIS_URL || 'redis://default:aG5HTOk7fbkLcO0y409BGosN31924zGg@party-cast-retrofresh-33861.db.redis.io:11185',
+    url: process.env.REDIS_URL || null,
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
 
-  // AI Service Keys
-  geminiApiKey: process.env.GEMINI_API_KEY || process.env.GCP_API_KEY || '',
-  gcpApiKey: process.env.GCP_API_KEY || process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-  gcpProjectId: process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || 'ai-quiz-generator-479518',
-  gcpLocation: process.env.GCP_LOCATION || 'us-central1',
-  veoModel: process.env.VEO_MODEL || 'veo-3.1-lite-generate-001',
+  // AI & Speech Keys
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  gcpApiKey: process.env.GCP_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || '',
+  gcpProjectId: process.env.GCP_PROJECT_ID || '',
+  gcpLocation: process.env.GCP_LOCATION || '',
+  veoModel: process.env.VEO_MODEL || '',
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
-  pexelsApiKey: process.env.PEXELS_API_KEY || '',
 
   // Directory Config
   uploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads'),
   outputDir: path.resolve(process.cwd(), process.env.OUTPUT_DIR || 'outputs'),
 
   // Auth & Security
-  jwtSecret: process.env.JWT_SECRET || 'rukhi_production_super_secret_jwt_key_2026_persist',
+  jwtSecret: process.env.JWT_SECRET || '',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-
-  // AI Video Engine
-  aiVideoProvider: process.env.AI_VIDEO_PROVIDER || 'colab',
-  aiVideoGpuEndpoint: process.env.AI_VIDEO_GPU_ENDPOINT || 'https://allen-wiley-true-actively.trycloudflare.com/generate-video',
-  huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY || '',
 
   // Cashfree Payment Gateway
   cashfreeAppId: process.env.CASHFREE_APP_ID || '',
   cashfreeSecretKey: process.env.CASHFREE_SECRET_KEY || '',
   cashfreeEnv: process.env.CASHFREE_ENV || 'PRODUCTION',
 
+  // Email / SMTP Config
   smtp: {
-    host: process.env.SMTP_HOST || '',
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    user: process.env.SMTP_USER || '',
+    host: process.env.SMTP_HOST || 'smtp.hostinger.com',
+    port: parseInt(process.env.SMTP_PORT || '465', 10),
+    user: process.env.SMTP_USER || 'support@rukhi.in',
     pass: process.env.SMTP_PASS || '',
-    from: process.env.SMTP_FROM || 'noreply@autocaptions.ai',
+    from: process.env.SMTP_FROM || 'support@rukhi.in',
   },
 };
 

@@ -15,17 +15,17 @@ const axiosClient = axios.create({
 });
 
 function getBrowserGuestId() {
-  let guestId = localStorage.getItem('auto_captions_guest_id');
+  let guestId = localStorage.getItem('rukhi_studio_guest_id');
   if (!guestId) {
     guestId = '00000000-0000-4000-8000-' + Math.random().toString(16).substring(2, 14).padStart(12, '0');
-    localStorage.setItem('auto_captions_guest_id', guestId);
+    localStorage.setItem('rukhi_studio_guest_id', guestId);
   }
   return guestId;
 }
 
 // Request interceptor to attach JWT token or unique browser guest ID
 axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auto_captions_token');
+  const token = localStorage.getItem('rukhi_studio_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   } else {

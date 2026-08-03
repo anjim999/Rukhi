@@ -45,6 +45,7 @@ export default function Header({ activeProject, onOpenTour }) {
   const isDashboard = location.pathname === '/dashboard';
   const isHome = location.pathname === '/';
   const isAITools = location.pathname === '/ai-studio';
+  const isStudio = location.pathname.startsWith('/studio');
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -97,6 +98,7 @@ export default function Header({ activeProject, onOpenTour }) {
         <HeaderNavLinks
           isDashboard={isDashboard}
           isAITools={isAITools}
+          isStudio={isStudio}
           navigate={navigate}
           setShowPricingModal={setShowPricingModal}
           setShowGuideModal={setShowGuideModal}
@@ -207,6 +209,7 @@ export default function Header({ activeProject, onOpenTour }) {
         user={user}
         setShowLogoutModal={setShowLogoutModal}
         openAuthModal={openAuthModal}
+        isStudio={isStudio}
       />
       {/* Profile Display Name Edit Modal */}
       {showProfileModal && createPortal(

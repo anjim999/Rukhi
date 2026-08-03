@@ -8,6 +8,7 @@ export default function HeaderMobileDrawer({
   user,
   setShowLogoutModal,
   openAuthModal,
+  isStudio
 }) {
   if (!mobileMenuOpen) return null;
 
@@ -52,6 +53,26 @@ export default function HeaderMobileDrawer({
         </span>
         <span className="bg-yellow-500 text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
           NEW
+        </span>
+      </button>
+
+      <button
+        onClick={() => {
+          navigate('/studio');
+          setMobileMenuOpen(false);
+        }}
+        className={`w-full flex items-center justify-between p-3.5 min-h-[48px] rounded-2xl font-extrabold text-sm active:scale-[0.99] transition cursor-pointer border ${
+          isStudio
+            ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border-amber-500/40 text-amber-500 shadow-md shadow-amber-500/10'
+            : 'bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white border-transparent hover:text-amber-500'
+        }`}
+      >
+        <span className="flex items-center gap-2.5">
+          <Sparkles className="w-5 h-5 text-amber-500 fill-amber-500" />
+          Rukhi AI Film Studio
+        </span>
+        <span className="bg-amber-500 text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+          HOT
         </span>
       </button>
 

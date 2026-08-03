@@ -9,7 +9,7 @@ let tokenExpiry = 0;
  * Mint OAuth 2.0 GCP Bearer token using Service Account JSON (gcp_key.json).
  * Caches token in memory for 1 hour.
  */
-async function getGcpAccessToken() {
+export async function getGcpAccessToken() {
   const now = Math.floor(Date.now() / 1000);
   if (cachedToken && tokenExpiry > now + 300) {
     return cachedToken;
@@ -144,6 +144,24 @@ export async function generateContentViaVertexAi({ model = 'gemini-2.5-flash', c
 
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    // Extract real usageMetadata from Vertex AI response
+    if (data.usageMetadata) {
+      const { promptTokenCount = 0, candidatesTokenCount = 0, totalTokenCount = 0 } = data.usageMetadata;
+      console.log(`[VERTEX AI TELEMETRY] ${model} Tokens - Prompt: ${promptTokenCount} | Output: ${candidatesTokenCount} | Total: ${totalTokenCount}`);
+      
+      if (generationConfig.generationId) {
+        import('../studio/productionLedgerService.js').then(({ productionLedgerService }) => {
+          productionLedgerService.recordGeminiUsage({
+            generationId: generationConfig.generationId,
+            model,
+            inputTokens: promptTokenCount,
+            outputTokens: candidatesTokenCount
+          }).catch(() => {});
+        });
+      }
+    }
+
     if (text && text.trim().length > 0) {
       console.log(`[VERTEX AI GEMINI] ✅ ${model} generateContent succeeded via Vertex AI!`);
       return text;

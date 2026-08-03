@@ -52,6 +52,19 @@ function audioFilter(_req, file, cb) {
   }
 }
 
+function imageFilter(_req, file, cb) {
+  const mime = (file.mimetype || '').toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (
+    mime.startsWith('image/') ||
+    ['.png', '.jpg', '.jpeg', '.webp', '.svg'].includes(ext)
+  ) {
+    cb(null, true);
+  } else {
+    cb(new AppError(`Unsupported image type: ${file.mimetype}.`, 400));
+  }
+}
+
 export const uploadVideo = multer({
   storage,
   fileFilter: videoFilter,
@@ -62,4 +75,10 @@ export const uploadAudio = multer({
   storage,
   fileFilter: audioFilter,
   limits: { fileSize: 100 * 1024 * 1024 },
+});
+
+export const uploadAsset = multer({
+  storage,
+  fileFilter: imageFilter,
+  limits: { fileSize: 20 * 1024 * 1024 },
 });

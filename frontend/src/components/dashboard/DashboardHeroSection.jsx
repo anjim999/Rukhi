@@ -1,5 +1,6 @@
 import React from 'react';
-import { Volume2, Sparkles, Video, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Volume2, Sparkles, Video, ArrowRight, Clapperboard } from 'lucide-react';
 
 const TELUGU_CAPTION_WORDS = [
   { text: 'Mee', highlight: false },
@@ -16,6 +17,7 @@ export default function DashboardHeroSection({
   openAuthModal,
   scrollToUpload,
 }) {
+  const navigate = useNavigate();
   return (
     <div className="rounded-3xl bg-gradient-to-b from-slate-100 to-slate-50 dark:from-zinc-900/80 dark:to-zinc-900/40 border border-slate-200 dark:border-zinc-800 p-6 sm:p-10 text-center space-y-6 sm:space-y-8 relative overflow-hidden shadow-xl backdrop-blur-md">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-yellow-500/10 dark:bg-yellow-400/5 rounded-full blur-3xl pointer-events-none" />
@@ -82,6 +84,14 @@ export default function DashboardHeroSection({
 
       {/* CTA Actions */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-1 sm:pt-2">
+        <button
+          onClick={() => navigate('/studio')}
+          className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/30 hover:brightness-110 active:scale-95 transition cursor-pointer border border-amber-400/40"
+        >
+          <Clapperboard className="w-4 h-4 text-slate-950" />
+          <span>🔥 Rukhi AI Film Studio</span>
+        </button>
+
         <button
           onClick={() => setShowFacelessModal(true)}
           className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-purple-600/30 hover:brightness-110 active:scale-95 transition cursor-pointer border border-purple-400/30"

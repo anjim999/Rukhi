@@ -18,6 +18,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import SettingsPage from './pages/SettingsPage';
+import StudioPage from './pages/StudioPage';
 
 import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/legal/TermsOfServicePage';
@@ -54,7 +55,7 @@ function MainApp() {
   const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem('auto_captions_tour_seen');
+    const hasSeenTour = localStorage.getItem('rukhi_studio_tour_seen');
     if (!hasSeenTour) {
       setTourOpen(true);
     }
@@ -76,6 +77,7 @@ function MainApp() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/studio" element={<StudioPage />} />
 
           {/* Legal Compliance Routes for Razorpay / Cashfree / Stripe Approval */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />

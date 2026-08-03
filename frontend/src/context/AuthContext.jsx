@@ -5,17 +5,35 @@ import axiosClient from '../api/axiosClient';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('auto_captions_token') || null);
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem('rukhi_studio_cached_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch (_e) {
+      return null;
+    }
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('rukhi_studio_token') || null);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalView, setAuthModalView] = useState('login'); // 'login' | 'register' | 'forgot'
+
+  // Keep cached user profile synced in localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('rukhi_studio_cached_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('rukhi_studio_cached_user');
+    }
+  }, [user]);
 
   // Load current user profile on startup if token exists
   useEffect(() => {
     async function loadUser() {
       if (!token) {
         setLoading(false);
+        setUser(null);
+        localStorage.removeItem('rukhi_studio_cached_user');
         return;
       }
       try {
@@ -28,10 +46,9 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.error('Failed to load user profile during startup:', err);
         const status = err.response?.status;
-        // Only log out if token is explicitly invalid or expired (401 / 403)
-        // If server is restarting (502 / 503 / 504 / network drop), retain token so user stays logged in for 60 days!
         if (status === 401 || status === 403) {
-          localStorage.removeItem('auto_captions_token');
+          localStorage.removeItem('rukhi_studio_token');
+          localStorage.removeItem('rukhi_studio_cached_user');
           setToken(null);
           setUser(null);
         }
@@ -57,7 +74,7 @@ export function AuthProvider({ children }) {
     setUser(validUser);
     if (userToken) {
       setToken(userToken);
-      localStorage.setItem('auto_captions_token', userToken);
+      localStorage.setItem('rukhi_studio_token', userToken);
     }
     closeAuthModal();
     toast.success(message || `Welcome back, ${validUser.name || 'User'}!`);
@@ -152,7 +169,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('auto_captions_token');
+    localStorage.removeItem('rukhi_studio_token');
+    localStorage.removeItem('rukhi_studio_cached_user');
     setToken(null);
     setUser(null);
     toast.success('Logged out successfully.');

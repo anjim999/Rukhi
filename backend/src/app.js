@@ -14,6 +14,8 @@ import brollRoutes from './routes/broll.routes.js';
 import supportRoutes from './routes/support.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import studioRoutes from './routes/studio.routes.js';
+import studioLedgerRoutes from './routes/studioLedger.routes.js';
 import { initAutoCleanupDaemon } from './services/media/cleanupService.js';
 import './workers/mediaWorker.js';
 
@@ -131,6 +133,9 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/v1/studio', studioRoutes);
+app.use('/api/studio/ledger', studioLedgerRoutes);
+app.use('/api/studio', studioRoutes);
 
 // -------------------------------------------------------------
 // 2. MOUNT REACT FRONTEND STATIC BUNDLE & SPA FALLBACK

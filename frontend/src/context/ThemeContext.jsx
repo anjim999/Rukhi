@@ -4,13 +4,13 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('auto_captions_theme');
+    const saved = localStorage.getItem('rukhi_studio_theme');
     if (saved) return saved;
-    return 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'dark';
   });
 
   useEffect(() => {
-    localStorage.setItem('auto_captions_theme', theme);
+    localStorage.setItem('rukhi_studio_theme', theme);
     const root = document.documentElement;
     if (theme === 'light') {
       root.classList.add('light');

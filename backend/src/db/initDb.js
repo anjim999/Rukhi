@@ -130,6 +130,124 @@ export async function initDb() {
     `);
 
     await query(`
+      CREATE TABLE IF NOT EXISTS studio_series (
+          id UUID PRIMARY KEY,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          title VARCHAR(255) NOT NULL,
+          genre VARCHAR(100) DEFAULT 'Drama',
+          canon_rules JSONB DEFAULT '[]'::jsonb,
+          visual_style JSONB DEFAULT '{}'::jsonb,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS studio_characters (
+          id UUID PRIMARY KEY,
+          series_id UUID REFERENCES studio_series(id) ON DELETE CASCADE,
+          name VARCHAR(255) NOT NULL,
+          age INTEGER,
+          personality TEXT,
+          version INTEGER DEFAULT 1,
+          voice_profile JSONB DEFAULT '{}'::jsonb,
+          reference_images JSONB DEFAULT '[]'::jsonb,
+          embeddings JSONB DEFAULT '{}'::jsonb,
+          behavior_traits JSONB DEFAULT '[]'::jsonb,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS studio_locations (
+          id UUID PRIMARY KEY,
+          series_id UUID REFERENCES studio_series(id) ON DELETE CASCADE,
+          name VARCHAR(255) NOT NULL,
+          location_type VARCHAR(100) DEFAULT 'Interior',
+          reference_images JSONB DEFAULT '[]'::jsonb,
+          lighting_preset VARCHAR(100) DEFAULT 'Natural',
+          environment_specs JSONB DEFAULT '{}'::jsonb,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS studio_scene_graphs (
+          id UUID PRIMARY KEY,
+          series_id UUID REFERENCES studio_series(id) ON DELETE CASCADE,
+          episode_number INTEGER DEFAULT 1,
+          scene_number INTEGER DEFAULT 1,
+          title VARCHAR(255) NOT NULL,
+          characters_json JSONB DEFAULT '[]'::jsonb,
+          location_id UUID REFERENCES studio_locations(id) ON DELETE SET NULL,
+          camera_preset VARCHAR(100) DEFAULT '35mm Cinematic',
+          lighting_preset VARCHAR(100) DEFAULT 'Natural Soft',
+          dialogue_json JSONB DEFAULT '[]'::jsonb,
+          emotion_state VARCHAR(100) DEFAULT 'Neutral',
+          continuity_references JSONB DEFAULT '{}'::jsonb,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS studio_production_manifests (
+          id UUID PRIMARY KEY,
+          scene_id UUID REFERENCES studio_scene_graphs(id) ON DELETE CASCADE,
+          compiled_brief JSONB NOT NULL,
+          preflight_status VARCHAR(50) DEFAULT 'pending',
+          preflight_report JSONB DEFAULT '{}'::jsonb,
+          generation_status VARCHAR(50) DEFAULT 'draft',
+          output_video_url TEXT,
+          quality_score NUMERIC(5, 2) DEFAULT 0.00,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS studio_generation_costs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          generation_id VARCHAR(64) UNIQUE NOT NULL,
+          user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          user_email VARCHAR(255),
+          project_id VARCHAR(255),
+          series_id VARCHAR(255),
+          feature_type VARCHAR(50) DEFAULT 'studio_render',
+          episode INTEGER DEFAULT 1,
+          scene INTEGER DEFAULT 1,
+          gemini_model VARCHAR(100),
+          gemini_input_tokens INTEGER DEFAULT 0,
+          gemini_output_tokens INTEGER DEFAULT 0,
+          gemini_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          imagen_model VARCHAR(100),
+          imagen_requested INTEGER DEFAULT 0,
+          imagen_generated INTEGER DEFAULT 0,
+          imagen_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          veo_model VARCHAR(100),
+          veo_clips INTEGER DEFAULT 0,
+          veo_seconds NUMERIC(10, 2) DEFAULT 0,
+          veo_resolution VARCHAR(50) DEFAULT '1080p',
+          veo_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          stt_provider VARCHAR(50),
+          stt_minutes NUMERIC(10, 2) DEFAULT 0,
+          stt_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          dubbing_minutes NUMERIC(10, 2) DEFAULT 0,
+          dubbing_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          voice_clone_samples INTEGER DEFAULT 0,
+          tts_characters INTEGER DEFAULT 0,
+          voice_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          storage_mb NUMERIC(10, 2) DEFAULT 0,
+          storage_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          total_cost_usd NUMERIC(12, 6) DEFAULT 0,
+          total_cost_inr NUMERIC(12, 2) DEFAULT 0,
+          status VARCHAR(50) DEFAULT 'COMPLETED',
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
       INSERT INTO users (id, name, email)
       VALUES ('00000000-0000-0000-0000-000000000001', 'Developer', 'dev@autocaptions.local')
       ON CONFLICT (email) DO NOTHING;

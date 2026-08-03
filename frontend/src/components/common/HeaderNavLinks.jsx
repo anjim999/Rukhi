@@ -4,6 +4,7 @@ import { FolderOpen, Wand2, Sparkles } from 'lucide-react';
 export default function HeaderNavLinks({
   isDashboard,
   isAITools,
+  isStudio,
   navigate,
   setShowPricingModal,
   setShowGuideModal,
@@ -32,6 +33,21 @@ export default function HeaderNavLinks({
       >
         <Wand2 className="w-4 h-4 text-yellow-500" />
         <span>AI Studio</span>
+      </button>
+
+      <button
+        onClick={() => navigate('/studio')}
+        className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-extrabold transition-all cursor-pointer border ${
+          isStudio
+            ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-500 border-amber-500/40 shadow-md shadow-amber-500/10'
+            : 'border-transparent text-slate-600 dark:text-zinc-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
+        }`}
+      >
+        <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+        <span>Rukhi Film Studio</span>
+        <span className="bg-amber-500 text-black text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full">
+          HOT
+        </span>
       </button>
 
       <button

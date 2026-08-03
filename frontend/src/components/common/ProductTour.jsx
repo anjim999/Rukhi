@@ -43,7 +43,7 @@ export default function ProductTour({ isOpen, onClose, onOpenGuide }) {
 
   const handleNext = () => {
     if (isLastStep) {
-      localStorage.setItem('auto_captions_tour_seen', 'true');
+      localStorage.setItem('rukhi_studio_tour_seen', 'true');
       onClose();
     } else {
       setCurrentStep((prev) => prev + 1);
@@ -70,7 +70,7 @@ export default function ProductTour({ isOpen, onClose, onOpenGuide }) {
 
           <button
             onClick={() => {
-              localStorage.setItem('auto_captions_tour_seen', 'true');
+              localStorage.setItem('rukhi_studio_tour_seen', 'true');
               onClose();
             }}
             className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition"

@@ -343,3 +343,33 @@ auto_captions/
 - **Output Storage Bucket**: `gs://rukhi-bucket`
 - **Authentication**: GCP OAuth 2.0 Bearer Access Token minted from Service Account JSON (`rukhi-video@ai-quiz-generator-479518.iam.gserviceaccount.com`).
 - **Master Video Export**: FFmpeg 20 Mbps H.264 Ultra-HD video & 320 kbps studio-grade audio remuxing.
+
+---
+
+## 18. Rukhi Production Cost Ledger & Per-User Telemetry Engine
+
+- **Service Module**: [`backend/src/services/studio/productionLedgerService.js`](file:///home/anji/Documents/auto_captions/backend/src/services/studio/productionLedgerService.js)
+- **Pricing Configuration**: [`backend/src/config/pricingConfig.js`](file:///home/anji/Documents/auto_captions/backend/src/config/pricingConfig.js)
+- **Database Table**: `studio_generation_costs` (PostgreSQL)
+- **Admin Dashboard API**: `GET /api/studio/ledger/summary`
+
+### Architectural Capabilities:
+1. **Configurable Model Pricing Engine**: Tracks Gemini 2.5 Flash/Pro token rates ($0.075/$0.30 per 1M tokens), Imagen 3 per-image rate ($0.03/img), Veo 3 video second rate ($0.03/s), STT transcription rates (Deepgram $0.0043/min), Audio Dubbing isolation rates ($0.015/min), Voice Cloning & TTS rates, and Storage.
+2. **Per-User Telemetry Ledger**: Records every generation run with `generation_id`, `user_id`, `user_email`, real token counts, image counts, video seconds, and exact calculated USD and INR costs.
+3. **Admin Telemetry Dashboard**: Provides real-time aggregation of total daily spending, model breakdowns, per-user cost rankings, and recent generation logs.
+
+---
+
+## 19. Rukhi Studio AI Hollywood Production Pipeline
+
+- **Orchestrator Service**: [`backend/src/services/studio/directorOrchestratorService.js`](file:///home/anji/Documents/auto_captions/backend/src/services/studio/directorOrchestratorService.js)
+- **Vertex AI Engine**: [`backend/src/services/studio/vertexService.js`](file:///home/anji/Documents/auto_captions/backend/src/services/studio/vertexService.js)
+
+### Production Workflow:
+1. **Pinecone Vector RAG Query**: Retrieves past episode story memories from Pinecone index `rukhi-film-engine`.
+2. **7-Department Brief Compilation**: Compiles cinematography, story, performance, lighting, editing, sound, and realism specs.
+3. **Vertex AI Director Manifest**: Generates Gemini 2.5 Flash director prompt expansions via GCP Service Account OAuth 2.0 (`aiplatform.googleapis.com`), covered 100% by GCP $300 Credits.
+4. **Preflight Validator**: Checks character reference keyframes, location bounds, and 180° camera grammar.
+5. **Veo 3 & Resilient Image Generation**: Renders scene video clips and character candidate keyframes.
+6. **Automatic Telemetry Finalization**: Persists final render duration, token metrics, and total cost to the Production Cost Ledger.
+

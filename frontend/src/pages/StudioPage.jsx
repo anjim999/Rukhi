@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import { BookOpen, Users, Landmark, Clapperboard, Film } from 'lucide-react';
 import {
   listStudioSeries,
   createStudioSeries,
   listStudioCharacters,
   createStudioCharacter,
+  updateStudioCharacter,
+  deleteStudioCharacter,
+  bulkDeleteStudioCharacters,
   listStudioLocations,
   createStudioLocation,
+  updateStudioLocation,
+  deleteStudioLocation,
+  bulkDeleteStudioLocations,
   preflightCheckStudio,
   orchestrateStudioScene,
   listStudioScenes,
@@ -117,14 +125,18 @@ export default function StudioPage() {
 
   const handleCreateSeries = async (payload) => {
     setLoading(true);
+    console.log('[RUKHI STUDIO LOG] 🎬 Creating new Series Bible:', payload.title);
     try {
       const res = await createStudioSeries(payload);
       const newSeries = res.data || res;
       setSeriesList([newSeries, ...seriesList]);
       setSelectedSeries(newSeries);
       setActiveTab('characters');
+      toast.success(`Series Bible "${newSeries.title}" created successfully!`);
+      console.log('[RUKHI STUDIO LOG] ✅ Series Bible created:', newSeries.id);
     } catch (err) {
-      alert('Failed to create Series Bible: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to create Series Bible:', err);
+      toast.error('Failed to create Series Bible: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -132,12 +144,16 @@ export default function StudioPage() {
 
   const handleCreateCharacter = async (payload) => {
     setLoading(true);
+    console.log('[RUKHI STUDIO LOG] 🎭 Saving Master Character DNA:', payload.name);
     try {
       const res = await createStudioCharacter(payload);
       const newChar = res.data || res;
       setCharacters([...characters, newChar]);
+      toast.success(`Character DNA "${newChar.name}" locked & saved!`);
+      console.log('[RUKHI STUDIO LOG] ✅ Character saved successfully:', newChar.id);
     } catch (err) {
-      alert('Failed to save character DNA: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to save character DNA:', err);
+      toast.error('Failed to save character DNA: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -145,43 +161,59 @@ export default function StudioPage() {
 
   const handleUpdateCharacter = async (id, payload) => {
     setLoading(true);
+    console.log('[RUKHI STUDIO LOG] ✏️ Updating Character DNA:', id, payload.name);
     try {
       const res = await updateStudioCharacter(id, payload);
       const updated = res.data || res;
       setCharacters(characters.map((c) => (c.id === id ? updated : c)));
+      toast.success(`Character DNA "${updated.name}" updated successfully!`);
+      console.log('[RUKHI STUDIO LOG] ✅ Character updated:', id);
     } catch (err) {
-      alert('Failed to update character: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to update character:', err);
+      toast.error('Failed to update character: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteCharacter = async (id) => {
+    console.log('[RUKHI STUDIO LOG] 🗑️ Deleting Character:', id);
     try {
       await deleteStudioCharacter(id);
       setCharacters(characters.filter((c) => c.id !== id));
+      toast.success('Character DNA removed from vault');
+      console.log('[RUKHI STUDIO LOG] ✅ Character deleted:', id);
     } catch (err) {
-      alert('Failed to delete character: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to delete character:', err);
+      toast.error('Failed to delete character: ' + err.message);
     }
   };
 
   const handleBulkDeleteCharacters = async (ids) => {
+    console.log('[RUKHI STUDIO LOG] 🗑️ Bulk deleting characters:', ids.length);
     try {
       await bulkDeleteStudioCharacters(ids);
       setCharacters(characters.filter((c) => !ids.includes(c.id)));
+      toast.success(`Deleted ${ids.length} character(s) from vault`);
+      console.log('[RUKHI STUDIO LOG] ✅ Bulk delete characters completed');
     } catch (err) {
-      alert('Failed to delete selected characters: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to bulk delete characters:', err);
+      toast.error('Failed to delete selected characters: ' + err.message);
     }
   };
 
   const handleCreateLocation = async (payload) => {
     setLoading(true);
+    console.log('[RUKHI STUDIO LOG] 🏛️ Registering Set Location:', payload.name);
     try {
       const res = await createStudioLocation(payload);
       const newLoc = res.data || res;
       setLocations([...locations, newLoc]);
+      toast.success(`Set Location "${newLoc.name}" registered!`);
+      console.log('[RUKHI STUDIO LOG] ✅ Location registered:', newLoc.id);
     } catch (err) {
-      alert('Failed to save location asset: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to save location asset:', err);
+      toast.error('Failed to save location asset: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -189,50 +221,70 @@ export default function StudioPage() {
 
   const handleUpdateLocation = async (id, payload) => {
     setLoading(true);
+    console.log('[RUKHI STUDIO LOG] ✏️ Updating Set Location:', id, payload.name);
     try {
       const res = await updateStudioLocation(id, payload);
       const updated = res.data || res;
       setLocations(locations.map((l) => (l.id === id ? updated : l)));
+      toast.success(`Set Location "${updated.name}" updated!`);
+      console.log('[RUKHI STUDIO LOG] ✅ Location updated:', id);
     } catch (err) {
-      alert('Failed to update location: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to update location:', err);
+      toast.error('Failed to update location: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteLocation = async (id) => {
+    console.log('[RUKHI STUDIO LOG] 🗑️ Deleting Set Location:', id);
     try {
       await deleteStudioLocation(id);
       setLocations(locations.filter((l) => l.id !== id));
+      toast.success('Set location removed from catalog');
+      console.log('[RUKHI STUDIO LOG] ✅ Location deleted:', id);
     } catch (err) {
-      alert('Failed to delete location: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to delete location:', err);
+      toast.error('Failed to delete location: ' + err.message);
     }
   };
 
   const handleBulkDeleteLocations = async (ids) => {
+    console.log('[RUKHI STUDIO LOG] 🗑️ Bulk deleting locations:', ids.length);
     try {
       await bulkDeleteStudioLocations(ids);
       setLocations(locations.filter((l) => !ids.includes(l.id)));
+      toast.success(`Deleted ${ids.length} set location(s)`);
+      console.log('[RUKHI STUDIO LOG] ✅ Bulk delete locations completed');
     } catch (err) {
-      alert('Failed to delete selected locations: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to bulk delete locations:', err);
+      toast.error('Failed to delete selected locations: ' + err.message);
     }
   };
 
   const handleDeleteScene = async (id) => {
+    console.log('[RUKHI STUDIO LOG] 🗑️ Deleting Scene clip:', id);
     try {
       await deleteStudioScene(id);
       setScenes(scenes.filter((s) => s.id !== id));
+      toast.success('Scene clip deleted');
+      console.log('[RUKHI STUDIO LOG] ✅ Scene clip deleted:', id);
     } catch (err) {
-      alert('Failed to delete scene clip: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to delete scene clip:', err);
+      toast.error('Failed to delete scene clip: ' + err.message);
     }
   };
 
   const handleBulkDeleteScenes = async (ids) => {
+    console.log('[RUKHI STUDIO LOG] 🗑️ Bulk deleting scene clips:', ids.length);
     try {
       await bulkDeleteStudioScenes(ids);
       setScenes(scenes.filter((s) => !ids.includes(s.id)));
+      toast.success(`Deleted ${ids.length} scene clip(s)`);
+      console.log('[RUKHI STUDIO LOG] ✅ Bulk delete scenes completed');
     } catch (err) {
-      alert('Failed to delete selected scene clips: ' + err.message);
+      console.error('[RUKHI STUDIO ERROR] Failed to bulk delete scene clips:', err);
+      toast.error('Failed to delete selected scene clips: ' + err.message);
     }
   };
 
@@ -251,64 +303,69 @@ export default function StudioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-sans selection:bg-amber-500 selection:text-slate-950 transition-colors duration-300">
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-800 mb-8 overflow-x-auto">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto">
           <button
             onClick={() => setActiveTab('series')}
             className={`px-6 py-3.5 text-sm font-semibold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'series'
-                ? 'border-amber-500 text-amber-300 bg-amber-500/5'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-300 bg-amber-500/10'
+                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <span>📜</span> Series Bible & Canon
+            <BookOpen className="w-4 h-4" />
+            <span>Series Bible & Canon</span>
           </button>
 
           <button
             onClick={() => setActiveTab('characters')}
             className={`px-6 py-3.5 text-sm font-semibold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'characters'
-                ? 'border-amber-500 text-amber-300 bg-amber-500/5'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-300 bg-amber-500/10'
+                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <span>👤</span> Character DNA Vault
+            <Users className="w-4 h-4" />
+            <span>Character DNA Vault</span>
           </button>
 
           <button
             onClick={() => setActiveTab('locations')}
             className={`px-6 py-3.5 text-sm font-semibold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'locations'
-                ? 'border-amber-500 text-amber-300 bg-amber-500/5'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-300 bg-amber-500/10'
+                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <span>🏛️</span> Location Catalog
+            <Landmark className="w-4 h-4" />
+            <span>Location Catalog</span>
           </button>
 
           <button
             onClick={() => setActiveTab('director')}
             className={`px-6 py-3.5 text-sm font-semibold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'director'
-                ? 'border-amber-500 text-amber-300 bg-amber-500/5'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-300 bg-amber-500/10'
+                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <span>🎬</span> AI Director Timeline
+            <Clapperboard className="w-4 h-4" />
+            <span>AI Director Timeline</span>
           </button>
 
           <button
             onClick={() => setActiveTab('gallery')}
             className={`px-6 py-3.5 text-sm font-semibold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'gallery'
-                ? 'border-amber-500 text-amber-300 bg-amber-500/5'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-300 bg-amber-500/10'
+                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <span>🎞️</span> Episode & Scene Gallery ({scenes.length})
+            <Film className="w-4 h-4" />
+            <span>Episode & Scene Gallery ({scenes.length})</span>
           </button>
         </div>
 

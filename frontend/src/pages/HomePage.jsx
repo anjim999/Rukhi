@@ -22,7 +22,7 @@ import HomePageHero from '../components/home/HomePageHero';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { openAuthModal } = useAuth();
+  const { user, openAuthModal } = useAuth();
 
   const handleStartCreating = () => {
     navigate('/dashboard');
@@ -34,16 +34,16 @@ export default function HomePage() {
 
       {/* LIVE STUDIO DEMO PREVIEW CARD */}
       <section className="px-4 max-w-6xl mx-auto pb-24">
-        <div className="relative rounded-3xl bg-slate-900 dark:bg-zinc-900 border border-slate-800 dark:border-zinc-800 p-4 sm:p-8 shadow-2xl overflow-hidden group">
+        <div className="relative rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 sm:p-8 shadow-2xl overflow-hidden group">
           {/* Header */}
-          <div className="flex items-center justify-between pb-6 mb-6 border-b border-zinc-800">
+          <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
               <div className="w-3.5 h-3.5 rounded-full bg-red-500/80" />
               <div className="w-3.5 h-3.5 rounded-full bg-yellow-500/80" />
               <div className="w-3.5 h-3.5 rounded-full bg-green-500/80" />
-              <span className="ml-2 text-xs font-mono font-bold text-zinc-400">AutoCaptions Studio Pro — Live Player Preview</span>
+              <span className="ml-2 text-xs font-mono font-bold text-slate-600 dark:text-zinc-400">rukhi.in Studio Pro — Live Player Preview</span>
             </div>
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-xs font-extrabold">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 text-xs font-extrabold">
               <Sparkles className="w-3.5 h-3.5" />
               <span>HTML5 Canvas 60FPS Sync</span>
             </div>
@@ -53,7 +53,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Reel Video Container (9:16 Mockup) */}
             <div className="lg:col-span-5 flex justify-center">
-              <div className="relative w-[280px] sm:w-[320px] h-[500px] rounded-3xl bg-zinc-950 border-4 border-zinc-800 shadow-2xl overflow-hidden flex flex-col justify-between p-6">
+              <div className="relative w-[280px] sm:w-[320px] h-[500px] rounded-3xl bg-zinc-950 border-4 border-slate-300 dark:border-zinc-800 shadow-2xl overflow-hidden flex flex-col justify-between p-6">
                 
                 {/* Top Banner Hook Mock */}
                 <div className="w-full bg-yellow-400 text-black font-black text-center py-2 px-3 rounded-xl shadow-lg transform -rotate-1 text-sm tracking-tight border-2 border-black">
@@ -90,51 +90,51 @@ export default function HomePage() {
             {/* Feature Highlights beside Preview */}
             <div className="lg:col-span-7 space-y-6 text-left">
               <div className="space-y-2">
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
                   Designed for Modern Short-Form Content Creators
                 </h3>
-                <p className="text-sm sm:text-base text-zinc-400">
-                  Stop spending hours manually placing subtitles and syncing audio in traditional video editors. Auto Captions AI handles everything automatically.
+                <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400">
+                  Stop spending hours manually placing subtitles and syncing audio in traditional video editors. rukhi.in AI handles everything automatically.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-2">
-                  <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/80 border border-slate-200 dark:border-zinc-800 space-y-2">
+                  <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-600 dark:text-yellow-400">
                     <Zap className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-sm text-white">Microsecond Sync Engine</h4>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">Microsecond Sync Engine</h4>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                     Continuous monotonic timing repair prevents text overlap, micro-gaps, and boundary flickers.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/80 border border-slate-200 dark:border-zinc-800 space-y-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
                     <Film className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-sm text-white">Stock B-Roll Auto-Insert</h4>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">Stock B-Roll Auto-Insert</h4>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                     AI automatically analyzes speech concepts to insert stock visual video clips from Pexels & Pixabay.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-2">
-                  <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/80 border border-slate-200 dark:border-zinc-800 space-y-2">
+                  <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-600 dark:text-yellow-400">
                     <Globe className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-sm text-white">Telugu, Hindi & English</h4>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">Telugu, Hindi & English</h4>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                     Native Devanagari script, Telugu script, and Latin script Google Fonts with live font search popovers.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/80 border border-slate-200 dark:border-zinc-800 space-y-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
                     <Languages className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-sm text-white">Multilingual Voice Dubbing</h4>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">Multilingual Voice Dubbing</h4>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                     Translate speech and generate multi-track neural voice dubs with pitch and rate controls.
                   </p>
                 </div>
@@ -275,13 +275,13 @@ export default function HomePage() {
 
       {/* FINAL CALL TO ACTION */}
       <section className="py-24 px-4 max-w-5xl mx-auto text-center space-y-8">
-        <div className="p-10 sm:p-16 rounded-3xl bg-gradient-to-tr from-slate-900 via-zinc-900 to-zinc-950 border border-zinc-800 text-white shadow-2xl space-y-6 relative overflow-hidden">
+        <div className="p-10 sm:p-16 rounded-3xl bg-gradient-to-tr from-amber-500/10 via-amber-500/5 to-white dark:from-slate-900 dark:via-zinc-900 dark:to-zinc-950 border border-amber-500/30 dark:border-zinc-800 text-slate-900 dark:text-white shadow-2xl space-y-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
 
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tight relative z-10">
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight relative z-10 text-slate-900 dark:text-white">
             Ready to Build Next-Level Viral Reels?
           </h2>
-          <p className="text-zinc-400 max-w-xl mx-auto text-base relative z-10">
+          <p className="text-slate-600 dark:text-zinc-400 max-w-xl mx-auto text-base relative z-10">
             Start creating broadcast-grade kinetic captions and AI-powered video shorts today.
           </p>
 
@@ -305,13 +305,22 @@ export default function HomePage() {
             <div className="w-6 h-6 rounded-lg bg-yellow-500 text-black font-black flex items-center justify-center text-xs">
               <Sparkles className="w-3.5 h-3.5 fill-black" />
             </div>
-            <span className="font-bold text-slate-900 dark:text-white text-sm">AutoCaptions AI</span>
+            <span className="font-bold text-slate-900 dark:text-white text-sm">rukhi<span className="text-yellow-500">.in</span> Studio</span>
           </div>
-          <p>© {new Date().getFullYear()} AutoCaptions AI SaaS Engine. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} rukhi.in AI Studio Engine. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <button onClick={handleStartCreating} className="hover:text-yellow-500 transition">Studio</button>
-            <button onClick={() => openAuthModal('login')} className="hover:text-yellow-500 transition">Sign In</button>
-            <button onClick={() => openAuthModal('register')} className="hover:text-yellow-500 transition">Get Started</button>
+            {user ? (
+              <>
+                <button onClick={() => navigate('/dashboard')} className="hover:text-yellow-500 transition cursor-pointer">Dashboard</button>
+                <button onClick={() => navigate('/ai-studio')} className="hover:text-yellow-500 transition cursor-pointer">AI Caption Studio</button>
+                <button onClick={() => navigate('/studio')} className="hover:text-yellow-500 transition cursor-pointer font-bold text-amber-500">Rukhi Film Studio</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => openAuthModal('login')} className="hover:text-yellow-500 transition cursor-pointer">Sign In</button>
+                <button onClick={() => openAuthModal('register')} className="hover:text-yellow-500 transition cursor-pointer">Get Started Free</button>
+              </>
+            )}
           </div>
         </div>
       </footer>

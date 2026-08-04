@@ -41,9 +41,9 @@ export default function DashboardHeroSection({
       </div>
 
       {/* Word-by-word Kinetic Caption Preview */}
-      <div className="max-w-md mx-auto my-4 sm:my-6 p-4 sm:p-6 rounded-2xl bg-black/80 border border-zinc-800 shadow-2xl space-y-3 sm:space-y-4 backdrop-blur">
-        <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 border-b border-zinc-800 pb-2">
-          <span className="flex items-center gap-1.5 text-yellow-400 font-bold">
+      <div className="max-w-md mx-auto my-4 sm:my-6 p-4 sm:p-6 rounded-2xl bg-white dark:bg-black/80 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-3 sm:space-y-4 backdrop-blur">
+        <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-zinc-400 border-b border-slate-200 dark:border-zinc-800 pb-2">
+          <span className="flex items-center gap-1.5 text-yellow-600 dark:text-yellow-400 font-bold">
             <Volume2 className="w-3.5 h-3.5 animate-pulse" /> Audio Sync
           </span>
           <span>Tanglish & Telugu AI</span>
@@ -57,10 +57,10 @@ export default function DashboardHeroSection({
                 key={index}
                 className={`text-xl sm:text-3xl font-black tracking-wide transition-all duration-300 ${
                   isActive
-                    ? 'scale-110 text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]'
+                    ? 'scale-110 text-yellow-600 dark:text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]'
                     : w.highlight
-                    ? 'text-yellow-500/90'
-                    : 'text-zinc-400'
+                    ? 'text-yellow-600/90 dark:text-yellow-500/90'
+                    : 'text-slate-500 dark:text-zinc-400'
                 }`}
               >
                 {w.text}
@@ -69,14 +69,14 @@ export default function DashboardHeroSection({
           })}
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-semibold text-zinc-400 pt-2 border-t border-zinc-800">
-          <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-semibold text-slate-600 dark:text-zinc-400 pt-2 border-t border-slate-200 dark:border-zinc-800">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
             Tanglish
           </span>
-          <span className="px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+          <span className="px-2.5 py-0.5 rounded-full bg-yellow-500/10 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30">
             Actual export · word-by-word
           </span>
-          <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
             Audio
           </span>
         </div>

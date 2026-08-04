@@ -200,21 +200,21 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/80 backdrop-blur-md p-4 sm:p-6 md:p-8 flex items-center justify-center min-h-screen">
-      <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col max-h-[92vh] my-auto">
+      <div className="relative w-full max-w-6xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-slate-900 dark:text-white flex flex-col max-h-[92vh] my-auto">
         {/* Top Header */}
-        <div className="shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-800 bg-slate-950/80">
+        <div className="shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
               <Sparkles className="w-6 h-6 fill-amber-400" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-white">Choose Your rukhi.in Startup Plan</h2>
-              <p className="text-xs text-slate-400">Unlock Auto-Captions, AI Video Reels (Veo 3.1), Multi-Format Switcher, and Voice Dubbing</p>
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Choose Your rukhi.in Startup Plan</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Unlock Auto-Captions, AI Video Reels (Veo 3.1), Multi-Format Switcher, and Voice Dubbing</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>
@@ -223,14 +223,14 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8">
           {error && (
-            <div className="mb-6 flex items-center gap-2 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+            <div className="mb-6 flex items-center gap-2 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-6 flex items-center gap-2 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+            <div className="mb-6 flex items-center gap-2 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm">
               <ShieldCheck className="w-5 h-5 shrink-0" />
               <span>{successMessage}</span>
             </div>
@@ -242,8 +242,8 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
                 key={plan.id}
                 className={`relative flex flex-col justify-between p-5 rounded-3xl border transition-all duration-300 ${
                   plan.popular
-                    ? 'bg-gradient-to-b from-indigo-950/70 to-slate-900 border-indigo-500/50 shadow-xl shadow-indigo-500/10 scale-[1.02]'
-                    : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                    ? 'bg-gradient-to-b from-indigo-50/80 to-amber-50/50 dark:from-indigo-950/70 dark:to-slate-900 border-indigo-500/50 shadow-xl shadow-indigo-500/10 scale-[1.02]'
+                    : 'bg-slate-50/80 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
                 {plan.popular && (
@@ -253,22 +253,22 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
                 )}
 
                 <div>
-                  <h3 className="text-base font-bold text-white mb-1">{plan.name}</h3>
-                  <p className="text-[11px] text-slate-400 mb-3 min-h-[30px] leading-snug">{plan.description}</p>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">{plan.name}</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 min-h-[30px] leading-snug">{plan.description}</p>
 
                   <div className="flex items-baseline gap-1 mb-3">
-                    <span className="text-2xl font-extrabold text-white">{plan.price}</span>
-                    <span className="text-[11px] text-slate-400 font-medium">{plan.period}</span>
+                    <span className="text-2xl font-extrabold text-slate-900 dark:text-white">{plan.price}</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{plan.period}</span>
                   </div>
 
-                  <div className="py-1.5 px-2.5 rounded-xl bg-slate-900 border border-slate-800 mb-4 inline-block">
-                    <span className="text-[11px] font-bold text-indigo-400">{plan.exports}</span>
+                  <div className="py-1.5 px-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 mb-4 inline-block shadow-sm">
+                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">{plan.exports}</span>
                   </div>
 
                   <div className="space-y-2.5 mb-5">
                     {plan.features.map((feat, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 leading-tight">
-                        <div className="mt-0.5 p-0.5 rounded-full bg-emerald-500/20 text-emerald-400 shrink-0">
+                      <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
+                        <div className="mt-0.5 p-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
                           <Check className="w-2.5 h-2.5" />
                         </div>
                         <span>{feat}</span>
@@ -280,12 +280,12 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
                 <button
                   disabled={plan.isCurrent || loadingPlan === plan.id}
                   onClick={() => handleSelectPlan(plan.id)}
-                  className={`w-full py-2.5 rounded-xl font-bold text-[11px] transition-all shadow-md ${
+                  className={`w-full py-2.5 rounded-xl font-bold text-[11px] transition-all shadow-md cursor-pointer ${
                     plan.isCurrent
-                      ? 'bg-slate-800 text-slate-400 cursor-default'
+                      ? 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-default'
                       : plan.popular
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/25'
-                      : 'bg-white hover:bg-slate-200 text-slate-900'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-500/25'
+                      : 'bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900'
                   }`}
                 >
                   {loadingPlan === plan.id ? 'Processing...' : plan.isCurrent ? '✓ Current Plan' : plan.buttonText}
@@ -296,9 +296,9 @@ export default function PricingModal({ isOpen, onClose, user: propUser, onPlanUp
         </div>
 
         {/* Footer Info */}
-        <div className="shrink-0 px-8 py-4 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+        <div className="shrink-0 px-8 py-4 bg-slate-100 dark:bg-slate-950/90 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
             <span>Secure Cashfree Encrypted Checkout</span>
           </div>
           <span>Switch or upgrade plans anytime</span>

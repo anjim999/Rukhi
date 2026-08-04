@@ -38,92 +38,66 @@ CANONICAL HOLLYWOOD CINEMATOGRAPHY DIRECTIVES:
 ALWAYS return your orchestration output as strict JSON adhering to the specified schema.`;
 
 /**
- * Multi-Stage Resilient AI Candidate Image Engine (Lexica + Staggered Pollinations Base64 Pipeline)
+ * Multi-Stage Real AI Candidate Image Generation Engine (Staggered Real-Time Diffusion Base64 Pipeline)
  */
-async function fetchAiCandidatesAsBase64(promptText, count = 3, isLocation = false) {
+async function fetchAiCandidatesAsBase64(promptText, count = 1, isLocation = false) {
   const cleanPrompt = (promptText || 'cinematic portrait').trim();
   const encodedPrompt = encodeURIComponent(cleanPrompt);
-  console.log(`[RUKHI AI IMAGE ENGINE] Generating ${count} AI candidate variations for: "${cleanPrompt}"...`);
+  console.log(`[RUKHI AI IMAGE ENGINE] Generating ${count} real-time AI image variation(s) for: "${cleanPrompt}"...`);
 
   const labels = isLocation
     ? ['Wide Architectural Angle', 'Warm Tungsten Interior', 'Blue Hour Atmosphere']
     : ['Front Cinematic Portrait', 'Side Profile Lighting', 'Intense Hero Shot'];
 
-  // 1. Primary Provider: Lexica AI Search Engine (Instant 0-rate-limit high-res AI images)
-  try {
-    const lexicaUrl = `https://lexica.art/api/v1/search?q=${encodedPrompt}`;
-    const lexRes = await fetch(lexicaUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-      signal: AbortSignal.timeout(6000)
-    });
-
-    if (lexRes.ok) {
-      const lexData = await lexRes.json();
-      if (lexData?.images && lexData.images.length >= count) {
-        console.log(`[RUKHI AI IMAGE ENGINE] ✅ Lexica AI returned ${lexData.images.length} high-res AI images for "${cleanPrompt}"`);
-        const candidates = [];
-        for (let i = 0; i < count; i++) {
-          const imgObj = lexData.images[i];
-          const imgUrl = imgObj.srcSmall || imgObj.src;
-          try {
-            const bufRes = await fetch(imgUrl, { signal: AbortSignal.timeout(8000) });
-            if (bufRes.ok) {
-              const buffer = await bufRes.arrayBuffer();
-              const b64 = Buffer.from(buffer).toString('base64');
-              const mime = bufRes.headers.get('content-type') || 'image/jpeg';
-              candidates.push({
-                id: `lexica_${Date.now()}_${i}`,
-                label: labels[i] || `AI Variation ${i + 1}`,
-                imageUrl: `data:${mime};base64,${b64}`
-              });
-            }
-          } catch (e) {
-            console.warn(`[RUKHI AI IMAGE ENGINE] Lexica image #${i + 1} fetch note: ${e.message}`);
-          }
-        }
-        if (candidates.length >= count) return candidates;
-      }
-    }
-  } catch (err) {
-    console.warn(`[RUKHI AI IMAGE ENGINE] Lexica AI engine note: ${err.message}. Switching to Pollinations pipeline...`);
-  }
-
-  // 2. Fallback Provider: Pollinations AI Generator with 600ms Staggered Delays
-  console.log(`[RUKHI AI IMAGE ENGINE] Processing staggered Pollinations AI generation for: "${cleanPrompt}"...`);
   const seedBase = Math.floor(Math.random() * 900000) + 100000;
+  const modelChoices = ['flux', 'turbo', 'flux'];
   const candidates = [];
 
   for (let i = 0; i < count; i++) {
     const seed = seedBase + (i * 101);
-    const polUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}%20variation%20${i + 1}?width=768&height=768&nologo=true&seed=${seed}`;
+    const model = modelChoices[i % modelChoices.length];
+    const polUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}%20cinematic%20variation%20${i + 1}?width=768&height=768&nologo=true&seed=${seed}&model=${model}`;
+    
     try {
-      if (i > 0) await new Promise(r => setTimeout(r, 600)); // 600ms stagger to prevent HTTP 429 rate limit
-      console.log(`[RUKHI AI IMAGE ENGINE] Fetching Pollinations variation #${i + 1} (seed: ${seed})...`);
-      const pRes = await fetch(polUrl, {
+      if (i > 0) await new Promise(r => setTimeout(r, 2500)); // 2.5s stagger delay to prevent IP rate limits
+      console.log(`[RUKHI AI IMAGE ENGINE] Generating real-time AI variation #${i + 1} (${model} model, seed: ${seed})...`);
+      
+      let pRes = await fetch(polUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        signal: AbortSignal.timeout(30000)
+        signal: AbortSignal.timeout(25000)
       });
+
+      // Secondary retry with 'turbo' fast model if FLUX timed out or rate limited
+      if (!pRes.ok || pRes.status === 429) {
+        console.warn(`[RUKHI AI IMAGE ENGINE] Retrying variation #${i + 1} with fast Turbo model...`);
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}%20cinematic%20hero%20${i + 1}?width=768&height=768&nologo=true&seed=${seed + 99}&model=turbo`;
+        pRes = await fetch(fallbackUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+          signal: AbortSignal.timeout(20000)
+        });
+      }
+
       if (pRes.ok) {
         const buffer = await pRes.arrayBuffer();
         const b64 = Buffer.from(buffer).toString('base64');
         const mime = pRes.headers.get('content-type') || 'image/jpeg';
         console.log(`[RUKHI AI IMAGE ENGINE] ✅ Success! Generated ${buffer.byteLength} bytes for variation #${i + 1}`);
         candidates.push({
-          id: `pol_${Date.now()}_${i}`,
+          id: `ai_gen_${Date.now()}_${i}`,
           label: labels[i] || `AI Variation ${i + 1}`,
           imageUrl: `data:${mime};base64,${b64}`
         });
       } else {
-        console.error(`[RUKHI AI IMAGE ENGINE ERROR] Pollinations HTTP ${pRes.status} for variation #${i + 1}`);
+        console.error(`[RUKHI AI IMAGE ENGINE ERROR] Real-time AI HTTP ${pRes.status} for variation #${i + 1}`);
       }
     } catch (pErr) {
-      console.error(`[RUKHI AI IMAGE ENGINE ERROR] Pollinations variation #${i + 1} note: ${pErr.message}`);
+      console.error(`[RUKHI AI IMAGE ENGINE ERROR] Real-time AI variation #${i + 1} note: ${pErr.message}`);
     }
   }
 
   if (candidates.length > 0) return candidates;
 
-  // 3. Fallback High-Quality Placeholder if AI APIs are unreachable
+  // Fallback High-Quality Dynamic Visual if Real-Time Generation is Unreachable
   console.log(`[RUKHI AI IMAGE ENGINE] Providing fallback cinematic candidate for "${cleanPrompt}"...`);
   return Array.from({ length: count }, (_, i) => ({
     id: `fallback_${Date.now()}_${i}`,
@@ -203,111 +177,155 @@ export const vertexService = {
   },
 
   /**
-   * 2b. Generate Multiple Character Candidate Keyframes (Imagen 3 / Vertex AI Engine)
+   * 2b. Generate Character Candidate Keyframes (Google Vertex AI Image Engine - $300 Credits)
    */
   async generateCharacterCandidates({ prompt, count = 3 }) {
-    console.log(`[VERTEX IMAGEN 3] Requesting Google Imagen 3 character candidate generation for: "${prompt}"...`);
+    const rawPrompt = (prompt || 'Cinematic character portrait').trim();
+    console.log(`[VERTEX AI IMAGE ENGINE] 🎨 Requesting Vertex AI image generation (${count} Variations, $300 GCP Credits) for: "${rawPrompt}"...`);
 
-    // 1. Primary: Google Vertex AI REST API via GCP Service Account Token ($300 GCP Credits)
     try {
       const token = await getGcpAccessToken();
       if (token) {
         const projectId = config.gcpProjectId || 'ai-quiz-generator-479518';
-        const modelNames = ['imagen-3.0-generate-001', 'imagegeneration@006', 'imagen-3.0-generate-002'];
+        const model = 'gemini-2.5-flash-image';
+        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/${model}:generateContent`;
 
-        for (const model of modelNames) {
-          const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/${model}:predict`;
-          const resp = await fetch(url, {
+        const variationPrompts = count === 1 ? [rawPrompt] : [
+          rawPrompt,
+          `${rawPrompt}, dramatic cinematic lighting, side angle`,
+          `${rawPrompt}, high contrast 8k portrait keyframe`
+        ];
+
+        const requests = variationPrompts.slice(0, count).map((pText) => {
+          return fetch(url, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              instances: [{ prompt: prompt || 'Cinematic actor portrait' }],
-              parameters: { sampleCount: count, aspectRatio: '1:1' }
+              contents: [{
+                role: 'user',
+                parts: [{ text: pText }]
+              }]
             }),
-            signal: AbortSignal.timeout(15000)
+            signal: AbortSignal.timeout(35000)
           });
+        });
 
-          const data = await resp.json();
-          if (resp.ok && data?.predictions && data.predictions.length > 0) {
-            const labels = ['Front Cinematic Portrait', 'Side Profile Lighting', 'Intense Hero Shot'];
-            const candidates = data.predictions.map((pred, i) => ({
-              id: `imagen3_${Date.now()}_${i}`,
-              label: labels[i] || `Imagen Variation ${i + 1}`,
-              imageUrl: `data:${pred.mimeType || 'image/jpeg'};base64,${pred.bytesBase64Encoded}`
-            }));
+        const responses = await Promise.all(requests);
+        const candidates = [];
+        const labels = ['Primary Variation', 'Cinematic Lighting', 'Detailed Focus'];
 
-            console.log(`[VERTEX IMAGEN 3] ✅ Generated ${candidates.length} images via GCP Vertex AI (${model}, $300 Credits)!`);
-            return { success: true, prompt, modelUsed: `vertex-${model}`, candidates };
+        for (let i = 0; i < responses.length; i++) {
+          const resp = responses[i];
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.candidates?.[0]?.content?.parts) {
+              data.candidates[0].content.parts.forEach((part) => {
+                if (part.inlineData) {
+                  candidates.push({
+                    id: `vertex_img_${Date.now()}_${i}`,
+                    label: labels[i] || `Variation ${i + 1}`,
+                    imageUrl: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
+                  });
+                }
+              });
+            }
           }
+        }
+
+        if (candidates.length > 0) {
+          console.log(`[VERTEX AI IMAGE ENGINE] ✅ Successfully generated ${candidates.length} candidate images via GCP Vertex AI (${model}, $300 Credits)!`);
+          return { success: true, prompt: rawPrompt, modelUsed: `vertex-${model}`, candidates };
         }
       }
     } catch (err) {
-      console.warn(`[VERTEX IMAGEN 3 WARN] GCP Vertex AI request note: ${err.message}`);
+      console.warn(`[VERTEX AI IMAGE WARN] GCP Vertex AI request note: ${err.message}`);
     }
 
-    // 2. Resilient Multi-Provider Base64 AI Image Pipeline
-    const candidates = await fetchAiCandidatesAsBase64(prompt, count, false);
+    // Secondary Fallback AI Engine
+    const candidates = await fetchAiCandidatesAsBase64(rawPrompt, count, false);
     return {
       success: true,
-      prompt,
+      prompt: rawPrompt,
       modelUsed: 'rukhi-resilient-ai-engine',
       candidates
     };
   },
 
   /**
-   * Generate Multiple Set Location Candidate Keyframes (Imagen 3 / Vertex AI Engine)
+   * 2c. Generate Set Location Candidate Keyframes (Google Vertex AI Image Engine - $300 Credits)
    */
   async generateLocationCandidates({ prompt, count = 3 }) {
-    console.log(`[VERTEX IMAGEN 3] Requesting Google Imagen 3 location generation for: "${prompt}"...`);
+    const rawPrompt = (prompt || 'Cinematic set environment location').trim();
+    console.log(`[VERTEX AI IMAGE ENGINE] 🏛️ Requesting Vertex AI location image generation (${count} Variations, $300 GCP Credits) for: "${rawPrompt}"...`);
 
-    // 1. Primary: Google Vertex AI REST API via GCP Service Account Token ($300 GCP Credits)
     try {
       const token = await getGcpAccessToken();
       if (token) {
         const projectId = config.gcpProjectId || 'ai-quiz-generator-479518';
-        const modelNames = ['imagen-3.0-generate-001', 'imagegeneration@006', 'imagen-3.0-generate-002'];
+        const model = 'gemini-2.5-flash-image';
+        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/${model}:generateContent`;
 
-        for (const model of modelNames) {
-          const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/${model}:predict`;
-          const resp = await fetch(url, {
+        const variationPrompts = count === 1 ? [rawPrompt] : [
+          rawPrompt,
+          `${rawPrompt}, wide architectural shot`,
+          `${rawPrompt}, moody sunset blue hour lighting`
+        ];
+
+        const requests = variationPrompts.slice(0, count).map((pText) => {
+          return fetch(url, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              instances: [{ prompt: prompt || 'Cinematic set environment location' }],
-              parameters: { sampleCount: count, aspectRatio: '16:9' }
+              contents: [{
+                role: 'user',
+                parts: [{ text: pText }]
+              }]
             }),
-            signal: AbortSignal.timeout(15000)
+            signal: AbortSignal.timeout(35000)
           });
+        });
 
-          const data = await resp.json();
-          if (resp.ok && data?.predictions && data.predictions.length > 0) {
-            const labels = ['Wide Architectural Angle', 'Warm Tungsten Interior', 'Blue Hour Atmosphere'];
-            const candidates = data.predictions.map((pred, i) => ({
-              id: `loc_imagen3_${Date.now()}_${i}`,
-              label: labels[i] || `Imagen Location ${i + 1}`,
-              imageUrl: `data:${pred.mimeType || 'image/jpeg'};base64,${pred.bytesBase64Encoded}`
-            }));
+        const responses = await Promise.all(requests);
+        const candidates = [];
+        const labels = ['Wide Master Shot', 'Architectural Angle', 'Atmospheric Lighting'];
 
-            console.log(`[VERTEX IMAGEN 3] ✅ Generated ${candidates.length} location images via GCP Vertex AI (${model}, $300 Credits)!`);
-            return { success: true, prompt, modelUsed: `vertex-${model}`, candidates };
+        for (let i = 0; i < responses.length; i++) {
+          const resp = responses[i];
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.candidates?.[0]?.content?.parts) {
+              data.candidates[0].content.parts.forEach((part) => {
+                if (part.inlineData) {
+                  candidates.push({
+                    id: `vertex_loc_${Date.now()}_${i}`,
+                    label: labels[i] || `Location Variation ${i + 1}`,
+                    imageUrl: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`
+                  });
+                }
+              });
+            }
           }
+        }
+
+        if (candidates.length > 0) {
+          console.log(`[VERTEX AI IMAGE ENGINE] ✅ Successfully generated ${candidates.length} location images via GCP Vertex AI (${model}, $300 Credits)!`);
+          return { success: true, prompt: rawPrompt, modelUsed: `vertex-${model}`, candidates };
         }
       }
     } catch (err) {
-      console.warn(`[VERTEX IMAGEN 3 WARN] GCP Vertex AI request note: ${err.message}`);
+      console.warn(`[VERTEX AI IMAGE WARN] GCP Vertex AI request note: ${err.message}`);
     }
 
-    const candidates = await fetchAiCandidatesAsBase64(prompt, count, true);
+    const candidates = await fetchAiCandidatesAsBase64(rawPrompt, count, true);
     return {
       success: true,
-      prompt,
+      prompt: rawPrompt,
       modelUsed: 'rukhi-resilient-ai-engine',
       candidates
     };

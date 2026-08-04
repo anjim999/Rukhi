@@ -53,7 +53,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Reel Video Container (9:16 Mockup) */}
             <div className="lg:col-span-5 flex justify-center">
-              <div className="relative w-[280px] sm:w-[320px] h-[500px] rounded-3xl bg-zinc-950 border-4 border-slate-300 dark:border-zinc-800 shadow-2xl overflow-hidden flex flex-col justify-between p-6">
+              <div className="relative w-[280px] sm:w-[320px] h-[500px] rounded-3xl bg-slate-100 dark:bg-zinc-950 border-4 border-slate-300 dark:border-zinc-800 shadow-2xl overflow-hidden flex flex-col justify-between p-6 transition-colors">
                 
                 {/* Top Banner Hook Mock */}
                 <div className="w-full bg-yellow-400 text-black font-black text-center py-2 px-3 rounded-xl shadow-lg transform -rotate-1 text-sm tracking-tight border-2 border-black">
@@ -62,27 +62,27 @@ export default function HomePage() {
 
                 {/* Subtitle Karaoke Dynamic Preview */}
                 <div className="text-center my-auto space-y-3">
-                  <div className="inline-block px-4 py-2 rounded-2xl bg-zinc-900/90 border border-yellow-500/40 shadow-xl backdrop-blur-md">
-                    <p className="text-2xl font-black tracking-tight text-white flex items-center justify-center gap-2 flex-wrap">
+                  <div className="inline-block px-4 py-2 rounded-2xl bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-yellow-500/40 shadow-xl backdrop-blur-md">
+                    <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-2 flex-wrap">
                       <span>THIS</span>
                       <span className="px-2 py-0.5 rounded-lg bg-yellow-500 text-black shadow-md shadow-yellow-500/50 scale-110 transform font-black uppercase">
                         AI ENGINE
                       </span>
                       <span>SYNCS</span>
                     </p>
-                    <p className="text-lg font-extrabold text-yellow-400 tracking-wider uppercase mt-1">
+                    <p className="text-lg font-extrabold text-yellow-600 dark:text-yellow-400 tracking-wider uppercase mt-1">
                       EVERY SINGLE WORD ⚡
                     </p>
                   </div>
                 </div>
 
                 {/* Mobile Bottom Dock Mock */}
-                <div className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl p-3 flex items-center justify-between text-zinc-400 text-xs font-bold backdrop-blur">
-                  <div className="flex items-center gap-2 text-yellow-400">
+                <div className="w-full bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 flex items-center justify-between text-slate-700 dark:text-zinc-400 text-xs font-bold backdrop-blur">
+                  <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
                     <Subtitles className="w-4 h-4" />
                     <span>Hormozi Gold</span>
                   </div>
-                  <span className="px-2 py-1 rounded-md bg-yellow-500/20 text-yellow-400 text-[10px] font-mono">02:14.05s</span>
+                  <span className="px-2 py-1 rounded-md bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-[10px] font-mono">02:14.05s</span>
                 </div>
               </div>
             </div>

@@ -4,10 +4,14 @@ import fs from 'fs';
 
 // Dynamically search and load .env files across development and Hostinger production paths
 const envCandidates = [
+  path.resolve(process.cwd(), 'production.env'),
+  path.resolve(process.cwd(), 'backend/production.env'),
   path.resolve(process.cwd(), 'backend/.env'),
   path.resolve(process.cwd(), '.env'),
+  '/home/u209580425/domains/rukhi.in/public_html/production.env',
   '/home/u209580425/domains/rukhi.in/public_html/backend/.env',
   '/home/u209580425/domains/rukhi.in/public_html/.env',
+  '/home/u209580425/persistent_storage/production.env',
   '/home/u209580425/persistent_storage/.env',
 ];
 

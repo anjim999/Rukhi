@@ -141,8 +141,9 @@ app.use('/api/studio', studioRoutes);
 // 2. MOUNT REACT FRONTEND STATIC BUNDLE & SPA FALLBACK
 // -------------------------------------------------------------
 const staticFrontendDirs = [
-  path.resolve(process.cwd(), '../frontend/dist'),
+  process.cwd(),
   path.resolve(process.cwd(), 'frontend/dist'),
+  path.resolve(process.cwd(), '../frontend/dist'),
   path.resolve(process.cwd(), 'dist'),
   path.resolve(process.cwd(), 'public_html'),
 ];

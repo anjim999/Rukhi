@@ -157,17 +157,23 @@ export class DeepgramProvider extends STTProvider {
         const isAutoDetectedHindi = result.language === 'hi' || hasHindiScript;
         const isAutoDetectedEnglishOnRegional = result.language === 'en' && isRegionalTarget;
 
-        if (isAutoDetectedHindi || isAutoDetectedEnglishOnRegional) {
-          const probeLang = ['hinglish', 'hin_eng', 'hindi'].includes(targetStyle) ? 'hi' : 'te';
-          console.log(`[DEEPGRAM AUTO-PROBE] Auto-detect returned '${result.language}' for target style '${targetStyle}'. Probing '${probeLang}' acoustic model to extract authentic regional speech...`);
-          try {
-            const probeResult = await this._callDeepgramAPI(fileBuffer, 'nova-3', probeLang);
-            if (probeResult && probeResult.words.length >= Math.floor(result.words.length * 0.5)) {
-              console.log(`[DEEPGRAM AUTO-PROBE] 💡 Corrected auto-detect misclassification: Audio is authentic ${probeLang} speech (${probeResult.words.length} words).`);
-              probeResult.language = probeLang;
-              return probeResult;
-            }
-          } catch (_e) {}
+        const durationSec = result.duration || 30;
+        const lowDensityThreshold = Math.max(3, Math.floor(durationSec * 0.5));
+        const isLowDensity = result.words.length < lowDensityThreshold;
+
+        if (isAutoDetectedHindi || isAutoDetectedEnglishOnRegional || isLowDensity) {
+          const probeLangs = ['te', 'hi'];
+          for (const probeLang of probeLangs) {
+            console.log(`[DEEPGRAM AUTO-PROBE] Auto-detect returned '${result.language}' (${result.words.length} words for ${durationSec.toFixed(1)}s video). Probing '${probeLang}' acoustic model...`);
+            try {
+              const probeResult = await this._callDeepgramAPI(fileBuffer, 'nova-3', probeLang);
+              if (probeResult && probeResult.words.length > result.words.length) {
+                console.log(`[DEEPGRAM AUTO-PROBE] 🎉 Success! '${probeLang}' acoustic model recovered ${probeResult.words.length} words (vs ${result.words.length} auto-detect words)!`);
+                probeResult.language = probeLang;
+                return probeResult;
+              }
+            } catch (_e) {}
+          }
         }
 
         const latencyMs = Date.now() - startTime;

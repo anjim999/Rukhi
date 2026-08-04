@@ -18,9 +18,9 @@ export const PRICING_CONFIG = {
     outputPricePerMillion: parseFloat(process.env.GEMINI_PRO_OUTPUT_PER_M || '5.00'),
   },
 
-  // 2. Image Generation (per image)
-  IMAGEN_3: {
-    pricePerImage: parseFloat(process.env.IMAGEN3_PRICE_PER_IMAGE || '0.03'),
+  // 2. AI Image Generation (Gemini Flash Image / FLUX) (per image)
+  GEMINI_FLASH_IMAGE: {
+    pricePerImage: parseFloat(process.env.IMAGE_PRICE_PER_IMAGE || '0.015'),
   },
 
   // 3. Video Generation (per second)

@@ -72,7 +72,8 @@ export const productionLedgerService = {
   async recordImagenUsage({ generationId, model = 'imagen-3.0-generate-001', requested = 1, generated = 1 }) {
     if (!generationId) return;
 
-    const costUsd = generated * PRICING_CONFIG.IMAGEN_3.pricePerImage;
+    const unitPrice = PRICING_CONFIG.GEMINI_FLASH_IMAGE?.pricePerImage || 0.015;
+    const costUsd = generated * unitPrice;
 
     try {
       await query(

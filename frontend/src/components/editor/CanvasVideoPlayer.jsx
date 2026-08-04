@@ -264,11 +264,6 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
       if (!drawnOverlay) {
         if (video && (video.readyState >= 1 || video.currentTime >= 0 || video.videoWidth > 0)) {
           try {
-            if (dubbedAudioRef.current && !dubbedAudioRef.current.paused) {
-              if (Math.abs(video.currentTime - dubbedAudioRef.current.currentTime) > 0.1 && !video.seeking) {
-                video.currentTime = dubbedAudioRef.current.currentTime;
-              }
-            }
             drawCover(ctx, video, width, height);
             drawnOverlay = true;
           } catch (_e) {}
@@ -307,17 +302,17 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
         return;
       }
 
-      // Auto resync base video element clock with master voiceover time (clean sync without modulo jumping)
+      // Soft drift alignment for dubbed audio (only if major drift > 1.2s to prevent decoder stutter)
       if (dubbedAudioRef.current && !video.paused && !video.seeking) {
         video.muted = true;
         const drift = Math.abs(video.currentTime - masterTime);
-        if (drift > 0.25 && masterTime < (video.duration || 9999)) {
+        if (drift > 1.2 && masterTime < (video.duration || 9999)) {
           video.currentTime = masterTime;
         }
       }
 
-      // Throttle UI slider updates (100ms) for smooth slider feedback without thrashing react state
-      if (!isRecordingRef.current && Date.now() - lastUiUpdateRef.current > 100) {
+      // Throttle React UI slider updates (300ms) during active playback to prevent React state thrashing & video lag
+      if (!isRecordingRef.current && (!isPlaying || Date.now() - lastUiUpdateRef.current > 300)) {
         lastUiUpdateRef.current = Date.now();
         setCurrentTime(masterTime);
       }
@@ -481,7 +476,7 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
 
     const video = videoRef.current;
     const audio = dubbedAudioRef.current;
-    const isCurrentlyPlaying = isPlaying || (video && !video.paused) || (audio && !audio.paused);
+    const isCurrentlyPlaying = isPlaying || (video && !video.paused && !video.ended) || (audio && !audio.paused && !audio.ended);
 
     if (isCurrentlyPlaying) {
       if (audio) {
@@ -517,18 +512,27 @@ export default function CanvasVideoPlayer({ projectId, videoUrl, timeline, setTi
 
       if (audio) {
         if (video) video.muted = true;
-        try {
-          if (video && Math.abs(audio.currentTime - video.currentTime) > 0.1) {
-            audio.currentTime = video.currentTime;
-          }
-        } catch (_) {}
         audio.play().catch((err) => console.warn('[PLAYBACK] Audio play warning:', err));
       }
 
       if (video && video.src && video.src.trim() !== '') {
-        video.play().catch((err) => {
-          console.warn('[PLAYBACK] Base video element play warning:', err);
-        });
+        if (video.readyState < 2) {
+          video.load();
+        }
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('[PLAYBACK] Base video element play fallback:', err.message);
+            // Retry without crossOrigin if CORS was blocked
+            if (err.name === 'NotSupportedError' || err.name === 'NotAllowedError') {
+              if (video.hasAttribute('crossOrigin')) {
+                video.removeAttribute('crossOrigin');
+                video.load();
+                video.play().catch(() => {});
+              }
+            }
+          });
+        }
       }
     }
   };

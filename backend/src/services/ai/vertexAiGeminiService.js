@@ -1,9 +1,49 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import https from 'https';
 
 let cachedToken = null;
 let tokenExpiry = 0;
+
+/**
+ * Robust IPv4 fetch helper using Node https module with family: 4.
+ * Prevents undici IPv6 ETIMEDOUT errors on Linux local networks when fetching Google OAuth / Vertex AI APIs.
+ */
+function ipv4Fetch(urlStr, options = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const u = new URL(urlStr);
+      const reqOptions = {
+        hostname: u.hostname,
+        port: u.port || (u.protocol === 'https:' ? 443 : 80),
+        path: u.pathname + u.search,
+        method: options.method || 'GET',
+        family: 4,
+        headers: options.headers || {},
+      };
+
+      const req = https.request(reqOptions, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          resolve({
+            ok: res.statusCode >= 200 && res.statusCode < 300,
+            status: res.statusCode,
+            json: async () => JSON.parse(data),
+            text: async () => data,
+          });
+        });
+      });
+
+      req.on('error', (err) => reject(err));
+      if (options.body) req.write(options.body);
+      req.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
 /**
  * Mint OAuth 2.0 GCP Bearer token using Service Account JSON (gcp_key.json).
@@ -30,6 +70,7 @@ export async function getGcpAccessToken() {
   }
 
   if (!keyPath) {
+    console.warn('[VERTEX AI AUTH WARN] gcp_key.json not found in candidate paths.');
     return null;
   }
 
@@ -50,7 +91,7 @@ export async function getGcpAccessToken() {
     const signature = signer.sign(key.private_key, 'base64url');
     const jwt = `${signatureInput}.${signature}`;
 
-    const tokenRes = await fetch(key.token_uri, {
+    const tokenRes = await ipv4Fetch(key.token_uri, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
@@ -60,7 +101,10 @@ export async function getGcpAccessToken() {
     if (tokenData.access_token) {
       cachedToken = tokenData.access_token;
       tokenExpiry = now + (tokenData.expires_in || 3600);
+      console.log('[VERTEX AI AUTH] 🎉 Successfully minted GCP OAuth Bearer Token via Service Account!');
       return cachedToken;
+    } else {
+      console.warn('[VERTEX AI AUTH WARN] Token endpoint returned no access_token:', tokenData);
     }
   } catch (err) {
     console.warn('[VERTEX AI AUTH WARN] Failed to mint GCP access token:', err.message);
@@ -121,7 +165,7 @@ export async function generateContentViaVertexAi({ model = 'gemini-2.5-flash', c
 
   try {
     console.log(`[VERTEX AI GEMINI] 🚀 Executing ${model} via Vertex AI REST (${location} endpoint, GCP Cloud Credits)...`);
-    const response = await fetch(endpoint, {
+    const response = await ipv4Fetch(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

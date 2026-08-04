@@ -205,11 +205,11 @@ export async function renderProjectVideoMP4(projectId, requestedQuality = '1080p
   const targetFont = (timeline.globalTheme?.fontFamily || 'Montserrat').replace(/[^\w\s]/g, '');
 
   const qualitySpecs = {
-    '480p': { scale: 'scale=-2:854', font: 18, maxrate: '5M', bufsize: '10M' },
-    '720p': { scale: 'scale=-2:1280', font: 22, maxrate: '10M', bufsize: '20M' },
-    '1080p': { scale: 'scale=-2:1920', font: 26, maxrate: '20M', bufsize: '40M' },
-    '2K': { scale: 'scale=-2:2560', font: 36, maxrate: '35M', bufsize: '70M' },
-    '4K': { scale: 'scale=-2:3840', font: 48, maxrate: '50M', bufsize: '100M' },
+    '480p': { scale: 'scale=-2:854', font: 18, bitrate: '2.5M', maxrate: '5M', bufsize: '10M' },
+    '720p': { scale: 'scale=-2:1280', font: 22, bitrate: '5M', maxrate: '10M', bufsize: '20M' },
+    '1080p': { scale: 'scale=-2:1920', font: 26, bitrate: '10M', maxrate: '20M', bufsize: '40M' },
+    '2K': { scale: 'scale=-2:2560', font: 36, bitrate: '18M', maxrate: '35M', bufsize: '70M' },
+    '4K': { scale: 'scale=-2:3840', font: 48, bitrate: '35M', maxrate: '50M', bufsize: '100M' },
   };
   const spec = qualitySpecs[effectiveQuality] || qualitySpecs['1080p'];
   
@@ -217,20 +217,22 @@ export async function renderProjectVideoMP4(projectId, requestedQuality = '1080p
   const userScaleRatio = userChosenFontSize / 52;
   const finalFontSize = Math.max(12, Math.round(spec.font * userScaleRatio));
 
-  const forceStyle = `FontName=${targetFont},FontSize=${finalFontSize},PrimaryColour=&H0005FACC,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=45,Alignment=2,Bold=1`;
+  // Force universal system font (DejaVu Sans / Liberation Sans / Arial) with high-contrast white/yellow text & black outline
+  const forceStyle = `FontName=DejaVu Sans,FontSize=${finalFontSize},PrimaryColour=&H00FFFFFF,SecondaryColour=&H0000FFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=2,MarginV=60,Alignment=2,Bold=1`;
 
   const ffmpegArgs = [
     '-i', inputVideoPath,
     ...additionalInputs,
-    '-vf', `${spec.scale}:flags=bicubic,subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
+    '-vf', `${spec.scale}:flags=bicubic+accurate_rnd,subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
     '-c:v', 'libx264',
     '-preset', 'fast',
-    '-crf', '18',
+    '-crf', '17',
+    '-fps_mode', 'cfr',
     '-r', '30',
-    '-g', '30',
-    '-keyint_min', '30',
-    '-sc_threshold', '0',
+    '-g', '60',
+    '-keyint_min', '15',
     '-pix_fmt', 'yuv420p',
+    '-b:v', spec.bitrate,
     '-maxrate', spec.maxrate,
     '-bufsize', spec.bufsize,
     ...audioInputArgs,
@@ -297,19 +299,19 @@ export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 're
   console.log(`[FFMPEG INSTA REMUX] Packaging recorded stream for Instagram Reels (+faststart): ${resolvedInputPath}`);
 
   try {
-    // Primary attempt: Remux video + audio with H.264 + AAC
+    // Primary attempt: Remux video + audio with H.264 + AAC (Constant Frame Rate 30FPS)
     await runFFmpeg([
       '-analyzeduration', '20M',
       '-probesize', '20M',
       '-i', resolvedInputPath,
-      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p',
+      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=bicubic+accurate_rnd,format=yuv420p',
       '-c:v', 'libx264',
-      '-preset', 'superfast',
+      '-preset', 'medium',
       '-crf', '18',
+      '-fps_mode', 'cfr',
       '-r', '30',
-      '-g', '30',
-      '-keyint_min', '30',
-      '-sc_threshold', '0',
+      '-g', '60',
+      '-keyint_min', '15',
       '-pix_fmt', 'yuv420p',
       '-c:a', 'aac',
       '-b:a', '192k',
@@ -325,11 +327,14 @@ export async function remuxRecordedBlobToInstaMP4(inputFilePath, userTitle = 're
       '-analyzeduration', '20M',
       '-probesize', '20M',
       '-i', resolvedInputPath,
-      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p',
+      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=bicubic+accurate_rnd,format=yuv420p',
       '-c:v', 'libx264',
-      '-preset', 'superfast',
+      '-preset', 'medium',
       '-crf', '18',
+      '-fps_mode', 'cfr',
       '-r', '30',
+      '-g', '60',
+      '-keyint_min', '15',
       '-pix_fmt', 'yuv420p',
       '-an',
       '-movflags', '+faststart',

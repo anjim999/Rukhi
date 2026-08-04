@@ -79,151 +79,51 @@ async function processMediaJob(job) {
       audioUrl: rawAudioPath,
     });
 
-    // Demucs AI Vocal Separation — isolate human voice from background music
-    await job.updateProgress(20);
-    console.log(`[WORKER] 🎤 Running Demucs AI Vocal Separation (BGM removal)...`);
-    let cleanVocalPath = await separateVocals(rawAudioPath, projectId);
-    if (!cleanVocalPath || cleanVocalPath === rawAudioPath) {
-      console.log(`[WORKER] Demucs fallback: Applying highpass/lowpass vocal isolation for STT...`);
-      cleanVocalPath = await denoiseAudioForSTT(rawAudioPath, projectId);
-    }
-    const sttAudioPath = cleanVocalPath;
-
     // Detect exact physical speech acoustic onset for word-start alignment
-    const acousticOnsetSec = await detectSpeechOnset(sttAudioPath);
+    const acousticOnsetSec = await detectSpeechOnset(rawAudioPath).catch(() => 0);
 
     if (await isProjectCancelled(projectId)) {
-      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after Demucs. Terminating.`);
-      await cleanupDemucsOutput(projectId).catch(() => {});
+      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after audio extraction. Terminating.`);
       return { projectId, status: 'cancelled' };
     }
 
     await job.updateProgress(35);
-    const waveformPeaks = await generateWaveformPeaks(rawAudioPath, 200);
+    const waveformPeaks = await generateWaveformPeaks(rawAudioPath, 200).catch(() => []);
 
     if (await isProjectCancelled(projectId)) {
       console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after waveform. Terminating.`);
-      await cleanupDemucsOutput(projectId).catch(() => {});
       return { projectId, status: 'cancelled' };
     }
 
     await job.updateProgress(40);
     let timeline;
 
-    const deepgramAvailable = await deepgramProvider.isAvailable();
-    const whisperAvailable = await whisperProvider.isAvailable();
+    console.log(`[WORKER] 🚀 Streaming raw audio directly to Gemini 2.5 Flash Native Multilingual Audio Engine (Target Style: ${targetStyle}, Duration: ${videoMeta.duration}s)...`);
+    await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.ANALYZING);
 
-    let transcription = null;
+    const result = await captionDirector.generateCaptionTimelineFromAudio({
+      audioPath: rawAudioPath,
+      duration: videoMeta.duration,
+      aspectRatio: '9:16',
+      presetName: 'bold_viral',
+      targetStyle,
+      applyEmojis,
+    });
 
-    if (deepgramAvailable) {
-      console.log(`[WORKER] 🚀 Transcribing clean vocals with Deepgram Nova-3 Multilingual (Target Style: ${targetStyle})...`);
-      try {
-        transcription = await deepgramProvider.transcribe(sttAudioPath, { targetStyle });
-      } catch (dgErr) {
-        console.warn(`[WORKER WARNING] Deepgram STT failed (${dgErr.message}). Falling back to alternative STT...`);
+    timeline = result?.timeline;
+
+    // Acoustic Onset Fine-Tuning: Align initial subtitle card start with real physical speech onset
+    if (timeline?.segments?.[0]?.words?.[0] && acousticOnsetSec > 0.05 && acousticOnsetSec < 4.0) {
+      const firstWord = timeline.segments[0].words[0];
+      if (Math.abs(firstWord.start - acousticOnsetSec) <= 1.5) {
+        console.log(`[WORKER SYNC] Fine-tuning initial word "${firstWord.word}" start from ${firstWord.start}s to acoustic onset ${acousticOnsetSec}s`);
+        firstWord.start = acousticOnsetSec;
+        timeline.segments[0].start = acousticOnsetSec;
       }
-
-      // Check if STT returned insufficient words or late speech onset (e.g. Demucs muted early speech)
-      const expectedWords = Math.max(3, Math.floor(videoMeta.duration / 3.5));
-      const firstWordStart = transcription?.words?.[0]?.start || 0;
-      const lastWordEnd = transcription?.words?.[transcription.words.length - 1]?.end || 0;
-      const wordSpan = lastWordEnd - firstWordStart;
-
-      if (
-        sttAudioPath !== rawAudioPath &&
-        (!transcription ||
-          transcription.words.length < expectedWords ||
-          firstWordStart > 4.5 ||
-          wordSpan < videoMeta.duration * 0.45)
-      ) {
-        console.warn(
-          `[WORKER WARNING] ⚠️ Demucs isolated audio yielded only ${transcription?.words?.length || 0} words starting at ${firstWordStart.toFixed(1)}s (span: ${wordSpan.toFixed(1)}s / video: ${videoMeta.duration.toFixed(1)}s). Re-probing Deepgram with RAW UNFILTERED AUDIO to recover missing speech...`
-        );
-        try {
-          const rawTranscription = await deepgramProvider.transcribe(rawAudioPath, { targetStyle });
-          if (
-            rawTranscription &&
-            rawTranscription.words &&
-            rawTranscription.words.length > (transcription?.words?.length || 0)
-          ) {
-            console.log(
-              `[WORKER RECOVERY] 🎉 Raw audio STT recovered ${rawTranscription.words.length} words (vs ${transcription?.words?.length || 0} Demucs words)! Using raw audio STT.`
-            );
-            transcription = rawTranscription;
-          }
-        } catch (_rawErr) {}
-      }
-    }
-
-    if (await isProjectCancelled(projectId)) {
-      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled during STT. Terminating.`);
-      await cleanupDemucsOutput(projectId).catch(() => {});
-      return { projectId, status: 'cancelled' };
-    }
-
-    if (!transcription && whisperAvailable) {
-      console.log(`[WORKER] Transcribing clean vocals with local Whisper CLI...`);
-      try {
-        transcription = await whisperProvider.transcribe(sttAudioPath, { targetStyle });
-      } catch (wErr) {
-        console.warn(`[WORKER WARNING] Local Whisper transcription failed: ${wErr.message}`);
-      }
-    }
-
-    if (await isProjectCancelled(projectId)) {
-      console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled after STT transcription. Terminating.`);
-      await cleanupDemucsOutput(projectId).catch(() => {});
-      return { projectId, status: 'cancelled' };
-    }
-
-    const minExpectedWords = Math.max(2, Math.floor(videoMeta.duration / 7));
-
-    if (transcription && transcription.words && transcription.words.length >= minExpectedWords) {
-      await job.updateProgress(60);
-      await projectService.updateProjectStatus(projectId, PROJECT_STATUSES.ANALYZING);
-      await job.updateProgress(70);
-
-      // Acoustic Onset Alignment: Fine-tune first word timestamp ONLY if within 1.2s of onset
-      if (acousticOnsetSec > 0 && transcription.words.length > 0) {
-        const firstWord = transcription.words[0];
-        const delta = acousticOnsetSec - firstWord.start;
-        if (delta > 0 && delta <= 1.2) {
-          console.log(`[WORKER SYNC] Fine-tuning initial word "${firstWord.word}" start from ${firstWord.start}s to acoustic onset ${acousticOnsetSec}s`);
-          firstWord.start = acousticOnsetSec;
-          if (firstWord.end <= firstWord.start) firstWord.end = firstWord.start + 0.2;
-        } else if (delta > 1.2) {
-          console.log(`[WORKER SYNC] 🛡️ Preserving authentic STT initial word "${firstWord.word}" start (${firstWord.start}s). Ignoring late Demucs onset (${acousticOnsetSec}s).`);
-        }
-      }
-
-      console.log(`[WORKER] Directing captions with Gemini 2.5 Flash from ${transcription.words.length} precise STT words...`);
-      const result = await captionDirector.transformSTTWordsToTargetStyle({
-        words: transcription.words,
-        fullText: transcription.fullText,
-        duration: transcription.duration || videoMeta.duration,
-        targetStyle,
-      });
-      timeline = result.timeline;
-    } else {
-      if (transcription && transcription.words) {
-        console.warn(`[WORKER WARNING] STT returned only ${transcription.words.length} words for ${videoMeta.duration.toFixed(1)}s video. Falling back to Gemini 2.5 Flash Audio Director...`);
-      } else {
-        console.log(`[WORKER] Speech STT using Gemini 2.5 Flash Audio Pipeline (Target Style: ${targetStyle})...`);
-      }
-      const result = await captionDirector.generateCaptionTimelineFromAudio({
-        audioPath: sttAudioPath,
-        duration: videoMeta.duration,
-        aspectRatio: '9:16',
-        presetName: 'bold_viral',
-        targetStyle,
-        applyEmojis,
-      });
-      timeline = result.timeline;
     }
 
     if (await isProjectCancelled(projectId)) {
       console.log(`[WORKER] ⛔ Project ${projectId} generation was cancelled before timeline save. Terminating.`);
-      await cleanupDemucsOutput(projectId).catch(() => {});
       return { projectId, status: 'cancelled' };
     }
 

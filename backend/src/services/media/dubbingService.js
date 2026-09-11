@@ -18,7 +18,7 @@ export async function generateDubbedVoiceoverAudio({
   text,
   targetLanguage = 'en',
   projectId,
-  provider = process.env.DEFAULT_TTS_PROVIDER || TTS_PROVIDERS.EDGE,
+  provider = process.env.DEFAULT_TTS_PROVIDER || TTS_PROVIDERS.GOOGLE,
   voiceId,
   speakerWavPath,
 }) {

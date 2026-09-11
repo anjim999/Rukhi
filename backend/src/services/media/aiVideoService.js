@@ -9,6 +9,7 @@ import ffmpegPath from 'ffmpeg-static';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { config } from '../../config/env.js';
 import { generateViaFalAI, generateViaColabGPU } from './utils/aiVideoProviders.js';
+import { getGcpAccessToken, generateVeoVideoClip } from '../ai/veoVideoService.js';
 
 const execPromise = util.promisify(exec);
 const ffmpegBin = ffmpegPath || ffmpegInstaller?.path || 'ffmpeg';
@@ -146,10 +147,42 @@ export async function generateAIVideoClip({
 }) {
   const provider = process.env.AI_VIDEO_PROVIDER || 'auto';
 
-  console.log(`[100% AI NEURAL ENGINE] 🎥 Generating 4s AI video clip (Model: ${model}, Provider: ${provider}, Aspect: ${aspectRatio}, Seed: ${characterSeed || 'random'})...`);
+  console.log(`[100% AI NEURAL ENGINE] 🎥 Generating ${durationSec}s AI video clip (Model: ${model}, Provider: ${provider}, Aspect: ${aspectRatio}, Seed: ${characterSeed || 'random'})...`);
   console.log(`[100% AI NEURAL ENGINE] 📝 Scene Prompt: "${prompt}" ${characterAnchor ? `(Anchor: ${characterAnchor})` : ''}`);
 
-  // 1. Fal.ai Cloud AI Video Engine (HunyuanVideo, LTX-Video, Wan 2.1)
+  // 1. Google Cloud Vertex AI Veo 3.1 Neural Video Engine (Uses $300 GCP Credits)
+  try {
+    const token = await getGcpAccessToken();
+    if (token) {
+      const fileName = `ai_veo_${Date.now()}_${characterSeed || 'clip'}.mp4`;
+      const outputVideoPath = path.join(getUploadDir(), fileName);
+      const veoSec = [4, 6, 8].includes(durationSec) ? durationSec : 6;
+      const veoAspect = aspectRatio === '16:9' ? '16:9' : '9:16';
+
+      console.log(`[AI VIDEO SERVICE] 🚀 Requesting Google Cloud Veo 3.1 video (${veoSec}s, ${veoAspect})...`);
+      const veoResult = await generateVeoVideoClip({
+        scenePrompt: prompt,
+        startImagePath: referenceImageUrl ? path.join(getUploadDir(), path.basename(referenceImageUrl)) : null,
+        outputVideoPath,
+        aspectRatio: veoAspect,
+        durationSeconds: veoSec,
+      });
+
+      if (veoResult && fs.existsSync(outputVideoPath) && fs.statSync(outputVideoPath).size > 50000) {
+        console.log(`[AI VIDEO SERVICE] ✅ Successfully generated real MP4 video with Google Veo 3.1: /uploads/${fileName}`);
+        return {
+          success: true,
+          videoUrl: `/uploads/${fileName}`,
+          thumbnailUrl: `/uploads/${fileName}`,
+          isRealAIVideo: true,
+        };
+      }
+    }
+  } catch (veoErr) {
+    console.warn(`[AI VIDEO SERVICE] Google Veo 3.1 video fallback notice: ${veoErr.message}`);
+  }
+
+  // 2. Fal.ai Cloud AI Video Engine (HunyuanVideo, LTX-Video, Wan 2.1)
   if ((provider === 'fal' || provider === 'auto') && process.env.FAL_KEY) {
     const falResult = await generateViaFalAI({ prompt, referenceImageUrl, characterAnchor, characterSeed, model, aspectRatio });
     if (falResult && falResult.success) {
@@ -301,6 +334,7 @@ function sanitizeToEnglishVisualPrompt(rawText = '', topicPrompt = '') {
  */
 export async function generateAIReferenceImage({
   prompt,
+  referenceImageUrl = null,
   characterAnchor = '',
   characterSeed = null,
   aspectRatio = '9:16',
@@ -329,6 +363,88 @@ export async function generateAIReferenceImage({
   const uniqueId = Math.floor(Math.random() * 899999) + 100000;
   const targetFileName = `ai_scene_${Date.now()}_${uniqueId}.jpg`;
   const targetFilePath = path.join(uploadDir, targetFileName);
+
+  // 1. Prioritize Google Cloud Vertex AI Image Generation ($300 GCP Credits)
+  try {
+    const token = await getGcpAccessToken();
+    if (token) {
+      const gcpProjectId = config.gcpProjectId || 'ai-quiz-generator-479518';
+      const gcpLocation = config.gcpLocation || 'us-central1';
+      const vertexUrl = `https://${gcpLocation}-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/${gcpLocation}/publishers/google/models/gemini-2.5-flash-image:generateContent`;
+
+      console.log(`[AI VIDEO SERVICE] 🚀 Generating 4K AI scene image via Google Cloud Vertex AI (${gcpProjectId})...`);
+
+      // Prepare multi-modal parts: if referenceImageUrl is provided, anchor the character face/features
+      const parts = [];
+      if (referenceImageUrl) {
+        let localRefPath = referenceImageUrl;
+        if (referenceImageUrl.startsWith('/uploads/')) {
+          localRefPath = path.join(uploadDir, path.basename(referenceImageUrl));
+        } else if (referenceImageUrl.startsWith('uploads/')) {
+          localRefPath = path.resolve(process.cwd(), referenceImageUrl);
+        }
+
+        if (fs.existsSync(localRefPath)) {
+          try {
+            const refBuffer = fs.readFileSync(localRefPath);
+            const ext = path.extname(localRefPath).toLowerCase();
+            const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
+            parts.push({
+              inlineData: {
+                mimeType,
+                data: refBuffer.toString('base64'),
+              },
+            });
+            console.log(`[AI VIDEO SERVICE] 👤 Attached Consistent Character Reference Image: ${localRefPath} (${(refBuffer.length / 1024).toFixed(1)} KB)`);
+          } catch (readErr) {
+            console.warn(`[AI VIDEO SERVICE] Could not read reference image: ${readErr.message}`);
+          }
+        }
+      }
+
+      const consistencyInstruction = parts.length > 0
+        ? `Maintain the exact same character/actor/subject from the attached reference image with identical facial features, identity, and attire: ${englishVisualPrompt}, photorealistic, high quality, highly detailed 8k cinematic shot`
+        : `${englishVisualPrompt}, photorealistic, high quality, highly detailed 8k photography, cinematic lighting`;
+
+      parts.push({ text: consistencyInstruction });
+
+      const vertexRes = await fetch(vertexUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts }],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE'],
+          },
+        }),
+      });
+
+      if (vertexRes.ok) {
+        const vertexData = await vertexRes.json();
+        const parts = vertexData.candidates?.[0]?.content?.parts || [];
+        const imgPart = parts.find((p) => p.inlineData);
+        if (imgPart) {
+          const imgBuffer = Buffer.from(imgPart.inlineData.data, 'base64');
+          fs.writeFileSync(targetFilePath, imgBuffer);
+          console.log(`[AI VIDEO SERVICE] ✅ Generated & saved AI scene image via Google Vertex AI: /uploads/${targetFileName} (${(imgBuffer.length / 1024).toFixed(1)} KB)`);
+          return {
+            success: true,
+            videoUrl: `/uploads/${targetFileName}`,
+            thumbnailUrl: `/uploads/${targetFileName}`,
+            isAIImage: true,
+          };
+        }
+      } else {
+        const errText = await vertexRes.text();
+        console.warn(`[AI VIDEO SERVICE] Vertex AI Image Generation responded with status ${vertexRes.status}: ${errText.slice(0, 150)}`);
+      }
+    }
+  } catch (vertexErr) {
+    console.warn(`[AI VIDEO SERVICE] Vertex AI image generation fallback: ${vertexErr.message}`);
+  }
 
   for (const remoteUrl of mirrors) {
     console.log(`[AI VIDEO SERVICE] 🖼️ Fetching 4K AI scene image: "${englishVisualPrompt.slice(0, 50)}..." (Seed: ${seed})...`);

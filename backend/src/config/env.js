@@ -55,6 +55,7 @@ export const config = {
   // Directory Config
   uploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads'),
   outputDir: path.resolve(process.cwd(), process.env.OUTPUT_DIR || 'outputs'),
+  tempDir: path.resolve(process.cwd(), process.env.TEMP_DIR || 'tmp'),
 
   // Auth & Security
   jwtSecret: process.env.JWT_SECRET || '',

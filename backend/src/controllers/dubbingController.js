@@ -9,7 +9,7 @@ import { transcribeAndAutocorrectSpeech } from '../services/stt/speechRecognitio
  */
 export async function generateDubbing(req, res, next) {
   try {
-    const { text, targetLanguage = 'te', provider = TTS_PROVIDERS.EDGE, voiceId, speakerWavPath, projectId } = req.body;
+    const { text, targetLanguage = 'te', provider = TTS_PROVIDERS.GOOGLE, voiceId, speakerWavPath, projectId } = req.body;
 
     if (!text || !text.trim()) {
       return res.status(400).json({ success: false, error: 'Text prompt/script is required for dubbing' });

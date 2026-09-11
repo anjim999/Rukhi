@@ -22,13 +22,23 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 backend/outputs/*
 !backend/outputs/.gitkeep
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+tests_and_samples/sample_outputs/*
+!tests_and_samples/sample_outputs/.gitkeep
+tests_and_samples/intermediate_clips/*
+!tests_and_samples/intermediate_clips/.gitkeep
 
 # Logs & System
 *.log
 .DS_Store
 *.zip
 *.tar.gz
+*gcp_key.json
 backend/gcp_key.json
 backend/storage/
 deploy_package/
+
 

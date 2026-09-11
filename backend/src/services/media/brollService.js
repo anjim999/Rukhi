@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../../config/env.js';
 import { generateAIVideoClip } from './aiVideoService.js';
+import { generateContentViaVertexAi } from '../ai/vertexAiGeminiService.js';
 
 /**
  * AI Video B-Roll Service ($0 cost integration)
@@ -9,12 +10,41 @@ import { generateAIVideoClip } from './aiVideoService.js';
  */
 
 /**
- * Extract visual keywords from transcript text using Gemini Flash
+ * Extract visual keywords from transcript text using Gemini Flash (Vertex AI / GCP Credits)
  */
 export async function extractVisualKeywords(transcriptText) {
+  const prompt = `You are a video editor AI. Analyze this transcript and extract 3-8 highly visual, cinematic prompts that would make great AI Video overlay clips.
+
+Rules:
+- Return ONLY a JSON array of strings, e.g. ["cinematic galaxy in space", "luxurious city skyline", "happy friends laughing outdoors"]
+- Pick scene prompts that are visually concrete and photorealistic — NOT abstract concepts
+- Each prompt should be 2-4 words max
+- Prioritize dramatic, eye-catching visuals that boost viewer retention
+- Do NOT include markdown, code blocks, or explanation
+
+Transcript:
+"${transcriptText.slice(0, 2000)}"`;
+
+  // 1. Google Cloud Vertex AI Gemini (Uses $300 GCP Credits)
+  try {
+    const vertexText = await generateContentViaVertexAi({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    if (vertexText) {
+      const jsonMatch = vertexText.match(/\[[\s\S]*?\]/);
+      if (jsonMatch) {
+        const keywords = JSON.parse(jsonMatch[0]);
+        console.log(`[B-ROLL AI] 🎯 Vertex AI Gemini extracted ${keywords.length} visual scene prompts:`, keywords);
+        return keywords.filter(k => typeof k === 'string' && k.trim()).slice(0, 8);
+      }
+    }
+  } catch (vErr) {
+    console.warn(`[B-ROLL AI] Vertex AI keyword extraction warning: ${vErr.message}`);
+  }
+
   const apiKey = config.geminiApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn('[B-ROLL AI] No GEMINI_API_KEY set. Falling back to basic keyword extraction.');
     return basicKeywordExtract(transcriptText);
   }
 

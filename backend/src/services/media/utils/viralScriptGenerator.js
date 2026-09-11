@@ -1,3 +1,5 @@
+import { generateContentViaVertexAi } from '../../ai/vertexAiGeminiService.js';
+
 export async function generateViralScriptWithFallback({ genAI, prompt, targetLanguage, durationSec = 30 }) {
   const targetWordCount = Math.min(2500, Math.max(30, Math.round(Number(durationSec) * 2.3)));
   const langName = targetLanguage === 'te' ? 'Telugu (తెలుగు)' : targetLanguage === 'hi' ? 'Hindi (हिंदी)' : 'English';
@@ -7,8 +9,7 @@ export async function generateViralScriptWithFallback({ genAI, prompt, targetLan
     ? '100% PURE HINDI SCRIPT (हिंदी देवनागरी). Do NOT use English characters in output.' 
     : 'Pure English Script';
 
-  if (genAI) {
-    const scriptPrompt = `You are an elite ${langName} Video Scriptwriter and Translator.
+  const scriptPrompt = `You are an elite ${langName} Video Scriptwriter and Translator.
 Task: Translate or write a full high-retention spoken video story script in ${scriptConstraint} for the following story topic:
 
 User Story Topic: "${prompt}"
@@ -20,6 +21,29 @@ STRICT MANDATES:
 2. Match target length: Write approximately ${targetWordCount} spoken words so speech lasts full ${durationSec} seconds.
 3. Do NOT output speaker labels, title headers, or markdown formatting. Output pure spoken narrative script text only.`;
 
+  // 1. Google Cloud Vertex AI Gemini (Uses $300 GCP Cloud Credits)
+  try {
+    console.log(`[FACELESS GEN] 🚀 Generating ${targetWordCount}-word ${targetLanguage.toUpperCase()} script via Vertex AI gemini-2.5-flash (GCP $300 Credits)...`);
+    const vertexResult = await generateContentViaVertexAi({
+      model: 'gemini-2.5-flash',
+      contents: scriptPrompt,
+      generationConfig: { maxOutputTokens: 4096 },
+    });
+
+    if (vertexResult && typeof vertexResult === 'string' && vertexResult.trim().length > 20) {
+      let text = vertexResult.trim().replace(/^["'`]|["'`]$/g, '');
+      text = text.replace(/^(?:Create|Write|Generate|Translate)\s+an?\s+[^\n.]+[.\n]\s*/i, '').trim();
+      if (text.length > 20) {
+        console.log(`[FACELESS GEN] ✅ Successfully generated script via Vertex AI (${text.length} chars)`);
+        return text;
+      }
+    }
+  } catch (vertexErr) {
+    console.warn(`[FACELESS GEN] Vertex AI Gemini script warning: ${vertexErr.message}`);
+  }
+
+  // 2. Google AI Studio Fallback (if genAI provided)
+  if (genAI) {
     const modelsToTry = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
 
     for (const modelName of modelsToTry) {

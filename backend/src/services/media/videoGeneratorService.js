@@ -13,6 +13,7 @@ import { query } from '../../db/pool.js';
 const execPromise = util.promisify(exec);
 const ffmpegBin = ffmpegInstaller.path || 'ffmpeg';
 
+import { generateViralScriptWithFallback } from './utils/viralScriptGenerator.js';
 import { getExactAudioDuration } from './utils/audioDurationHelper.js';
 
 /**
@@ -25,45 +26,13 @@ export async function generateScriptForPrompt({ prompt, targetLanguage = 'te', d
 }
 
 /**
- * Multi-model Gemini script generator with automatic rate-limit protection ($0 Cost)
- */
-import { generateViralScriptWithFallback } from './utils/viralScriptGenerator.js';��్రమ దాగి ఉంది. భవిష్యత్తును మార్చే కొత్త సాంకేతిక విప్లవం ఇప్పుడు అతని చేతుల్లోనే ఉద్భవిస్తోంది.`;
-    }
-    return `Late at night in a silent workshop, 28-year-old tech entrepreneur Vikram works relentlessly to build his dream startup. Through every obstacle and failure, he never lost courage. The future of technology is being born right in his hands today.`;
-  }
-
-  // 4. Motivation & Success Topic
-  if (lowerP.includes('motivat') || lowerP.includes('success') || lowerP.includes('hustle') || lowerP.includes('mindset') || lowerP.includes('goal')) {
-    if (isTelugu) {
-      return `జీవితంలో విజయం సాధించాలంటే ప్రతిరోజూ శ్రమించాలి. నీ కలలను నిజం చేసుకునే ప్రయాణంలో ఓటములు ఎదురైనా ఏనాడూ ధైర్యాన్ని కోల్పోవద్దు. ప్రతీ ఉదయం ఒక కొత్త అవకాశాన్ని ఇస్తుంది. కష్టపడి పనిచేసే ప్రతి నమ్మకం చివరకు గొప్ప విజయాన్ని అందిస్తుంది. నీపై నీకు నమ్మకం ఉంటే సాధించలేనిది ఏదీ లేదు.`;
-    }
-    return `To achieve greatness in life, you must work hard every single day. Never lose courage when faced with failures. Believe in yourself and keep pushing forward.`;
-  }
-
-  // 5. College & Romance Topic
-  if (lowerP.includes('love') || lowerP.includes('romance') || lowerP.includes('college') || lowerP.includes('b.tech') || lowerP.includes('crush')) {
-    if (isTelugu) {
-      return `ఇది ఒక అద్భుతమైన నాలుగు సంవత్సరాల బి-టెక్ ప్రేమ ప్రయాణం. కాలేజ్ మొదటి రోజు నుండే అతని మనసులో ఆమె పట్ల చెప్పలేని అనుభూతి. కానీ నాలుగు సంవత్సరాలు ఏనాడూ తన ప్రేమను వ్యక్తపరచలేకపోయాడు. చివరకు ఒకరోజు తన ప్రేమను చెప్పేశాడు. ఇద్దరి మనసులు కలిసాయి. వారు ప్రేమలో పడ్డారు.`;
-    }
-    return `A beautiful college love story. Secretly loving someone for 4 full years until finally confessing feelings on graduation day. Two hearts connected forever.`;
-  }
-
-  // 6. Universal Story Fallback (Matching user's prompt words!)
-  if (isTelugu) {
-    return `ప్రతి కథలోనూ ఒక అందమైన అనుభూతి ఉంటుంది. "${prompt}" అనే ఈ విశేషమైన సందర్భం మన జీవితంలో మర్చిపోలేని జ్ఞాపకాలను అందిస్తుంది. ప్రతీ క్షణాన్ని ఆస్వాదిస్తూ ము ముందుకు సాగడమే నిజమైన ఆనందం.`;
-  }
-
-  return `Every story holds a beautiful memory. "${prompt}" brings unique experiences that last a lifetime. Enjoy every single moment.`;
-}
-
-/**
  * AI Faceless Video Generator
  */
 export async function generateFacelessVideoProject({
   prompt,
   customScriptText,
   targetLanguage = 'te',
-  voiceProvider = 'edge',
+  voiceProvider = 'google',
   durationSec = 30,
   visualMode = 'cinematic',
   aspectRatio = '9:16',

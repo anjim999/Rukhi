@@ -6,6 +6,7 @@ import { preflightValidatorService } from '../../services/studio/preflightValida
 import { directorOrchestratorService } from '../../services/studio/directorOrchestratorService.js';
 import { episodeStitcherService } from '../../services/studio/episodeStitcherService.js';
 import { vertexService } from '../../services/studio/vertexService.js';
+import { featureFilmService } from '../../services/studio/featureFilmService.js';
 
 export const studioController = {
   // Series
@@ -249,6 +250,25 @@ export const studioController = {
       const { ids } = req.body;
       const result = await directorOrchestratorService.bulkDeleteScenes(ids);
       return res.json({ success: true, data: result });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  },
+
+  // Long-Form Feature Film Engine (30 Min to 1 Hour)
+  async launchLongFormFeature(req, res) {
+    try {
+      const jobState = await featureFilmService.launchFeatureFilmJob(req.body);
+      return res.json({ success: true, data: jobState });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  },
+
+  async getLongFormJobStatus(req, res) {
+    try {
+      const status = featureFilmService.getJobStatus(req.params.jobId);
+      return res.json({ success: true, data: status });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
     }

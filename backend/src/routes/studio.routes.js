@@ -36,4 +36,8 @@ router.post('/generate-location-candidates', studioController.generateLocationCa
 router.post('/generate-ai-shotlist', studioController.generateAiShotList);
 router.post('/stitch-episode', studioController.stitchEpisode);
 
+// Long-Form Feature Film Engine (30 Min to 1 Hour)
+router.post('/long-form/generate', studioController.launchLongFormFeature);
+router.get('/long-form/status/:jobId', studioController.getLongFormJobStatus);
+
 export default router;

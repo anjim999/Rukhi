@@ -131,3 +131,68 @@ export async function updateUserPlanOrCredits(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * Get Production Ledger Metrics ($ Cost, Video Count & Telemetry per User)
+ */
+export async function getAdminProductionLedger(req, res, next) {
+  try {
+    const { userId, limit = 50, page = 1 } = req.query;
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+
+    // 1. Overall Cost & Video Generation Totals
+    const totalsRes = await query(`
+      SELECT 
+        COUNT(*) as total_renders,
+        COALESCE(SUM(total_cost_usd), 0) as grand_total_usd,
+        COALESCE(SUM(veo_seconds), 0) as total_veo_seconds,
+        COALESCE(SUM(gemini_input_tokens + gemini_output_tokens), 0) as total_gemini_tokens,
+        COALESCE(SUM(imagen_generated), 0) as total_imagen_images
+      FROM studio_generation_costs
+    `);
+
+    // 2. Per-User Cost & Video Breakdown
+    const userBreakdownRes = await query(`
+      SELECT 
+        u.id as user_id,
+        u.name,
+        u.email,
+        COALESCE(u.plan, 'free') as plan,
+        COUNT(c.id) as videos_created,
+        COALESCE(SUM(c.total_cost_usd), 0) as total_spent_usd,
+        COALESCE(SUM(c.veo_seconds), 0) as total_veo_seconds
+      FROM users u
+      LEFT JOIN studio_generation_costs c ON u.id::text = c.user_id::text
+      GROUP BY u.id, u.name, u.email, u.plan
+      ORDER BY total_spent_usd DESC
+      LIMIT $1 OFFSET $2
+    `, [parseInt(limit, 10), offset]);
+
+    // 3. Recent Individual Video Generation Logs
+    let logsSql = `
+      SELECT 
+        generation_id, user_id, user_email, feature_type, episode, scene,
+        total_cost_usd, veo_seconds, gemini_cost_usd, imagen_cost_usd,
+        status, created_at
+      FROM studio_generation_costs
+    `;
+    const params = [];
+    if (userId) {
+      params.push(userId);
+      logsSql += ` WHERE user_id = $1`;
+    }
+    params.push(parseInt(limit, 10));
+    logsSql += ` ORDER BY created_at DESC LIMIT $${params.length}`;
+
+    const recentLogsRes = await query(logsSql, params);
+
+    return res.json({
+      success: true,
+      summary: totalsRes.rows[0],
+      userCostBreakdown: userBreakdownRes.rows,
+      recentLogs: recentLogsRes.rows
+    });
+  } catch (err) {
+    next(err);
+  }
+}

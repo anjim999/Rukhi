@@ -29,8 +29,7 @@ export const episodeStitcherService = {
 
     console.log(`[EPISODE STITCHER] 🎞️ Found ${res.rows.length} scene clips to stitch!`);
 
-    const outputsDir = path.resolve(process.cwd(), 'outputs');
-    const backendOutputsDir = path.resolve(process.cwd(), 'backend/outputs');
+    const outputsDir = path.resolve('outputs');
 
     // Filter valid physical video files on disk
     const validVideoFiles = [];
@@ -49,12 +48,10 @@ export const episodeStitcherService = {
     // Output episode filename
     const masterFilename = `episode_${seriesId}_ep${episodeNumber}_master.mp4`;
     const masterPath = path.join(outputsDir, masterFilename);
-    const masterBackendPath = path.join(backendOutputsDir, masterFilename);
 
     // Single scene quick-copy optimization
     if (validVideoFiles.length === 1) {
       fs.copyFileSync(validVideoFiles[0], masterPath);
-      fs.copyFileSync(validVideoFiles[0], masterBackendPath);
       return {
         success: true,
         masterVideoUrl: `/outputs/${masterFilename}`,
@@ -72,12 +69,11 @@ export const episodeStitcherService = {
       console.log(`[EPISODE STITCHER] ⚙️ Executing FFmpeg Concat: ${ffmpegCmd}`);
 
       exec(ffmpegCmd, (err) => {
-        if (fs.existsSync(concatTxtPath)) fs.unlinkSync(concatTxtPath);
-
         if (err) {
           console.warn(`[EPISODE STITCHER WARN] FFmpeg concat copy failed, retrying re-encode...`, err.message);
           const fallbackCmd = `"${ffmpegPath}" -y -f concat -safe 0 -i "${concatTxtPath}" -c:v libx264 -c:a aac "${masterPath}"`;
           exec(fallbackCmd, (fallbackErr) => {
+            if (fs.existsSync(concatTxtPath)) fs.unlinkSync(concatTxtPath);
             if (fallbackErr) return reject(fallbackErr);
             if (fs.existsSync(masterPath)) fs.copyFileSync(masterPath, masterBackendPath);
             resolve({
@@ -89,6 +85,7 @@ export const episodeStitcherService = {
           return;
         }
 
+        if (fs.existsSync(concatTxtPath)) fs.unlinkSync(concatTxtPath);
         if (fs.existsSync(masterPath)) fs.copyFileSync(masterPath, masterBackendPath);
 
         console.log(`[EPISODE STITCHER] 🎉 Master Episode Video rendered successfully: /outputs/${masterFilename}`);

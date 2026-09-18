@@ -26,6 +26,9 @@ uploads/*
 !uploads/.gitkeep
 outputs/*
 !outputs/.gitkeep
+backend/backend/
+tmp/
+tmp/*
 tests_and_samples/sample_outputs/*
 !tests_and_samples/sample_outputs/.gitkeep
 tests_and_samples/intermediate_clips/*

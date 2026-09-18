@@ -103,3 +103,11 @@ export async function stitchEpisodeScenes({ seriesId, episodeNumber }) {
 export async function generateStudioAiShotList(payload) {
   return await axiosClient.post('/studio/generate-ai-shotlist', payload);
 }
+
+export async function launchLongFormFeature(payload) {
+  return await axiosClient.post('/studio/long-form/generate', payload);
+}
+
+export async function getLongFormJobStatus(jobId) {
+  return await axiosClient.get(`/studio/long-form/status/${jobId}`);
+}

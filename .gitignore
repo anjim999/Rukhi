@@ -44,4 +44,10 @@ backend/gcp_key.json
 backend/storage/
 deploy_package/
 
+# Film productions (scripts, generated references, clips, ledgers)
+productions/*
+!productions/tools/
+!productions/*.mjs
+!productions/*.md
+
 

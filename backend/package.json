@@ -12,7 +12,8 @@
 
 
     "dev": "nodemon -e js,mjs,json,env src/app.js",
-    "worker": "nodemon -e js,mjs,json,env src/workers/mediaWorker.js"
+    "worker": "nodemon -e js,mjs,json,env src/workers/mediaWorker.js",
+    "film": "node src/film/cli.js"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
